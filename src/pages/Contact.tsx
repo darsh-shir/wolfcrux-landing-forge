@@ -73,18 +73,21 @@ const Contact = () => {
             </Card>
 
             <Card className="border-border animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              <CardContent className="p-8 text-center">
-                <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Mail className="text-accent" size={28} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
-                  Email
-                </h3>
-                <p className="font-['Inter'] text-muted-foreground text-sm">
-                  info@wolfcrux.com
-                </p>
-              </CardContent>
-            </Card>
+  <CardContent className="p-8 text-center">
+    <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+      <Mail className="text-accent" size={28} />
+    </div>
+    <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
+      Email
+    </h3>
+    <p className="font-['Inter'] text-muted-foreground text-sm">
+      <a href="mailto:info@wolfcrux.com" className="text-accent hover:underline">
+        info@wolfcrux.com
+      </a>
+    </p>
+  </CardContent>
+</Card>
+
           </div>
         </div>
       </section>
