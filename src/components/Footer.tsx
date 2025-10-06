@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import logo from "@/assets/wolfcrux-logo.jpg";
+import logo from "@/assets/wolfcrux-logo.png";
 
 const Footer = () => {
   return (
