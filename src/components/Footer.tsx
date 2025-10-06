@@ -9,7 +9,7 @@ const Footer = () => {
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <img src={logo} alt="Wolfcrux" className="h-10 w-10 object-contain" />
+              <img src={logo} alt="WOLFCRUX" className="h-10 w-10 object-contain" />
               <span className="font-['Space_Grotesk'] text-lg font-bold text-foreground">
                 Wolfcrux Global Markets LLP
               </span>
@@ -17,6 +17,7 @@ const Footer = () => {
             <p className="text-sm text-muted-foreground mb-4 max-w-md font-['Inter']">
               Premier high-frequency trading firm specializing in US markets. 
               Established in February 2025, based in Mumbai, India.
+              LLP Identification Number : ACQ-1837
             </p>
             <p className="text-xs text-muted-foreground font-['Inter']">
               © 2025 Wolfcrux Global Markets LLP. All rights reserved.
