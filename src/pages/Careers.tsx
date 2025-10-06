@@ -9,7 +9,7 @@ import { ArrowRight, Code2, LineChart, Cpu, Users } from "lucide-react";
 const Careers = () => {
   const positions = [
     {
-      title: "Quantitative Trader",
+      title: "US Equity Trader",
       department: "Trading",
       location: "Mumbai",
       icon: LineChart,
@@ -23,7 +23,7 @@ const Careers = () => {
       description: "Build and optimize low-latency trading infrastructure and execution systems.",
     },
     {
-      title: "Quantitative Researcher",
+      title: "Quantitative Trader",
       department: "Research",
       location: "Mumbai",
       icon: Cpu,
