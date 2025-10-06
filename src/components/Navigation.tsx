@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/wolfcrux-logo.jpg";
+import logo from "@/assets/wolfcrux-logo.png";
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,9 +23,9 @@ const Navigation = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <img src={logo} alt="Wolfcrux" className="h-12 w-12 object-contain" />
+            <img src={logo} alt="WOLFCRUX" className="h-12 w-12 object-contain" />
             <span className="font-['Space_Grotesk'] text-xl font-bold text-foreground">
-              Wolfcrux
+              WOLFCRUX
             </span>
           </Link>
 
