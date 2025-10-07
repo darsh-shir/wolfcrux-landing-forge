@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset 
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+>
+  <url>
+    <loc>https://www.wolfcrux.com/</loc>
+    <lastmod>2025-10-07</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.wolfcrux.com/contact</loc>
+    <lastmod>2025-10-07</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <!-- Add more URLs here if your site has other pages -->
+</urlset>
