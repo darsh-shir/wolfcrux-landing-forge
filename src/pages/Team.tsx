@@ -57,9 +57,9 @@ const Team = () => {
         <div className="max-w-7xl mx-auto">
           {/* Portrait Photo Section */}
           <div className="flex justify-center mb-12 animate-fade-in">
-            <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full overflow-hidden border-4 border-accent/20 shadow-elegant">
+            <div className="relative w-full max-w-4xl aspect-[16/9] rounded-lg overflow-hidden border-4 border-accent/20 shadow-elegant">
               <img 
-                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&h=800&fit=crop"
+                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=675&fit=crop"
                 alt="Wolfcrux Team"
                 className="w-full h-full object-cover"
               />
