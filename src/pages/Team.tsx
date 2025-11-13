@@ -55,8 +55,19 @@ const Team = () => {
       
       <main className="pt-32 pb-20 px-6">
         <div className="max-w-7xl mx-auto">
+          {/* Portrait Photo Section */}
+          <div className="flex justify-center mb-12 animate-fade-in">
+            <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full overflow-hidden border-4 border-accent/20 shadow-elegant">
+              <img 
+                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&h=800&fit=crop"
+                alt="Wolfcrux Team"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+
           {/* Header */}
-          <div className="text-center mb-16 animate-fade-in">
+          <div className="text-center mb-16 animate-fade-in" style={{ animationDelay: '100ms' }}>
             <h1 className="font-['Space_Grotesk'] text-5xl md:text-6xl font-bold text-foreground mb-6">
               Our Team
             </h1>
