@@ -3,11 +3,11 @@ import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Quote } from "lucide-react";
 
-// 🔥 Import all images properly
+// ✅ Import all photos correctly
 import krishaPhoto from "@/assets/krisha_photo.jpeg";
 import jenishPhoto from "@/assets/jenish_photo.jpeg";
+import purviPhoto from "@/assets/purvi_photo.jpg";      // NEW correct import
 import labdhiPhoto from "@/assets/labdhi_photo.jpg";
-import purviphoto from "@/assets/purvi_photo.jpg"; 
 import darshitPhoto from "@/assets/darshit_photo.jpeg";
 import jinalPhoto from "@/assets/jinal-photo.jpeg";
 
@@ -32,11 +32,11 @@ const Testimonials = () => {
         "What sets Wolfcrux apart is how the seniors break down complex ideas into simple, actionable steps. I’ve never felt this confident placing trades backed by real logic and risk control.",
       author: "Purvi Doshi",
       position: "Equity Trader",
-      image: purviPhoto,
+      image: purviPhoto,       // ✅ Correct image
     },
     {
       quote:
-        "The trust here is real — from day one I felt like I was part of something bigger. Knowing the team has your back during tough market days makes all the difference",
+        "The trust here is real — from day one I felt like I was part of something bigger. Knowing the team has your back during tough market days makes all the difference.",
       author: "Labdhi Gada",
       position: "Equity Trader",
       image: labdhiPhoto,
@@ -63,7 +63,6 @@ const Testimonials = () => {
 
       <main className="pt-32 pb-20 px-6">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="text-center mb-16 animate-fade-in">
             <h1 className="font-['Space_Grotesk'] text-5xl md:text-6xl font-bold text-foreground mb-6">
               Traders Testimonials
@@ -73,9 +72,8 @@ const Testimonials = () => {
             </p>
           </div>
 
-          {/* Testimonials Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {testimonials.map((testimonial, index) => (
+            {testimonials.map((test, index) => (
               <Card
                 key={index}
                 className="group hover:shadow-xl transition-all duration-300 animate-fade-in border-border bg-card"
@@ -84,20 +82,21 @@ const Testimonials = () => {
                 <CardContent className="p-8">
                   <Quote className="text-accent mb-4" size={32} />
                   <p className="font-['Inter'] text-lg text-foreground mb-6 leading-relaxed">
-                    "{testimonial.quote}"
+                    "{test.quote}"
                   </p>
+
                   <div className="flex items-center gap-4">
                     <img
-                      src={testimonial.image}
-                      alt={testimonial.author}
+                      src={test.image}
+                      alt={test.author}
                       className="w-12 h-12 rounded-full object-cover"
                     />
                     <div>
                       <h4 className="font-['Space_Grotesk'] font-semibold text-foreground">
-                        {testimonial.author}
+                        {test.author}
                       </h4>
                       <p className="font-['Inter'] text-sm text-muted-foreground">
-                        {testimonial.position}
+                        {test.position}
                       </p>
                     </div>
                   </div>
