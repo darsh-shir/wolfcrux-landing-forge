@@ -36,7 +36,7 @@ const Careers = () => {
         • Additional Monthly Incentives paid  
 
         **Timings**
-        • Monday to Friday — 1:30 PM to 8:30 PM
+        • Monday to Friday — 1:30 PM to 8:00 PM
       `,
     },
   ];
