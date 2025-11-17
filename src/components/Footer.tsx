@@ -17,10 +17,9 @@ const Footer = () => {
             <p className="text-sm text-muted-foreground mb-4 max-w-md font-['Inter']">
               Premier high-frequency trading firm specializing in US markets. 
               Established in February 2025, based in Mumbai, India. 
-              <br>
-                LLP Identification Number : ACQ-1837
-              </br>
-              
+            
+              LLP Identification Number: ACQ-1837
+
             </p>
             <p className="text-xs text-muted-foreground font-['Inter']">
               © 2025 Wolfcrux Global Markets LLP. All rights reserved.
