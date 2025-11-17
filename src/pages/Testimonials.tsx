@@ -9,37 +9,37 @@ const Testimonials = () => {
       quote: "Joining Wolfcrux Global pushed me to think faster and trade smarter — the team energy is unmatched. Every day I feel like I’m leveling up with people who genuinely want me to win.",
       author: "Krisha Gandhi",
       position: "Equity Trader",
-      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop"
+      image: "src/assets/krisha_photo.jpeg"
     },
     {
       quote: "Wolfcrux taught me discipline and gave me a structure that actually works in live markets. The support during volatile sessions has been the biggest game-changer for my trading career.",
       author: "Jenish Pansuriya",
       position: "Senior Trader",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop"
+      image: "src/assets/jenish_photo.jpeg"
     },
     {
       quote: "What sets Wolfcrux apart is how the seniors break down complex ideas into simple, actionable steps. I’ve never felt this confident placing trades backed by real logic and risk control.",
       author: "Purvi Doshi",
       position: "Equity Trader",
-      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop"
+      image: "src/assets/labdhi_photo.jpg"
     },
     {
       quote: "The trust here is real — from day one I felt like I was part of something bigger. Knowing the team has your back during tough market days makes all the difference",
       author: "Labdhi Gada",
       position: "Equity Trader",
-      image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop"
+      image: "src/assets/krisha_photo.jpeg"
     },
     {
       quote: "Wolfcrux’s technology and data-driven approach completely changed the way I analyze price action. Tools here are built for traders who want speed, precision, and real edge.",
       author: "Darshit Shiroiya",
       position: "Equity Analyst",
-      image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop"
+      image: "src/assets/darshit_photo.jpeg"
     },
     {
       quote: "Working here has shown me what professional trading truly feels like — clear communication, teamwork, and consistent results. The environment makes you better without even realizing it.",
       author: "Jinal Ranka",
       position: "Equity Trader",
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop"
+      image: "src/assets/jinal-photo.jpeg"
     }
   ];
 
