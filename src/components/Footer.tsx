@@ -18,7 +18,8 @@ const Footer = () => {
               Premier high-frequency trading firm specializing in US markets. 
               Established in February 2025, based in Mumbai, India. 
             
-              LLP Identification Number: ACQ-1837
+              <br />
+              <span>LLP Identification Number: ACQ-1837</span>
 
             </p>
             <p className="text-xs text-muted-foreground font-['Inter']">
