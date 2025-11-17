@@ -3,50 +3,64 @@ import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Quote } from "lucide-react";
 
+// 🔥 Import all images properly
+import krishaPhoto from "@/assets/krisha_photo.jpeg";
+import jenishPhoto from "@/assets/jenish_photo.jpeg";
+import labdhiPhoto from "@/assets/labdhi_photo.jpg";
+import labdhiPhoto2 from "@/assets/krisha_photo.jpeg"; 
+import darshitPhoto from "@/assets/darshit_photo.jpeg";
+import jinalPhoto from "@/assets/jinal-photo.jpeg";
+
 const Testimonials = () => {
   const testimonials = [
     {
-      quote: "Joining Wolfcrux Global pushed me to think faster and trade smarter — the team energy is unmatched. Every day I feel like I’m leveling up with people who genuinely want me to win.",
+      quote:
+        "Joining Wolfcrux Global pushed me to think faster and trade smarter — the team energy is unmatched. Every day I feel like I’m leveling up with people who genuinely want me to win.",
       author: "Krisha Gandhi",
       position: "Equity Trader",
-      image: "src/assets/krisha_photo.jpeg"
+      image: krishaPhoto,
     },
     {
-      quote: "Wolfcrux taught me discipline and gave me a structure that actually works in live markets. The support during volatile sessions has been the biggest game-changer for my trading career.",
+      quote:
+        "Wolfcrux taught me discipline and gave me a structure that actually works in live markets. The support during volatile sessions has been the biggest game-changer for my trading career.",
       author: "Jenish Pansuriya",
       position: "Senior Trader",
-      image: "src/assets/jenish_photo.jpeg"
+      image: jenishPhoto,
     },
     {
-      quote: "What sets Wolfcrux apart is how the seniors break down complex ideas into simple, actionable steps. I’ve never felt this confident placing trades backed by real logic and risk control.",
+      quote:
+        "What sets Wolfcrux apart is how the seniors break down complex ideas into simple, actionable steps. I’ve never felt this confident placing trades backed by real logic and risk control.",
       author: "Purvi Doshi",
       position: "Equity Trader",
-      image: "src/assets/labdhi_photo.jpg"
+      image: labdhiPhoto,
     },
     {
-      quote: "The trust here is real — from day one I felt like I was part of something bigger. Knowing the team has your back during tough market days makes all the difference",
+      quote:
+        "The trust here is real — from day one I felt like I was part of something bigger. Knowing the team has your back during tough market days makes all the difference",
       author: "Labdhi Gada",
       position: "Equity Trader",
-      image: "src/assets/krisha_photo.jpeg"
+      image: labdhiPhoto2,
     },
     {
-      quote: "Wolfcrux’s technology and data-driven approach completely changed the way I analyze price action. Tools here are built for traders who want speed, precision, and real edge.",
+      quote:
+        "Wolfcrux’s technology and data-driven approach completely changed the way I analyze price action. Tools here are built for traders who want speed, precision, and real edge.",
       author: "Darshit Shiroiya",
       position: "Equity Analyst",
-      image: "https://raw.githubusercontent.com/darsh-shir/wolfcrux-landing-forge/blob/main/src/assets/darshit_photo.jpeg"
+      image: darshitPhoto,
     },
     {
-      quote: "Working here has shown me what professional trading truly feels like — clear communication, teamwork, and consistent results. The environment makes you better without even realizing it.",
+      quote:
+        "Working here has shown me what professional trading truly feels like — clear communication, teamwork, and consistent results. The environment makes you better without even realizing it.",
       author: "Jinal Ranka",
       position: "Equity Trader",
-      image: "src/assets/jinal-photo.jpeg"
-    }
+      image: jinalPhoto,
+    },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <main className="pt-32 pb-20 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -62,7 +76,7 @@ const Testimonials = () => {
           {/* Testimonials Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {testimonials.map((testimonial, index) => (
-              <Card 
+              <Card
                 key={index}
                 className="group hover:shadow-xl transition-all duration-300 animate-fade-in border-border bg-card"
                 style={{ animationDelay: `${index * 100}ms` }}
@@ -73,7 +87,7 @@ const Testimonials = () => {
                     "{testimonial.quote}"
                   </p>
                   <div className="flex items-center gap-4">
-                    <img 
+                    <img
                       src={testimonial.image}
                       alt={testimonial.author}
                       className="w-12 h-12 rounded-full object-cover"
