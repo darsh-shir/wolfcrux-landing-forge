@@ -33,7 +33,7 @@ const Testimonials = () => {
       quote: "Wolfcrux’s technology and data-driven approach completely changed the way I analyze price action. Tools here are built for traders who want speed, precision, and real edge.",
       author: "Darshit Shiroiya",
       position: "Equity Analyst",
-      image: "https://github.com/darsh-shir/wolfcrux-landing-forge/blob/main/src/assets/darshit_photo.jpeg"
+      image: "https://raw.githubusercontent.com/darsh-shir/wolfcrux-landing-forge/blob/main/src/assets/darshit_photo.jpeg"
     },
     {
       quote: "Working here has shown me what professional trading truly feels like — clear communication, teamwork, and consistent results. The environment makes you better without even realizing it.",
