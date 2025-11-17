@@ -3,47 +3,58 @@ import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Linkedin, Mail } from "lucide-react";
 
+// Import all 6 trader photos
+import krishaPhoto from "@/assets/krisha_photo.jpeg";
+import jenishPhoto from "@/assets/jenish_photo.jpeg";
+import purviPhoto from "@/assets/purvi_photo.jpg";
+import labdhiPhoto from "@/assets/labdhi_photo.jpg";
+import darshitPhoto from "@/assets/darshit_photo.jpeg";
+import jinalPhoto from "@/assets/jinal-photo.jpeg";
+
+// Import main team photo
+import teamPhoto from "@/assets/team_photo.jpg";
+
 const Team = () => {
   const teamMembers = [
     {
       name: "Add Name",
-      role: "Chief Executive Officer",
-      image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop",
+      role: "Add Position",
+      image: krishaPhoto,
       linkedin: "#",
       email: "email@wolfcrux.com"
     },
     {
       name: "Add Name",
-      role: "Chief Technology Officer",
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
+      role: "Add Position",
+      image: jenishPhoto,
       linkedin: "#",
       email: "email@wolfcrux.com"
     },
     {
       name: "Add Name",
-      role: "Head of Trading",
-      image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop",
+      role: "Add Position",
+      image: purviPhoto,
       linkedin: "#",
       email: "email@wolfcrux.com"
     },
     {
       name: "Add Name",
-      role: "Lead Quantitative Analyst",
-      image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop",
+      role: "Add Position",
+      image: labdhiPhoto,
       linkedin: "#",
       email: "email@wolfcrux.com"
     },
     {
       name: "Add Name",
-      role: "Head of Infrastructure",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+      role: "Add Position",
+      image: darshitPhoto,
       linkedin: "#",
       email: "email@wolfcrux.com"
     },
     {
       name: "Add Name",
-      role: "Senior Risk Manager",
-      image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=400&fit=crop",
+      role: "Add Position",
+      image: jinalPhoto,
       linkedin: "#",
       email: "email@wolfcrux.com"
     }
@@ -55,11 +66,12 @@ const Team = () => {
       
       <main className="pt-32 pb-20 px-6">
         <div className="max-w-7xl mx-auto">
-          {/* Portrait Photo Section */}
+          
+          {/* Team Photo Section */}
           <div className="flex justify-center mb-12 animate-fade-in">
             <div className="relative w-full max-w-4xl aspect-[16/9] rounded-lg overflow-hidden border-4 border-accent/20 shadow-elegant">
               <img 
-                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=675&fit=crop"
+                src={teamPhoto}
                 alt="Wolfcrux Team"
                 className="w-full h-full object-cover"
               />
@@ -118,6 +130,7 @@ const Team = () => {
               </Card>
             ))}
           </div>
+
         </div>
       </main>
 
