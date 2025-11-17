@@ -1,7 +1,6 @@
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import FloatingShapes from "@/components/FloatingShapes";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, LineChart, Users, Cpu, Code2 } from "lucide-react";
@@ -14,33 +13,30 @@ const Careers = () => {
       location: "Mumbai",
       icon: LineChart,
       description: `
-        This is a full-time, on-site role for an Equity Trader in Mumbai. 
-        The Equity Trader will focus on analyzing market trends, providing liquidity, 
-        executing trading strategies, and actively engaging in U.S. equity markets.
+        This is a full-time, on-site role for a US Equity Trader based in Mumbai. 
+        The Equity Trader will be responsible for analyzing market trends, providing liquidity, 
+        and executing high-precision trading strategies during US market hours. You will participate in 
+        fast-paced trading sessions, apply technical analysis, and make informed decisions under pressure.
 
-        Responsibilities include:
-        • Applying technical analysis  
-        • Executing trades with discipline  
-        • Making informed decisions under pressure  
-        • Managing risk effectively  
-        • Tracking U.S. equity market behavior  
-        • Contributing to team trading performance  
+        Your role includes interpreting real-time data, maintaining discipline, and contributing to the team’s 
+        overall trading performance. You will collaborate with senior traders, refine trading strategies, and adapt 
+        quickly to changing market conditions. A strong passion for financial markets, high focus, and a willingness 
+        to continuously improve are essential.
 
-        Qualifications:
-        • Strong technical analysis skills  
-        • Knowledge of stock market dynamics  
-        • Ability to analyze market data quickly  
-        • High discipline and strong work ethic  
-        • Bachelor’s degree in Finance/Economics (preferred)  
-        • Prior trading experience is a plus but not required  
+        **Qualifications**
+        • Strong understanding of stock market concepts and live market behavior  
+        • Technical Analysis knowledge & ability to build or follow strategies  
+        • Excellent analytical thinking and fast decision-making ability  
+        • Strong discipline and emotional control  
+        • Bachelor's degree in Finance / Economics preferred  
+        • Prior trading experience is an advantage, not mandatory  
 
-        Salary:
-        • ₹20,000 – ₹25,000 per month  
-        • Monthly incentives paid separately  
+        **Salary**
+        • Monthly Salary: ₹20,000 – ₹25,000  
+        • Additional Monthly Incentives paid  
 
-        Job Timings:
-        • Monday to Friday  
-        • 1:30 PM to 8:30 PM  
+        **Timings**
+        • Monday to Friday — 1:30 PM to 8:30 PM
       `,
     },
   ];
@@ -49,7 +45,7 @@ const Careers = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      {/* Hero Section */}
+      {/* HERO SECTION */}
       <section className="relative pt-32 pb-20 overflow-hidden">
         <FloatingShapes />
 
@@ -67,7 +63,7 @@ const Careers = () => {
         </div>
       </section>
 
-      {/* Why Join */}
+      {/* WHY JOIN */}
       <section className="py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
@@ -126,7 +122,7 @@ const Careers = () => {
         </div>
       </section>
 
-      {/* Open Positions */}
+      {/* OPEN POSITIONS */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground mb-12">
@@ -138,8 +134,8 @@ const Careers = () => {
               <Card
                 key={index}
                 className="border-border hover:shadow-lg transition-all animate-fade-in group cursor-pointer"
+                onClick={() => (window.location.href = "mailto:info@wolfcrux.com")}
                 style={{ animationDelay: `${index * 0.1}s` }}
-                onClick={() => window.location.href = "mailto:info@wolfcrux.com"}
               >
                 <CardContent className="p-8">
                   <div className="flex items-start justify-between gap-6">
@@ -148,17 +144,21 @@ const Careers = () => {
                         <position.icon className="text-accent" size={24} />
                       </div>
 
-                      <div className="flex-1">
+                      <div className="flex-1 whitespace-pre-line">
                         <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-2">
                           {position.title}
                         </h3>
 
                         <div className="flex gap-4 mb-3">
-                          <span className="font-['Inter'] text-sm text-muted-foreground">{position.department}</span>
-                          <span className="font-['Inter'] text-sm text-muted-foreground">• {position.location}</span>
+                          <span className="font-['Inter'] text-sm text-muted-foreground">
+                            {position.department}
+                          </span>
+                          <span className="font-['Inter'] text-sm text-muted-foreground">
+                            • {position.location}
+                          </span>
                         </div>
 
-                        <p className="whitespace-pre-line font-['Inter'] text-muted-foreground">
+                        <p className="font-['Inter'] text-muted-foreground whitespace-pre-line">
                           {position.description}
                         </p>
                       </div>
@@ -173,6 +173,76 @@ const Careers = () => {
               </Card>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* APPLICATION PROCESS */}
+      <section className="py-20 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
+            Application Process
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
+
+            <div className="text-center animate-fade-in">
+              <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-4 font-['Space_Grotesk'] font-bold text-lg">
+                1
+              </div>
+              <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Apply</h3>
+              <p className="font-['Inter'] text-sm text-muted-foreground">Submit your application and resume</p>
+            </div>
+
+            <div className="text-center animate-fade-in" style={{ animationDelay: "0.1s" }}>
+              <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-4 font-['Space_Grotesk'] font-bold text-lg">
+                2
+              </div>
+              <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Screen</h3>
+              <p className="font-['Inter'] text-sm text-muted-foreground">Technical assessment and review</p>
+            </div>
+
+            <div className="text-center animate-fade-in" style={{ animationDelay: "0.2s" }}>
+              <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-4 font-['Space_Grotesk'] font-bold text-lg">
+                3
+              </div>
+              <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Interview</h3>
+              <p className="font-['Inter'] text-sm text-muted-foreground">Meet with our team</p>
+            </div>
+
+            <div className="text-center animate-fade-in" style={{ animationDelay: "0.3s" }}>
+              <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-4 font-['Space_Grotesk'] font-bold text-lg">
+                4
+              </div>
+              <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Offer</h3>
+              <p className="font-['Inter'] text-sm text-muted-foreground">Welcome to Wolfcrux!</p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-primary/5" />
+        <FloatingShapes />
+
+        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center relative z-10">
+          <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground mb-6">
+            Don't See a Perfect Fit?
+          </h2>
+          <p className="font-['Inter'] text-lg text-muted-foreground mb-8">
+            We're always interested in hearing from talented individuals. 
+            Send us your resume and we'll keep you in mind for future opportunities.
+          </p>
+
+          <Button
+            size="lg"
+            className="bg-accent hover:bg-accent/90 text-accent-foreground font-['Inter']"
+            onClick={() => (window.location.href = "mailto:info@wolfcrux.com")}
+          >
+            Get in Touch
+            <ArrowRight className="ml-2" size={20} />
+          </Button>
         </div>
       </section>
 
