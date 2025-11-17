@@ -55,7 +55,7 @@ const Testimonials = () => {
               Traders Testimonials
             </h1>
             <p className="font-['Inter'] text-xl text-muted-foreground max-w-3xl mx-auto">
-              Hear what our partners and Traders say about working with Wolfcrux Global Markets.
+              Hear what our Traders say about working with Wolfcrux Global Markets.
             </p>
           </div>
 
