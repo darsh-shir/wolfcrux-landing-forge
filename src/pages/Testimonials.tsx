@@ -52,10 +52,10 @@ const Testimonials = () => {
           {/* Header */}
           <div className="text-center mb-16 animate-fade-in">
             <h1 className="font-['Space_Grotesk'] text-5xl md:text-6xl font-bold text-foreground mb-6">
-              Client Testimonials
+              Traders Testimonials
             </h1>
             <p className="font-['Inter'] text-xl text-muted-foreground max-w-3xl mx-auto">
-              Hear what our partners and clients say about working with Wolfcrux Global Markets.
+              Hear what our partners and Traders say about working with Wolfcrux Global Markets.
             </p>
           </div>
 
