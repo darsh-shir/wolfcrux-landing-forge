@@ -7,7 +7,7 @@ import { Quote } from "lucide-react";
 import krishaPhoto from "@/assets/krisha_photo.jpeg";
 import jenishPhoto from "@/assets/jenish_photo.jpeg";
 import labdhiPhoto from "@/assets/labdhi_photo.jpg";
-import labdhiPhoto2 from "@/assets/krisha_photo.jpeg"; 
+import purviphoto from "@/assets/purvi_photo.jpg"; 
 import darshitPhoto from "@/assets/darshit_photo.jpeg";
 import jinalPhoto from "@/assets/jinal-photo.jpeg";
 
@@ -32,14 +32,14 @@ const Testimonials = () => {
         "What sets Wolfcrux apart is how the seniors break down complex ideas into simple, actionable steps. I’ve never felt this confident placing trades backed by real logic and risk control.",
       author: "Purvi Doshi",
       position: "Equity Trader",
-      image: labdhiPhoto,
+      image: purviPhoto,
     },
     {
       quote:
         "The trust here is real — from day one I felt like I was part of something bigger. Knowing the team has your back during tough market days makes all the difference",
       author: "Labdhi Gada",
       position: "Equity Trader",
-      image: labdhiPhoto2,
+      image: labdhiPhoto,
     },
     {
       quote:
