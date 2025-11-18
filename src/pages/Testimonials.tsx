@@ -16,42 +16,42 @@ const Testimonials = () => {
     {
       quote:
         "Joining Wolfcrux Global pushed me to think faster and trade smarter — the team energy is unmatched. Every day I feel like I’m leveling up with people who genuinely want me to win.",
-      author: "Krisha Gandhi",
+      author: "Krisha",
       position: "Equity Trader",
       image: krishaPhoto,
     },
     {
       quote:
         "Wolfcrux taught me discipline and gave me a structure that actually works in live markets. The support during volatile sessions has been the biggest game-changer for my trading career.",
-      author: "Jenish Pansuriya",
+      author: "Jenish",
       position: "Senior Trader",
       image: jenishPhoto,
     },
     {
       quote:
         "What sets Wolfcrux apart is how the seniors break down complex ideas into simple, actionable steps. I’ve never felt this confident placing trades backed by real logic and risk control.",
-      author: "Purvi Doshi",
+      author: "Purvi",
       position: "Equity Trader",
       image: purviPhoto,       // ✅ Correct image
     },
     {
       quote:
         "The trust here is real — from day one I felt like I was part of something bigger. Knowing the team has your back during tough market days makes all the difference.",
-      author: "Labdhi Gada",
+      author: "Labdhi",
       position: "Equity Trader",
       image: labdhiPhoto,
     },
     {
       quote:
         "Wolfcrux’s technology and data-driven approach completely changed the way I analyze price action. Tools here are built for traders who want speed, precision, and real edge.",
-      author: "Darshit Shiroiya",
+      author: "Darshit",
       position: "Equity Analyst",
       image: darshitPhoto,
     },
     {
       quote:
         "Working here has shown me what professional trading truly feels like — clear communication, teamwork, and consistent results. The environment makes you better without even realizing it.",
-      author: "Jinal Ranka",
+      author: "Jinal",
       position: "Equity Trader",
       image: jinalPhoto,
     },
