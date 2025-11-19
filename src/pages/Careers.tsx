@@ -164,13 +164,14 @@ const Careers = () => {
                       </div>
                     </div>
 
+                    {/* UPDATED ARROW WITH MAILTO */}
                     <ArrowRight
                       className="text-accent group-hover:translate-x-2 transition-transform flex-shrink-0 hidden sm:block cursor-pointer"
-                       size={24}
-                       onClick={(e) => {
-                       e.stopPropagation();  
-                       window.location.href = "mailto:info@wolfcrux.com";
-                       }}
+                      size={24}
+                      onClick={(e) => {
+                        e.stopPropagation(); 
+                        window.location.href = "mailto:info@wolfcrux.com";
+                      }}
                     />
                   </div>
                 </CardContent>
