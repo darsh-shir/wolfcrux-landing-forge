@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import FloatingShapes from "@/components/FloatingShapes";
 import { Building2, Users, Target, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import teamPhoto from "@/assets/team-photo.jpeg";
 
 const About = () => {
   return (
@@ -158,7 +159,7 @@ const About = () => {
           </h2>
           <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border shadow-lg bg-muted/20 animate-fade-in">
             <img 
-              src="/src/assets/team-photo.jpeg" 
+              src={teamPhoto} 
               alt="Wolfcrux Team" 
               className="w-full h-full object-cover"
             />
