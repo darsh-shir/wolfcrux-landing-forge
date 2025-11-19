@@ -33,7 +33,7 @@ const Careers = () => {
 
         **Salary**
         • Monthly Salary: ₹20,000 – ₹25,000  
-        • Additional Monthly Incentives paid  
+        • Additional Monthly Incentives paid can go upto ₹12 Lakhs 
 
         **Timings**
         • Monday to Friday — 1:30 PM to 8:00 PM
