@@ -76,16 +76,16 @@ const Testimonials = () => {
             {testimonials.map((test, index) => (
               <Card
                 key={index}
-                className="group hover:shadow-xl transition-all duration-300 animate-fade-in border-border bg-card"
+                className="group hover:shadow-xl transition-all duration-300 animate-fade-in border-border bg-card flex flex-col"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <CardContent className="p-8">
+                <CardContent className="p-8 flex flex-col flex-grow">
                   <Quote className="text-accent mb-4" size={32} />
-                  <p className="font-['Inter'] text-lg text-foreground mb-6 leading-relaxed">
+                  <p className="font-['Inter'] text-lg text-foreground mb-6 leading-relaxed flex-grow">
                     "{test.quote}"
                   </p>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 mt-auto">
                     <img
                       src={test.image}
                       alt={test.author}
