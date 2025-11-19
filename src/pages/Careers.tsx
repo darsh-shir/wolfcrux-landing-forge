@@ -137,9 +137,9 @@ const Careers = () => {
                 onClick={() => (window.location.href = "mailto:info@wolfcrux.com")}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <CardContent className="p-4 sm:p-8">
-                  <div className="flex items-start justify-between gap-3 sm:gap-6">
-                    <div className="flex items-start gap-3 sm:gap-6 flex-1">
+                <CardContent className="p-6 sm:p-8">
+                  <div className="flex items-start justify-between gap-4 sm:gap-6">
+                    <div className="flex items-start gap-4 sm:gap-6 flex-1">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
                         <position.icon className="text-accent" size={20} />
                       </div>
