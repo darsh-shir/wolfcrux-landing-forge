@@ -157,9 +157,11 @@ const About = () => {
             Our Team
           </h2>
           <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border shadow-lg bg-muted/20 animate-fade-in">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <p className="font-['Inter'] text-muted-foreground">Team photo will be displayed here</p>
-            </div>
+            <img 
+              src="/src/assets/team-photo.jpeg" 
+              alt="Wolfcrux Team" 
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
       </section>
