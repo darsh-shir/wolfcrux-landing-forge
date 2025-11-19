@@ -150,6 +150,20 @@ const About = () => {
         </div>
       </section>
 
+      {/* Team Photo Section */}
+      <section className="py-20">
+        <div className="max-w-5xl mx-auto px-6 lg:px-8">
+          <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
+            Our Team
+          </h2>
+          <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border shadow-lg bg-muted/20 animate-fade-in">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="font-['Inter'] text-muted-foreground">Team photo will be displayed here</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );
