@@ -137,35 +137,35 @@ const Careers = () => {
                 onClick={() => (window.location.href = "mailto:info@wolfcrux.com")}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <CardContent className="p-8">
-                  <div className="flex items-start justify-between gap-6">
-                    <div className="flex items-start gap-6 flex-1">
-                      <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <position.icon className="text-accent" size={24} />
+                <CardContent className="p-4 sm:p-8">
+                  <div className="flex items-start justify-between gap-3 sm:gap-6">
+                    <div className="flex items-start gap-3 sm:gap-6 flex-1">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <position.icon className="text-accent" size={20} />
                       </div>
 
-                      <div className="flex-1 whitespace-pre-line">
-                        <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-['Space_Grotesk'] text-lg sm:text-xl font-semibold text-foreground mb-2">
                           {position.title}
                         </h3>
 
-                        <div className="flex gap-4 mb-3">
-                          <span className="font-['Inter'] text-sm text-muted-foreground">
+                        <div className="flex flex-wrap gap-2 sm:gap-4 mb-3 text-xs sm:text-sm">
+                          <span className="font-['Inter'] text-muted-foreground">
                             {position.department}
                           </span>
-                          <span className="font-['Inter'] text-sm text-muted-foreground">
+                          <span className="font-['Inter'] text-muted-foreground">
                             • {position.location}
                           </span>
                         </div>
 
-                        <p className="font-['Inter'] text-muted-foreground whitespace-pre-line">
+                        <p className="font-['Inter'] text-sm sm:text-base text-muted-foreground whitespace-pre-line leading-relaxed">
                           {position.description}
                         </p>
                       </div>
                     </div>
 
                     <ArrowRight
-                      className="text-accent group-hover:translate-x-2 transition-transform flex-shrink-0"
+                      className="text-accent group-hover:translate-x-2 transition-transform flex-shrink-0 hidden sm:block"
                       size={24}
                     />
                   </div>
