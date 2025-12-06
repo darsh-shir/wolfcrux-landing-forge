@@ -1,1 +1,4 @@
 project_id = "gcdkemngjeaxenjtgoeo"
+
+[functions.trading-dashboard]
+verify_jwt = false
