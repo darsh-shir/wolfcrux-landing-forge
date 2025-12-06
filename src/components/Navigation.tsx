@@ -9,6 +9,7 @@ const Navigation = () => {
   const location = useLocation();
 
   const navLinks = [
+    { name: "Dashboard", path: "/dashboard" },
     { name: "About", path: "/about" },
     { name: "Technology", path: "/technology" },
     { name: "Testimonials", path: "/testimonials" },

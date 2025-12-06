@@ -9,6 +9,7 @@ import Technology from "./pages/Technology";
 import Testimonials from "./pages/Testimonials";
 import Careers from "./pages/Careers";
 import Contact from "./pages/Contact";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/about" element={<About />} />
           <Route path="/technology" element={<Technology />} />
           <Route path="/testimonials" element={<Testimonials />} />
