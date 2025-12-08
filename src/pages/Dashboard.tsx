@@ -86,13 +86,18 @@ const Dashboard = () => {
     ]);
 
     setMarketData([
+      // Futures
+      { symbol: "US500", name: "S&P 500 Futures", price: 5948.50, change: 12.25, changePercent: 0.21, marketState: "LIVE" },
+      { symbol: "US30", name: "Dow Jones Futures", price: 42856.00, change: 45.00, changePercent: 0.11, marketState: "LIVE" },
+      { symbol: "USTECH", name: "Nasdaq 100 Futures", price: 21245.75, change: -28.50, changePercent: -0.13, marketState: "LIVE" },
+      { symbol: "US2000", name: "Russell 2000 Futures", price: 2245.60, change: 8.30, changePercent: 0.37, marketState: "LIVE" },
+      { symbol: "VIX", name: "VIX Index", price: 16.42, change: -0.53, changePercent: -3.12, marketState: "LIVE" },
+      // ETFs
       { symbol: "SPY", name: "SPDR S&P 500 ETF", price: 594.28, change: 3.45, changePercent: 0.58, marketState: "REGULAR" },
-      { symbol: "ES", name: "E-mini S&P 500 Futures", price: 5948.50, change: 12.25, changePercent: 0.21, marketState: "REGULAR" },
-      { symbol: "NQ", name: "E-mini Nasdaq 100 Futures", price: 21245.75, change: -28.50, changePercent: -0.13, marketState: "REGULAR" },
-      { symbol: "YM", name: "E-mini Dow Futures", price: 42856.00, change: 45.00, changePercent: 0.11, marketState: "REGULAR" },
-      { symbol: "RTY", name: "E-mini Russell 2000 Futures", price: 2245.60, change: 8.30, changePercent: 0.37, marketState: "REGULAR" },
-      { symbol: "VIX", name: "VIX Index", price: 16.42, change: -0.53, changePercent: -3.12, marketState: "REGULAR" },
-      { symbol: "DXY", name: "US Dollar Index", price: 108.24, change: 0.18, changePercent: 0.17, marketState: "REGULAR" },
+      { symbol: "DIA", name: "SPDR Dow Jones ETF", price: 428.50, change: 2.10, changePercent: 0.49, marketState: "REGULAR" },
+      { symbol: "QQQ", name: "Invesco QQQ Trust", price: 515.75, change: -1.25, changePercent: -0.24, marketState: "REGULAR" },
+      { symbol: "IWM", name: "iShares Russell 2000 ETF", price: 224.30, change: 1.80, changePercent: 0.81, marketState: "REGULAR" },
+      { symbol: "VXX", name: "iPath S&P 500 VIX", price: 45.20, change: 0.85, changePercent: 1.92, marketState: "REGULAR" },
     ]);
 
     setNews([
@@ -103,6 +108,12 @@ const Dashboard = () => {
       { id: "5", headline: "Jobs report preview: What economists expect for December", source: "MarketWatch", datetime: "2025-01-06T08:00:00Z", url: "#", category: "Economy" },
     ]);
   };
+
+  // Separate futures and ETFs
+  const futuresSymbols = ['US500', 'US30', 'USTECH', 'US2000', 'VIX'];
+  const etfSymbols = ['SPY', 'DIA', 'QQQ', 'IWM', 'VXX'];
+  const futuresData = marketData.filter(item => futuresSymbols.includes(item.symbol));
+  const etfData = marketData.filter(item => etfSymbols.includes(item.symbol));
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
@@ -130,6 +141,7 @@ const Dashboard = () => {
       case "PRE": return { label: "Pre-Market", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" };
       case "POST": return { label: "After Hours", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" };
       case "CLOSED": return { label: "Closed", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" };
+      case "LIVE": return { label: "Live", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" };
       default: return { label: "Market Open", color: "bg-green-500/20 text-green-400 border-green-500/30" };
     }
   };
@@ -185,13 +197,60 @@ const Dashboard = () => {
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
+                {/* Live Futures Section */}
+                <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-accent" />
+                      Live Futures
+                    </CardTitle>
+                    <Badge variant="outline" className="text-xs bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                      <Clock className="w-3 h-3 mr-1" />
+                      Live Feed
+                    </Badge>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="h-24 bg-muted/50 rounded animate-pulse" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                        {futuresData.map((item) => {
+                          const marketState = getMarketStateLabel(item.marketState);
+                          return (
+                            <div key={item.symbol} className="p-4 rounded-lg bg-background/50 border border-border/30 hover:border-accent/50 transition-colors">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-semibold text-foreground">{item.symbol}</span>
+                                {getChangeIcon(item.change)}
+                              </div>
+                              <p className="text-2xl font-bold text-foreground">
+                                {item.symbol === 'VIX' ? '' : ''}{item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </p>
+                              <div className={`text-sm ${getChangeColor(item.change)}`}>
+                                {item.change > 0 ? "+" : ""}{item.change.toFixed(2)} ({item.changePercent > 0 ? "+" : ""}{item.changePercent.toFixed(2)}%)
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">{item.name}</p>
+                              <Badge className={`text-xs mt-2 ${marketState.color}`}>
+                                {marketState.label}
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Market Overview */}
+                  {/* ETF Section */}
                   <Card className="lg:col-span-2 bg-card/80 backdrop-blur-sm border-border/50">
                     <CardHeader className="flex flex-row items-center justify-between">
                       <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-accent" />
-                        Market Overview
+                        <BarChart3 className="w-5 h-5 text-accent" />
+                        ETFs (SPY, DIA, QQQ, IWM, VXX)
                       </CardTitle>
                       <Badge variant="outline" className="text-xs">
                         <Clock className="w-3 h-3 mr-1" />
@@ -200,14 +259,14 @@ const Dashboard = () => {
                     </CardHeader>
                     <CardContent>
                       {loading ? (
-                        <div className="space-y-3">
-                          {[...Array(6)].map((_, i) => (
-                            <div key={i} className="h-12 bg-muted/50 rounded animate-pulse" />
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                          {[...Array(5)].map((_, i) => (
+                            <div key={i} className="h-24 bg-muted/50 rounded animate-pulse" />
                           ))}
                         </div>
                       ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                          {marketData.map((item) => {
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                          {etfData.map((item) => {
                             const marketState = getMarketStateLabel(item.marketState);
                             return (
                               <div key={item.symbol} className="p-4 rounded-lg bg-background/50 border border-border/30 hover:border-accent/50 transition-colors">
@@ -216,12 +275,22 @@ const Dashboard = () => {
                                   {getChangeIcon(item.change)}
                                 </div>
                                 <p className="text-2xl font-bold text-foreground">
-                                  {item.symbol === 'VIX' || item.symbol === 'DXY' ? '' : '$'}{item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  ${item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </p>
                                 <div className={`text-sm ${getChangeColor(item.change)}`}>
                                   {item.change > 0 ? "+" : ""}{item.change.toFixed(2)} ({item.changePercent > 0 ? "+" : ""}{item.changePercent.toFixed(2)}%)
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">{item.name}</p>
+                                {(item.preMarketPrice || item.postMarketPrice) && (
+                                  <div className="mt-2 text-xs">
+                                    {item.preMarketPrice && (
+                                      <span className="text-blue-400">Pre: ${item.preMarketPrice.toFixed(2)}</span>
+                                    )}
+                                    {item.postMarketPrice && (
+                                      <span className="text-purple-400">AH: ${item.postMarketPrice.toFixed(2)}</span>
+                                    )}
+                                  </div>
+                                )}
                                 {item.marketState && item.marketState !== 'REGULAR' && (
                                   <Badge className={`text-xs mt-2 ${marketState.color}`}>
                                     {marketState.label}
