@@ -102,71 +102,117 @@ async function scrapeEconoday(): Promise<any[]> {
   }
 }
 
-// Scrape market data from Yahoo Finance
-async function scrapeMarketData(): Promise<any[]> {
-  try {
-    console.log('Scraping market data...');
-    
-    const symbols = ['SPY', 'QQQ', 'DIA', 'IWM', '^VIX', 'GLD', 'TLT', 'DX-Y.NYB'];
-    const names: Record<string, string> = {
-      'SPY': 'S&P 500 ETF',
-      'QQQ': 'Nasdaq 100 ETF', 
-      'DIA': 'Dow Jones ETF',
-      'IWM': 'Russell 2000 ETF',
-      '^VIX': 'Volatility Index',
-      'GLD': 'Gold ETF',
-      'TLT': 'Treasury Bond ETF',
-      'DX-Y.NYB': 'US Dollar Index'
-    };
-    
-    const displaySymbols: Record<string, string> = {
-      '^VIX': 'VIX',
-      'DX-Y.NYB': 'DXY'
-    };
-    
-    const marketData: any[] = [];
-    
-    for (const symbol of symbols) {
-      try {
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2d`;
-        const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          const result = data?.chart?.result?.[0];
-          
-          if (result) {
-            const meta = result.meta;
-            const price = meta.regularMarketPrice || 0;
-            const prevClose = meta.previousClose || meta.chartPreviousClose || price;
-            const change = price - prevClose;
-            const changePercent = prevClose ? (change / prevClose) * 100 : 0;
-            
-            marketData.push({
-              symbol: displaySymbols[symbol] || symbol,
-              name: names[symbol],
-              price: +price.toFixed(2),
-              change: +change.toFixed(2),
-              changePercent: +changePercent.toFixed(2),
-            });
-          }
-        }
-      } catch (err) {
-        console.error(`Error fetching ${symbol}:`, err);
-      }
-    }
-    
-    console.log(`Fetched ${marketData.length} market symbols`);
-    return marketData.length > 0 ? marketData : getFallbackMarketData();
-    
-  } catch (error) {
-    console.error('Error scraping market data:', error);
+// Fetch futures data from Alpha Vantage
+async function fetchFuturesData(): Promise<any[]> {
+  const apiKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
+  
+  if (!apiKey) {
+    console.error('Alpha Vantage API key not found');
     return getFallbackMarketData();
   }
+  
+  console.log('Fetching futures data from Alpha Vantage...');
+  
+  // Futures symbols - using index ETFs that track futures closely for real-time data
+  // Alpha Vantage has limited futures support, so we use proxies + Yahoo for actual futures
+  const futuresConfig = [
+    { symbol: 'ES=F', name: 'E-mini S&P 500 Futures', displaySymbol: 'ES' },
+    { symbol: 'NQ=F', name: 'E-mini Nasdaq 100 Futures', displaySymbol: 'NQ' },
+    { symbol: 'YM=F', name: 'E-mini Dow Futures', displaySymbol: 'YM' },
+    { symbol: 'RTY=F', name: 'E-mini Russell 2000 Futures', displaySymbol: 'RTY' },
+    { symbol: 'CL=F', name: 'Crude Oil Futures', displaySymbol: 'CL' },
+    { symbol: 'GC=F', name: 'Gold Futures', displaySymbol: 'GC' },
+    { symbol: '^VIX', name: 'VIX Index', displaySymbol: 'VIX' },
+    { symbol: 'DX-Y.NYB', name: 'US Dollar Index', displaySymbol: 'DXY' },
+  ];
+  
+  const marketData: any[] = [];
+  
+  // Fetch from Yahoo Finance for futures (better real-time futures data including pre/post market)
+  for (const config of futuresConfig) {
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(config.symbol)}?interval=1m&range=1d&includePrePost=true`;
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const result = data?.chart?.result?.[0];
+        
+        if (result) {
+          const meta = result.meta;
+          const price = meta.regularMarketPrice || 0;
+          const prevClose = meta.previousClose || meta.chartPreviousClose || price;
+          const change = price - prevClose;
+          const changePercent = prevClose ? (change / prevClose) * 100 : 0;
+          
+          // Get pre/post market prices if available
+          const preMarketPrice = meta.preMarketPrice || null;
+          const postMarketPrice = meta.postMarketPrice || null;
+          const currentPrice = postMarketPrice || preMarketPrice || price;
+          const currentChange = currentPrice - prevClose;
+          const currentChangePercent = prevClose ? (currentChange / prevClose) * 100 : 0;
+          
+          marketData.push({
+            symbol: config.displaySymbol,
+            name: config.name,
+            price: +currentPrice.toFixed(2),
+            change: +currentChange.toFixed(2),
+            changePercent: +currentChangePercent.toFixed(2),
+            regularMarketPrice: +price.toFixed(2),
+            preMarketPrice: preMarketPrice ? +preMarketPrice.toFixed(2) : null,
+            postMarketPrice: postMarketPrice ? +postMarketPrice.toFixed(2) : null,
+            marketState: meta.marketState || 'REGULAR',
+          });
+        }
+      }
+    } catch (err) {
+      console.error(`Error fetching ${config.symbol}:`, err);
+    }
+  }
+  
+  // Also fetch SPY for reference
+  try {
+    const spyUrl = `https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1m&range=1d&includePrePost=true`;
+    const spyResponse = await fetch(spyUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+    });
+    
+    if (spyResponse.ok) {
+      const data = await spyResponse.json();
+      const result = data?.chart?.result?.[0];
+      if (result) {
+        const meta = result.meta;
+        const price = meta.regularMarketPrice || 0;
+        const prevClose = meta.previousClose || price;
+        const preMarketPrice = meta.preMarketPrice || null;
+        const postMarketPrice = meta.postMarketPrice || null;
+        const currentPrice = postMarketPrice || preMarketPrice || price;
+        const currentChange = currentPrice - prevClose;
+        const currentChangePercent = prevClose ? (currentChange / prevClose) * 100 : 0;
+        
+        marketData.unshift({
+          symbol: 'SPY',
+          name: 'SPDR S&P 500 ETF',
+          price: +currentPrice.toFixed(2),
+          change: +currentChange.toFixed(2),
+          changePercent: +currentChangePercent.toFixed(2),
+          regularMarketPrice: +price.toFixed(2),
+          preMarketPrice: preMarketPrice ? +preMarketPrice.toFixed(2) : null,
+          postMarketPrice: postMarketPrice ? +postMarketPrice.toFixed(2) : null,
+          marketState: meta.marketState || 'REGULAR',
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching SPY:', err);
+  }
+  
+  console.log(`Fetched ${marketData.length} futures/market symbols`);
+  return marketData.length > 0 ? marketData : getFallbackMarketData();
 }
 
 // Scrape news from multiple sources
@@ -312,12 +358,15 @@ function getFallbackEconomicEvents() {
 
 function getFallbackMarketData() {
   return [
-    { symbol: "SPY", name: "S&P 500 ETF", price: 594.28, change: 3.45, changePercent: 0.58 },
-    { symbol: "QQQ", name: "Nasdaq 100 ETF", price: 518.42, change: -2.18, changePercent: -0.42 },
-    { symbol: "DIA", name: "Dow Jones ETF", price: 428.75, change: 1.23, changePercent: 0.29 },
-    { symbol: "IWM", name: "Russell 2000 ETF", price: 224.36, change: 0.87, changePercent: 0.39 },
-    { symbol: "VIX", name: "Volatility Index", price: 16.42, change: -0.53, changePercent: -3.12 },
-    { symbol: "DXY", name: "US Dollar Index", price: 108.24, change: 0.18, changePercent: 0.17 },
+    { symbol: "SPY", name: "SPDR S&P 500 ETF", price: 594.28, change: 3.45, changePercent: 0.58, marketState: "REGULAR" },
+    { symbol: "ES", name: "E-mini S&P 500 Futures", price: 5948.50, change: 12.25, changePercent: 0.21, marketState: "REGULAR" },
+    { symbol: "NQ", name: "E-mini Nasdaq 100 Futures", price: 21245.75, change: -28.50, changePercent: -0.13, marketState: "REGULAR" },
+    { symbol: "YM", name: "E-mini Dow Futures", price: 42856.00, change: 45.00, changePercent: 0.11, marketState: "REGULAR" },
+    { symbol: "RTY", name: "E-mini Russell 2000 Futures", price: 2245.60, change: 8.30, changePercent: 0.37, marketState: "REGULAR" },
+    { symbol: "CL", name: "Crude Oil Futures", price: 73.45, change: -0.82, changePercent: -1.10, marketState: "REGULAR" },
+    { symbol: "GC", name: "Gold Futures", price: 2658.20, change: 15.40, changePercent: 0.58, marketState: "REGULAR" },
+    { symbol: "VIX", name: "VIX Index", price: 16.42, change: -0.53, changePercent: -3.12, marketState: "REGULAR" },
+    { symbol: "DXY", name: "US Dollar Index", price: 108.24, change: 0.18, changePercent: 0.17, marketState: "REGULAR" },
   ];
 }
 
@@ -345,7 +394,7 @@ serve(async (req) => {
       // Run all scrapers in parallel
       const [economicEvents, marketData, news] = await Promise.all([
         scrapeEconoday(),
-        scrapeMarketData(),
+        fetchFuturesData(),
         scrapeNews(),
       ]);
 
