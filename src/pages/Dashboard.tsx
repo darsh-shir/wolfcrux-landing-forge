@@ -27,6 +27,10 @@ interface MarketData {
   price: number;
   change: number;
   changePercent: number;
+  regularMarketPrice?: number;
+  preMarketPrice?: number | null;
+  postMarketPrice?: number | null;
+  marketState?: string;
 }
 
 interface NewsItem {
@@ -82,12 +86,13 @@ const Dashboard = () => {
     ]);
 
     setMarketData([
-      { symbol: "SPY", name: "S&P 500 ETF", price: 594.28, change: 3.45, changePercent: 0.58 },
-      { symbol: "QQQ", name: "Nasdaq 100 ETF", price: 518.42, change: -2.18, changePercent: -0.42 },
-      { symbol: "DIA", name: "Dow Jones ETF", price: 428.75, change: 1.23, changePercent: 0.29 },
-      { symbol: "IWM", name: "Russell 2000 ETF", price: 224.36, change: 0.87, changePercent: 0.39 },
-      { symbol: "VIX", name: "Volatility Index", price: 16.42, change: -0.53, changePercent: -3.12 },
-      { symbol: "DXY", name: "US Dollar Index", price: 108.24, change: 0.18, changePercent: 0.17 },
+      { symbol: "SPY", name: "SPDR S&P 500 ETF", price: 594.28, change: 3.45, changePercent: 0.58, marketState: "REGULAR" },
+      { symbol: "ES", name: "E-mini S&P 500 Futures", price: 5948.50, change: 12.25, changePercent: 0.21, marketState: "REGULAR" },
+      { symbol: "NQ", name: "E-mini Nasdaq 100 Futures", price: 21245.75, change: -28.50, changePercent: -0.13, marketState: "REGULAR" },
+      { symbol: "YM", name: "E-mini Dow Futures", price: 42856.00, change: 45.00, changePercent: 0.11, marketState: "REGULAR" },
+      { symbol: "RTY", name: "E-mini Russell 2000 Futures", price: 2245.60, change: 8.30, changePercent: 0.37, marketState: "REGULAR" },
+      { symbol: "VIX", name: "VIX Index", price: 16.42, change: -0.53, changePercent: -3.12, marketState: "REGULAR" },
+      { symbol: "DXY", name: "US Dollar Index", price: 108.24, change: 0.18, changePercent: 0.17, marketState: "REGULAR" },
     ]);
 
     setNews([
@@ -118,6 +123,15 @@ const Dashboard = () => {
     if (change > 0) return "text-green-400";
     if (change < 0) return "text-red-400";
     return "text-muted-foreground";
+  };
+
+  const getMarketStateLabel = (state?: string) => {
+    switch (state) {
+      case "PRE": return { label: "Pre-Market", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" };
+      case "POST": return { label: "After Hours", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" };
+      case "CLOSED": return { label: "Closed", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" };
+      default: return { label: "Market Open", color: "bg-green-500/20 text-green-400 border-green-500/30" };
+    }
   };
 
   const formatTime = (datetime: string) => {
@@ -192,20 +206,30 @@ const Dashboard = () => {
                           ))}
                         </div>
                       ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                          {marketData.map((item) => (
-                            <div key={item.symbol} className="p-4 rounded-lg bg-background/50 border border-border/30 hover:border-accent/50 transition-colors">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="font-semibold text-foreground">{item.symbol}</span>
-                                {getChangeIcon(item.change)}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {marketData.map((item) => {
+                            const marketState = getMarketStateLabel(item.marketState);
+                            return (
+                              <div key={item.symbol} className="p-4 rounded-lg bg-background/50 border border-border/30 hover:border-accent/50 transition-colors">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-semibold text-foreground">{item.symbol}</span>
+                                  {getChangeIcon(item.change)}
+                                </div>
+                                <p className="text-2xl font-bold text-foreground">
+                                  {item.symbol === 'VIX' || item.symbol === 'DXY' ? '' : '$'}{item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
+                                <div className={`text-sm ${getChangeColor(item.change)}`}>
+                                  {item.change > 0 ? "+" : ""}{item.change.toFixed(2)} ({item.changePercent > 0 ? "+" : ""}{item.changePercent.toFixed(2)}%)
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">{item.name}</p>
+                                {item.marketState && item.marketState !== 'REGULAR' && (
+                                  <Badge className={`text-xs mt-2 ${marketState.color}`}>
+                                    {marketState.label}
+                                  </Badge>
+                                )}
                               </div>
-                              <p className="text-2xl font-bold text-foreground">${item.price.toFixed(2)}</p>
-                              <div className={`text-sm ${getChangeColor(item.change)}`}>
-                                {item.change > 0 ? "+" : ""}{item.change.toFixed(2)} ({item.changePercent > 0 ? "+" : ""}{item.changePercent.toFixed(2)}%)
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-1">{item.name}</p>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </CardContent>
@@ -377,28 +401,44 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {marketData.map((item) => (
-                          <div key={item.symbol} className="p-6 rounded-xl bg-background/50 border border-border/30 hover:border-accent/50 transition-all hover:shadow-lg">
-                            <div className="flex items-center justify-between mb-4">
-                              <div>
-                                <h3 className="text-xl font-bold text-foreground">{item.symbol}</h3>
-                                <p className="text-sm text-muted-foreground">{item.name}</p>
+                        {marketData.map((item) => {
+                          const marketState = getMarketStateLabel(item.marketState);
+                          return (
+                            <div key={item.symbol} className="p-6 rounded-xl bg-background/50 border border-border/30 hover:border-accent/50 transition-all hover:shadow-lg">
+                              <div className="flex items-center justify-between mb-4">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="text-xl font-bold text-foreground">{item.symbol}</h3>
+                                    <Badge className={`text-xs ${marketState.color}`}>
+                                      {marketState.label}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">{item.name}</p>
+                                </div>
+                                <div className={`p-2 rounded-full ${item.change >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                                  {getChangeIcon(item.change)}
+                                </div>
                               </div>
-                              <div className={`p-2 rounded-full ${item.change >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                                {getChangeIcon(item.change)}
+                              <p className="text-3xl font-bold text-foreground mb-2">
+                                {item.symbol === 'VIX' || item.symbol === 'DXY' ? '' : '$'}{item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </p>
+                              <div className={`flex items-center gap-2 ${getChangeColor(item.change)}`}>
+                                <span className="font-medium">
+                                  {item.change > 0 ? "+" : ""}{item.change.toFixed(2)}
+                                </span>
+                                <span className="text-sm">
+                                  ({item.changePercent > 0 ? "+" : ""}{item.changePercent.toFixed(2)}%)
+                                </span>
                               </div>
+                              {(item.preMarketPrice || item.postMarketPrice) && (
+                                <div className="mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground">
+                                  {item.preMarketPrice && <div>Pre-Market: ${item.preMarketPrice.toLocaleString()}</div>}
+                                  {item.postMarketPrice && <div>After Hours: ${item.postMarketPrice.toLocaleString()}</div>}
+                                </div>
+                              )}
                             </div>
-                            <p className="text-3xl font-bold text-foreground mb-2">${item.price.toFixed(2)}</p>
-                            <div className={`flex items-center gap-2 ${getChangeColor(item.change)}`}>
-                              <span className="font-medium">
-                                {item.change > 0 ? "+" : ""}{item.change.toFixed(2)}
-                              </span>
-                              <span className="text-sm">
-                                ({item.changePercent > 0 ? "+" : ""}{item.changePercent.toFixed(2)}%)
-                              </span>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </CardContent>
