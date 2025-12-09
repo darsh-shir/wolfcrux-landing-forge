@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 
@@ -13,83 +12,13 @@ interface IndexData {
 }
 
 interface IndexCardsProps {
-  onRefresh?: () => void;
+  data: IndexData[];
+  loading: boolean;
+  lastUpdated: Date | null;
+  onRefresh: () => void;
 }
 
-const IndexCards = ({ onRefresh }: IndexCardsProps) => {
-  const [indices, setIndices] = useState<IndexData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-  const fetchIndices = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(
-        "https://www.perplexity.ai/rest/finance/top-indices/market?with_history=true&history_period=1d&country=US"
-      );
-      
-      if (!response.ok) throw new Error("Failed to fetch indices");
-      
-      const data = await response.json();
-      
-      // Map the response to our format, focusing on S&P 500, NASDAQ, Dow Jones, VIX
-      const targetIndices = ["SPX", "IXIC", "DJI", "VIX"];
-      const nameMap: Record<string, string> = {
-        "SPX": "S&P 500",
-        "IXIC": "NASDAQ",
-        "DJI": "Dow Jones",
-        "VIX": "VIX"
-      };
-      
-      const mappedIndices: IndexData[] = [];
-      
-      if (Array.isArray(data)) {
-        data.forEach((item: any) => {
-          const symbol = item.symbol || item.ticker;
-          if (targetIndices.some(t => symbol?.includes(t) || item.name?.includes(t))) {
-            mappedIndices.push({
-              symbol: symbol,
-              name: nameMap[symbol] || item.name || symbol,
-              price: item.price || item.last || 0,
-              change: item.change || 0,
-              changePercent: item.changePercent || item.change_percent || 0,
-              history: item.history?.map((h: any) => h.close || h.price || h) || []
-            });
-          }
-        });
-      }
-      
-      // If API doesn't return expected format, use fallback
-      if (mappedIndices.length < 4) {
-        setIndices([
-          { symbol: "SPX", name: "S&P 500", price: 5948.71, change: 22.10, changePercent: 0.37, history: generateMockHistory(5948.71) },
-          { symbol: "IXIC", name: "NASDAQ", price: 19480.91, change: 130.25, changePercent: 0.67, history: generateMockHistory(19480.91) },
-          { symbol: "DJI", name: "Dow Jones", price: 42706.56, change: -83.44, changePercent: -0.19, history: generateMockHistory(42706.56) },
-          { symbol: "VIX", name: "VIX", price: 17.42, change: -0.88, changePercent: -4.80, history: generateMockHistory(17.42) }
-        ]);
-      } else {
-        setIndices(mappedIndices);
-      }
-      
-      setLastUpdated(new Date());
-    } catch (err) {
-      console.error("Error fetching indices:", err);
-      setError("Using cached data");
-      setIndices([
-        { symbol: "SPX", name: "S&P 500", price: 5948.71, change: 22.10, changePercent: 0.37, history: generateMockHistory(5948.71) },
-        { symbol: "IXIC", name: "NASDAQ", price: 19480.91, change: 130.25, changePercent: 0.67, history: generateMockHistory(19480.91) },
-        { symbol: "DJI", name: "Dow Jones", price: 42706.56, change: -83.44, changePercent: -0.19, history: generateMockHistory(42706.56) },
-        { symbol: "VIX", name: "VIX", price: 17.42, change: -0.88, changePercent: -4.80, history: generateMockHistory(17.42) }
-      ]);
-      setLastUpdated(new Date());
-    } finally {
-      setLoading(false);
-    }
-  };
-
+const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) => {
   const generateMockHistory = (basePrice: number): number[] => {
     const history: number[] = [];
     let price = basePrice * 0.995;
@@ -101,11 +30,28 @@ const IndexCards = ({ onRefresh }: IndexCardsProps) => {
     return history;
   };
 
-  useEffect(() => {
-    fetchIndices();
-    const interval = setInterval(fetchIndices, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  // Map indices to display format
+  const nameMap: Record<string, string> = {
+    "SPX": "S&P 500",
+    "IXIC": "NASDAQ",
+    "DJI": "Dow Jones",
+    "VIX": "VIX",
+    "^GSPC": "S&P 500",
+    "^DJI": "Dow Jones",
+    "^IXIC": "NASDAQ",
+    "^VIX": "VIX"
+  };
+
+  const indices = data.length > 0 ? data.map(item => ({
+    ...item,
+    name: nameMap[item.symbol] || item.name,
+    history: item.history?.length ? item.history : generateMockHistory(item.price)
+  })) : [
+    { symbol: "SPX", name: "S&P 500", price: 5948.71, change: 22.10, changePercent: 0.37, history: generateMockHistory(5948.71) },
+    { symbol: "IXIC", name: "NASDAQ", price: 19480.91, change: 130.25, changePercent: 0.67, history: generateMockHistory(19480.91) },
+    { symbol: "DJI", name: "Dow Jones", price: 42706.56, change: -83.44, changePercent: -0.19, history: generateMockHistory(42706.56) },
+    { symbol: "VIX", name: "VIX", price: 17.42, change: -0.88, changePercent: -4.80, history: generateMockHistory(17.42) }
+  ];
 
   const Sparkline = ({ data, isPositive }: { data: number[]; isPositive: boolean }) => {
     if (!data || data.length < 2) return null;
@@ -137,7 +83,7 @@ const IndexCards = ({ onRefresh }: IndexCardsProps) => {
     );
   };
 
-  if (loading && indices.length === 0) {
+  if (loading && data.length === 0) {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
@@ -165,7 +111,7 @@ const IndexCards = ({ onRefresh }: IndexCardsProps) => {
             <span>Updated {lastUpdated.toLocaleTimeString()}</span>
           )}
           <button 
-            onClick={fetchIndices} 
+            onClick={onRefresh} 
             className="p-1 hover:bg-muted rounded transition-colors"
             disabled={loading}
           >
@@ -175,7 +121,7 @@ const IndexCards = ({ onRefresh }: IndexCardsProps) => {
       </div>
       
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {indices.map((index) => {
+        {indices.slice(0, 4).map((index) => {
           const isPositive = index.change >= 0;
           return (
             <Card key={index.symbol} className="bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow">

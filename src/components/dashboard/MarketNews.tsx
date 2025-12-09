@@ -1,56 +1,21 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExternalLink, Newspaper, Clock } from "lucide-react";
 
 interface NewsItem {
+  id: string;
   headline: string;
   source: string;
-  publishedAt: string;
+  datetime: string;
   url: string;
+  category?: string;
 }
 
-const MarketNews = () => {
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [loading, setLoading] = useState(true);
+interface MarketNewsProps {
+  data: NewsItem[];
+  loading: boolean;
+}
 
-  const fetchNews = async () => {
-    try {
-      setLoading(true);
-      
-      const response = await fetch("https://www.perplexity.ai/rest/finance/general-news/market?country=US");
-      
-      if (!response.ok) throw new Error("Failed to fetch news");
-      
-      const data = await response.json();
-      
-      if (Array.isArray(data)) {
-        const mappedNews: NewsItem[] = data.slice(0, 10).map((item: any) => ({
-          headline: item.headline || item.title || "",
-          source: item.source || item.publisher || "",
-          publishedAt: item.publishedAt || item.datetime || item.date || "",
-          url: item.url || item.link || "#"
-        }));
-        setNews(mappedNews);
-      } else {
-        setNews(getFallbackNews());
-      }
-    } catch (err) {
-      console.error("Error fetching news:", err);
-      setNews(getFallbackNews());
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getFallbackNews = (): NewsItem[] => [
-    { headline: "Federal Reserve signals measured approach to interest rate adjustments", source: "Reuters", publishedAt: new Date().toISOString(), url: "#" },
-    { headline: "Tech giants lead market rally amid strong earnings outlook", source: "Bloomberg", publishedAt: new Date(Date.now() - 3600000).toISOString(), url: "#" },
-    { headline: "Treasury yields stabilize as inflation data meets expectations", source: "CNBC", publishedAt: new Date(Date.now() - 7200000).toISOString(), url: "#" },
-    { headline: "Global markets react to economic policy announcements", source: "WSJ", publishedAt: new Date(Date.now() - 10800000).toISOString(), url: "#" },
-    { headline: "Energy sector faces headwinds amid shifting demand patterns", source: "MarketWatch", publishedAt: new Date(Date.now() - 14400000).toISOString(), url: "#" },
-    { headline: "Retail investors show renewed interest in dividend stocks", source: "Barron's", publishedAt: new Date(Date.now() - 18000000).toISOString(), url: "#" }
-  ];
-
+const MarketNews = ({ data, loading }: MarketNewsProps) => {
   const formatTimeAgo = (dateString: string): string => {
     try {
       const date = new Date(dateString);
@@ -69,13 +34,16 @@ const MarketNews = () => {
     }
   };
 
-  useEffect(() => {
-    fetchNews();
-    const interval = setInterval(fetchNews, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const news = data.length > 0 ? data : [
+    { id: "1", headline: "Federal Reserve signals cautious approach to rate cuts in 2025", source: "Reuters", datetime: new Date().toISOString(), url: "#", category: "Fed" },
+    { id: "2", headline: "Tech stocks rally on strong earnings expectations", source: "Bloomberg", datetime: new Date(Date.now() - 3600000).toISOString(), url: "#", category: "Markets" },
+    { id: "3", headline: "Oil prices surge amid Middle East tensions", source: "CNBC", datetime: new Date(Date.now() - 7200000).toISOString(), url: "#", category: "Commodities" },
+    { id: "4", headline: "Treasury yields climb as inflation concerns persist", source: "WSJ", datetime: new Date(Date.now() - 10800000).toISOString(), url: "#", category: "Bonds" },
+    { id: "5", headline: "Jobs report preview: What economists expect for December", source: "MarketWatch", datetime: new Date(Date.now() - 14400000).toISOString(), url: "#", category: "Economy" },
+    { id: "6", headline: "Retail investors show renewed interest in dividend stocks", source: "Barron's", datetime: new Date(Date.now() - 18000000).toISOString(), url: "#", category: "Markets" }
+  ];
 
-  if (loading && news.length === 0) {
+  if (loading && data.length === 0) {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
         <CardHeader className="pb-3">
@@ -109,9 +77,9 @@ const MarketNews = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-1 max-h-[400px] overflow-y-auto">
-          {news.map((item, index) => (
+          {news.map((item) => (
             <a 
-              key={index}
+              key={item.id}
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
@@ -128,7 +96,7 @@ const MarketNews = () => {
                 <span>•</span>
                 <div className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  <span>{formatTimeAgo(item.publishedAt)}</span>
+                  <span>{formatTimeAgo(item.datetime)}</span>
                 </div>
               </div>
             </a>

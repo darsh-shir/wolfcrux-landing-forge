@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
@@ -8,42 +7,13 @@ interface SectorData {
   changePercent: number;
 }
 
-const SectorPerformance = () => {
-  const [sectors, setSectors] = useState<SectorData[]>([]);
-  const [loading, setLoading] = useState(true);
+interface SectorPerformanceProps {
+  data: SectorData[];
+  loading: boolean;
+}
 
-  const fetchSectors = async () => {
-    try {
-      setLoading(true);
-      
-      const response = await fetch("https://www.perplexity.ai/rest/finance/equity-sectors");
-      
-      if (!response.ok) throw new Error("Failed to fetch sectors");
-      
-      const data = await response.json();
-      
-      if (Array.isArray(data)) {
-        const mappedSectors: SectorData[] = data.map((item: any) => ({
-          name: item.name || item.sector || "Unknown",
-          lastPrice: item.price || item.last || item.lastPrice || 0,
-          changePercent: item.changePercent || item.change_percent || item.pctChange || 0
-        }));
-        
-        // Sort by absolute percentage move
-        mappedSectors.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
-        setSectors(mappedSectors);
-      } else {
-        setSectors(getFallbackSectors());
-      }
-    } catch (err) {
-      console.error("Error fetching sectors:", err);
-      setSectors(getFallbackSectors());
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getFallbackSectors = (): SectorData[] => [
+const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
+  const sectors = data.length > 0 ? data : [
     { name: "Technology", lastPrice: 3245.67, changePercent: 1.24 },
     { name: "Healthcare", lastPrice: 1523.89, changePercent: 0.87 },
     { name: "Financials", lastPrice: 892.45, changePercent: 0.52 },
@@ -57,13 +27,7 @@ const SectorPerformance = () => {
     { name: "Materials", lastPrice: 534.21, changePercent: -0.28 }
   ].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
 
-  useEffect(() => {
-    fetchSectors();
-    const interval = setInterval(fetchSectors, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (loading && sectors.length === 0) {
+  if (loading && data.length === 0) {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
         <CardHeader className="pb-3">
@@ -90,7 +54,7 @@ const SectorPerformance = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-1">
-          {sectors.map((sector, index) => {
+          {sectors.map((sector) => {
             const isPositive = sector.changePercent >= 0;
             return (
               <div 
