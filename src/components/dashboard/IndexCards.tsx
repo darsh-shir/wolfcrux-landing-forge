@@ -19,7 +19,6 @@ interface IndexCardsProps {
 }
 
 const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) => {
-  // ✅ Symbol → Proper Display Name ONLY
   const nameMap: Record<string, string> = {
     ESUSD: "S&P Futures",
     NQUSD: "NASDAQ Fut.",
@@ -41,7 +40,7 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
           { symbol: "^VIX", name: "VIX", price: 17.41, change: 0.48, changesPercentage: 2.84, history: [] },
         ];
 
-  // ✅ Clean Minimal Sparkline
+  // ✅ Sparkline with SHADOW + AREA FILL
   const Sparkline = ({ data, isPositive }: { data: number[]; isPositive: boolean }) => {
     if (!data || data.length < 2) return null;
 
@@ -50,7 +49,7 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
     const range = max - min || 1;
 
     const width = 150;
-    const height = 36;
+    const height = 40;
     const padding = 2;
 
     const points = data
@@ -61,21 +60,40 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
       })
       .join(" ");
 
+    const areaPoints = `${points} ${width},${height} 0,${height}`;
+
+    const strokeColor = isPositive ? "#0ea5a4" : "#ef4444";
+
     return (
       <svg width={width} height={height} className="mt-2">
+        <defs>
+          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor={strokeColor} floodOpacity="0.25" />
+          </filter>
+
+          <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={strokeColor} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Area Fill */}
+        <polygon fill="url(#areaFill)" points={areaPoints} />
+
+        {/* Line with shadow */}
         <polyline
           fill="none"
-          stroke={isPositive ? "#0ea5a4" : "#ef4444"}
-          strokeWidth="1.5"
+          stroke={strokeColor}
+          strokeWidth="1.6"
           strokeLinecap="round"
           strokeLinejoin="round"
           points={points}
+          filter="url(#shadow)"
         />
       </svg>
     );
   };
 
-  // ✅ Loading Skeleton
   if (loading && data.length === 0) {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -120,10 +138,11 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
               className="bg-card border border-border shadow-sm hover:shadow-md transition-all rounded-xl"
             >
               <CardContent className="p-4">
-                {/* ✅ Top Row */}
+                {/* Top Row */}
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-foreground">{index.name}</p>
 
+                  {/* ✅ TRUE NEGATIVE SIGN SHOWN */}
                   <Badge
                     className={`text-xs px-2 py-0.5 ${
                       isPositive
@@ -136,16 +155,16 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
                     ) : (
                       <TrendingDown className="w-3 h-3 mr-1" />
                     )}
-                    {Math.abs(index.changesPercentage).toFixed(2)}%
+                    {index.changesPercentage.toFixed(2)}%
                   </Badge>
                 </div>
 
-                {/* ✅ Mini Chart */}
+                {/* Sparkline */}
                 {index.history && index.history.length > 0 && (
                   <Sparkline data={index.history} isPositive={isPositive} />
                 )}
 
-                {/* ✅ Bottom Row */}
+                {/* Bottom Row */}
                 <div className="flex items-end justify-between mt-2">
                   <p className="text-xl font-bold text-foreground">
                     {index.price.toLocaleString(undefined, {
@@ -154,13 +173,13 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
                     })}
                   </p>
 
+                  {/* ✅ TRUE NEGATIVE SIGN SHOWN */}
                   <p
                     className={`text-sm font-medium ${
                       isPositive ? "text-green-600" : "text-red-600"
                     }`}
                   >
-                    {isPositive ? "+" : ""}
-                    {index.change.toFixed(1)}
+                    {index.change.toFixed(2)}
                   </p>
                 </div>
               </CardContent>
