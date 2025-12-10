@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 
 interface MoverData {
-  ticker: string;
+  symbol: string;
   name: string;
   price: number;
   changesPercentage: number;
@@ -12,42 +12,33 @@ interface MoverData {
 interface MarketMoversProps {
   gainers: MoverData[];
   losers: MoverData[];
+  actives: MoverData[];
   loading: boolean;
 }
 
-const MarketMovers = ({ gainers, losers, loading }: MarketMoversProps) => {
-  const defaultGainers = [
-    { ticker: "NVDA", name: "NVIDIA Corporation", price: 142.87, changesPercentage: 4.52 },
-    { ticker: "SMCI", name: "Super Micro Computer", price: 34.56, changesPercentage: 3.87 },
-    { ticker: "AMD", name: "Advanced Micro Devices", price: 128.45, changesPercentage: 3.21 },
-    { ticker: "TSLA", name: "Tesla Inc", price: 398.23, changesPercentage: 2.89 },
-    { ticker: "MSTR", name: "MicroStrategy Inc", price: 378.90, changesPercentage: 2.45 }
-  ];
-
-  const defaultLosers = [
-    { ticker: "INTC", name: "Intel Corporation", price: 19.87, changesPercentage: -3.45 },
-    { ticker: "BA", name: "Boeing Company", price: 167.23, changesPercentage: -2.89 },
-    { ticker: "DIS", name: "Walt Disney Co", price: 112.45, changesPercentage: -2.12 },
-    { ticker: "NKE", name: "Nike Inc", price: 74.56, changesPercentage: -1.87 },
-    { ticker: "PFE", name: "Pfizer Inc", price: 26.78, changesPercentage: -1.54 }
-  ];
+const MarketMovers = ({ gainers, losers, actives, loading }: MarketMoversProps) => {
+  const defaultGainers: MoverData[] = [];
+  const defaultLosers: MoverData[] = [];
+  const defaultActives: MoverData[] = [];
 
   const displayGainers = gainers.length > 0 ? gainers : defaultGainers;
   const displayLosers = losers.length > 0 ? losers : defaultLosers;
+  const displayActives = actives.length > 0 ? actives : defaultActives;
 
-  const MoversList = ({ data, type }: { data: MoverData[]; type: 'gainer' | 'loser' }) => {
-    const isGainer = type === 'gainer';
-    
+  const MoversList = ({
+    data,
+    type,
+  }: {
+    data: MoverData[];
+    type: "gainer" | "loser" | "active";
+  }) => {
     if (loading && data.length === 0) {
       return (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="animate-pulse flex items-center justify-between py-2">
-              <div className="space-y-1">
-                <div className="h-4 w-16 bg-muted rounded" />
-                <div className="h-3 w-24 bg-muted rounded" />
-              </div>
-              <div className="h-5 w-16 bg-muted rounded" />
+              <div className="h-4 w-20 bg-muted rounded" />
+              <div className="h-4 w-16 bg-muted rounded" />
             </div>
           ))}
         </div>
@@ -56,30 +47,43 @@ const MarketMovers = ({ gainers, losers, loading }: MarketMoversProps) => {
 
     return (
       <div className="space-y-1">
-        {data.map((item) => (
-          <div 
-            key={item.ticker} 
-            className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-foreground">{item.ticker}</span>
+        {data.map((item) => {
+          const isPositive = item.changesPercentage >= 0;
+
+          return (
+            <div
+              key={item.symbol}
+              className={`flex items-center justify-between py-2.5 px-3 rounded-lg transition-colors
+                ${type === "gainer" ? "bg-green-500/10 hover:bg-green-500/20" : ""}
+                ${type === "loser" ? "bg-red-500/10 hover:bg-red-500/20" : ""}
+                ${type === "active" ? "bg-blue-500/10 hover:bg-blue-500/20" : ""}
+              `}
+            >
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-foreground">{item.symbol}</span>
+                <p className="text-xs text-muted-foreground truncate max-w-[140px]">
+                  {item.name}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground truncate max-w-[140px]">{item.name}</p>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  ${item.price.toFixed(2)}
+                </span>
+
+                <Badge
+                  variant="secondary"
+                  className={`text-xs font-semibold
+                    ${isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}
+                  `}
+                >
+                  {isPositive ? "+" : ""}
+                  {item.changesPercentage.toFixed(2)}%
+                </Badge>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                ${item.price.toFixed(2)}
-              </span>
-              <Badge 
-                variant="secondary" 
-                className={`text-xs font-semibold ${isGainer ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
-              >
-                {isGainer ? '+' : ''}{item.changesPercentage.toFixed(2)}%
-              </Badge>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
@@ -87,23 +91,44 @@ const MarketMovers = ({ gainers, losers, loading }: MarketMoversProps) => {
   return (
     <Card className="bg-card border border-border/50 shadow-sm h-full">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold text-foreground">Market Movers</CardTitle>
+        <CardTitle className="text-base font-semibold text-foreground">
+          Market Movers
+        </CardTitle>
       </CardHeader>
+
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* GAINERS */}
           <div>
             <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/50">
               <TrendingUp className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-semibold text-green-600">Top Gainers</span>
+              <span className="text-sm font-semibold text-green-600">
+                Top Gainers
+              </span>
             </div>
             <MoversList data={displayGainers} type="gainer" />
           </div>
+
+          {/* LOSERS */}
           <div>
             <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/50">
               <TrendingDown className="w-4 h-4 text-red-600" />
-              <span className="text-sm font-semibold text-red-600">Top Losers</span>
+              <span className="text-sm font-semibold text-red-600">
+                Top Losers
+              </span>
             </div>
             <MoversList data={displayLosers} type="loser" />
+          </div>
+
+          {/* ACTIVES */}
+          <div>
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/50">
+              <Activity className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-semibold text-blue-600">
+                Most Active
+              </span>
+            </div>
+            <MoversList data={displayActives} type="active" />
           </div>
         </div>
       </CardContent>
