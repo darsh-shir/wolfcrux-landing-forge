@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Calendar, Clock, Globe, TrendingUp, Newspaper } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { BarChart3, Calendar, Clock, Globe } from "lucide-react";
 
 // Dashboard components
 import IndexCards from "@/components/dashboard/IndexCards";
@@ -14,6 +13,40 @@ import SectorPerformance from "@/components/dashboard/SectorPerformance";
 import MarketMovers from "@/components/dashboard/MarketMovers";
 import MarketNews from "@/components/dashboard/MarketNews";
 import StockSplits from "@/components/dashboard/StockSplits";
+
+const PROXY_URL = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+
+// Interfaces for API data
+interface IndexData {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  history?: number[];
+}
+
+interface SectorData {
+  name: string;
+  lastPrice: number;
+  changePercent: number;
+}
+
+interface MoverData {
+  ticker: string;
+  name: string;
+  price: number;
+  changePercent: number;
+}
+
+interface NewsItem {
+  id: string;
+  headline: string;
+  source: string;
+  datetime: string;
+  url: string;
+  category?: string;
+}
 
 interface EconomicEvent {
   id: string;
@@ -28,28 +61,170 @@ interface EconomicEvent {
 }
 
 const Dashboard = () => {
+  // Market data states
+  const [indices, setIndices] = useState<IndexData[]>([]);
+  const [sectors, setSectors] = useState<SectorData[]>([]);
+  const [gainers, setGainers] = useState<MoverData[]>([]);
+  const [losers, setLosers] = useState<MoverData[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  
+  // Loading states
+  const [loadingIndices, setLoadingIndices] = useState(true);
+  const [loadingSectors, setLoadingSectors] = useState(true);
+  const [loadingMovers, setLoadingMovers] = useState(true);
+  const [loadingNews, setLoadingNews] = useState(true);
+  
+  // Other states
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [economicEvents, setEconomicEvents] = useState<EconomicEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
-  useEffect(() => {
-    fetchEconomicEvents();
-  }, []);
-
-  const fetchEconomicEvents = async () => {
-    setLoading(true);
+  // Fetch indices data
+  const fetchIndices = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('trading-dashboard', {
-        body: { action: 'fetchAll' }
-      });
-
-      if (error) throw error;
-
-      if (data?.economicEvents) {
-        setEconomicEvents(data.economicEvents);
+      setLoadingIndices(true);
+      const url = encodeURIComponent("https://www.perplexity.ai/rest/finance/top-indices/market?with_history=true&history_period=1d&country=US");
+      const response = await fetch(`${PROXY_URL}${url}`);
+      
+      if (!response.ok) throw new Error("Failed to fetch indices");
+      
+      const data = await response.json();
+      const items = data?.data || data?.indices || data || [];
+      
+      if (Array.isArray(items) && items.length > 0) {
+        const mapped: IndexData[] = items.map((item: any) => ({
+          symbol: item.symbol || item.ticker || "",
+          name: item.name || item.display_name || "",
+          price: parseFloat(item.price || item.last_price || item.current_price || 0),
+          change: parseFloat(item.change || item.price_change || 0),
+          changePercent: parseFloat(item.changePercent || item.percent_change || item.change_percent || 0),
+          history: item.history || item.chart_data || []
+        }));
+        setIndices(mapped);
       }
     } catch (error) {
-      console.error('Error fetching economic events:', error);
+      console.error("Error fetching indices:", error);
+    } finally {
+      setLoadingIndices(false);
+    }
+  };
+
+  // Fetch sectors data
+  const fetchSectors = async () => {
+    try {
+      setLoadingSectors(true);
+      const url = encodeURIComponent("https://www.perplexity.ai/rest/finance/equity-sectors");
+      const response = await fetch(`${PROXY_URL}${url}`);
+      
+      if (!response.ok) throw new Error("Failed to fetch sectors");
+      
+      const data = await response.json();
+      const items = data?.data || data?.sectors || data || [];
+      
+      if (Array.isArray(items) && items.length > 0) {
+        const mapped: SectorData[] = items.map((item: any) => ({
+          name: item.name || item.sector || "",
+          lastPrice: parseFloat(item.lastPrice || item.last_price || item.price || 0),
+          changePercent: parseFloat(item.changePercent || item.percent_change || item.change_percent || 0)
+        }));
+        // Sort by absolute change
+        mapped.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+        setSectors(mapped);
+      }
+    } catch (error) {
+      console.error("Error fetching sectors:", error);
+    } finally {
+      setLoadingSectors(false);
+    }
+  };
+
+  // Fetch market movers data
+  const fetchMovers = async () => {
+    try {
+      setLoadingMovers(true);
+      const url = encodeURIComponent("https://www.perplexity.ai/rest/finance/top-movers/market?country=US");
+      const response = await fetch(`${PROXY_URL}${url}`);
+      
+      if (!response.ok) throw new Error("Failed to fetch movers");
+      
+      const data = await response.json();
+      
+      const gainersData = data?.gainers || data?.data?.gainers || [];
+      const losersData = data?.losers || data?.data?.losers || [];
+      
+      if (Array.isArray(gainersData) && gainersData.length > 0) {
+        const mappedGainers: MoverData[] = gainersData.slice(0, 5).map((item: any) => ({
+          ticker: item.ticker || item.symbol || "",
+          name: item.name || item.company_name || "",
+          price: parseFloat(item.price || item.last_price || 0),
+          changePercent: parseFloat(item.changePercent || item.percent_change || item.change_percent || 0)
+        }));
+        setGainers(mappedGainers);
+      }
+      
+      if (Array.isArray(losersData) && losersData.length > 0) {
+        const mappedLosers: MoverData[] = losersData.slice(0, 5).map((item: any) => ({
+          ticker: item.ticker || item.symbol || "",
+          name: item.name || item.company_name || "",
+          price: parseFloat(item.price || item.last_price || 0),
+          changePercent: parseFloat(item.changePercent || item.percent_change || item.change_percent || 0)
+        }));
+        setLosers(mappedLosers);
+      }
+    } catch (error) {
+      console.error("Error fetching movers:", error);
+    } finally {
+      setLoadingMovers(false);
+    }
+  };
+
+  // Fetch news data
+  const fetchNews = async () => {
+    try {
+      setLoadingNews(true);
+      const url = encodeURIComponent("https://www.perplexity.ai/rest/finance/general-news/market?country=US");
+      const response = await fetch(`${PROXY_URL}${url}`);
+      
+      if (!response.ok) throw new Error("Failed to fetch news");
+      
+      const data = await response.json();
+      const items = data?.data || data?.news || data || [];
+      
+      if (Array.isArray(items) && items.length > 0) {
+        const mapped: NewsItem[] = items.slice(0, 10).map((item: any, index: number) => ({
+          id: item.id || String(index),
+          headline: item.headline || item.title || "",
+          source: item.source || item.publisher || "",
+          datetime: item.datetime || item.published_at || item.date || new Date().toISOString(),
+          url: item.url || item.link || "#",
+          category: item.category || ""
+        }));
+        setNews(mapped);
+      }
+    } catch (error) {
+      console.error("Error fetching news:", error);
+    } finally {
+      setLoadingNews(false);
+    }
+  };
+
+  // Fetch all market data
+  const fetchAll = useCallback(async () => {
+    await Promise.all([
+      fetchIndices(),
+      fetchSectors(),
+      fetchMovers(),
+      fetchNews()
+    ]);
+    setLastUpdated(new Date());
+  }, []);
+
+  // Fetch economic events
+  const fetchEconomicEvents = async () => {
+    setLoadingEvents(true);
+    try {
+      // Using fallback data for economic events
       setEconomicEvents([
         { id: "1", title: "Non-Farm Payrolls", country: "US", date: "2025-01-10", time: "08:30", impact: "high", forecast: "175K", previous: "227K" },
         { id: "2", title: "CPI m/m", country: "US", date: "2025-01-15", time: "08:30", impact: "high", forecast: "0.3%", previous: "0.3%" },
@@ -57,8 +232,10 @@ const Dashboard = () => {
         { id: "4", title: "Unemployment Rate", country: "US", date: "2025-01-10", time: "08:30", impact: "medium", forecast: "4.2%", previous: "4.2%" },
         { id: "5", title: "Retail Sales m/m", country: "US", date: "2025-01-16", time: "08:30", impact: "medium", forecast: "0.5%", previous: "0.7%" },
       ]);
+    } catch (error) {
+      console.error('Error fetching economic events:', error);
     } finally {
-      setLoading(false);
+      setLoadingEvents(false);
     }
   };
 
@@ -70,6 +247,16 @@ const Dashboard = () => {
       default: return "bg-muted text-muted-foreground";
     }
   };
+
+  // Initial fetch and auto-refresh
+  useEffect(() => {
+    fetchAll();
+    fetchEconomicEvents();
+    
+    // Auto refresh every 30 seconds
+    const interval = setInterval(fetchAll, 30000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
 
   return (
     <>
@@ -109,17 +296,22 @@ const Dashboard = () => {
               {/* Market Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
                 {/* Row 1: Index Cards */}
-                <IndexCards />
+                <IndexCards 
+                  data={indices} 
+                  loading={loadingIndices} 
+                  lastUpdated={lastUpdated} 
+                  onRefresh={fetchAll} 
+                />
 
                 {/* Row 2: Sector Performance & Market Movers */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <SectorPerformance />
-                  <MarketMovers />
+                  <SectorPerformance data={sectors} loading={loadingSectors} />
+                  <MarketMovers gainers={gainers} losers={losers} loading={loadingMovers} />
                 </div>
 
                 {/* Row 3: News & Stock Splits */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <MarketNews />
+                  <MarketNews data={news} loading={loadingNews} />
                   <StockSplits />
                 </div>
               </TabsContent>
@@ -134,7 +326,7 @@ const Dashboard = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {loading ? (
+                    {loadingEvents ? (
                       <div className="space-y-3">
                         {[...Array(5)].map((_, i) => (
                           <div key={i} className="h-20 bg-muted/50 rounded animate-pulse" />
