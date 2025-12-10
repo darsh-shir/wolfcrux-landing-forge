@@ -22,21 +22,20 @@ interface IndexData {
   name: string;
   price: number;
   change: number;
-  changePercent: number;
+  changesPercentage: number;
   history?: number[];
 }
 
 interface SectorData {
   name: string;
-  lastPrice: number;
-  changePercent: number;
+  changesPercentage: number;
 }
 
 interface MoverData {
   ticker: string;
   name: string;
   price: number;
-  changePercent: number;
+  changesPercentage: number;
 }
 
 interface NewsItem {
@@ -93,14 +92,20 @@ const Dashboard = () => {
       const items = data?.data || data?.indices || data || [];
       
       if (Array.isArray(items) && items.length > 0) {
-        const mapped: IndexData[] = items.map((item: any) => ({
-          symbol: item.symbol || item.ticker || "",
-          name: item.name || item.display_name || "",
-          price: parseFloat(item.price || item.last_price || item.current_price || 0),
-          change: parseFloat(item.change || item.price_change || 0),
-          changePercent: parseFloat(item.changePercent || item.percent_change || item.change_percent || 0),
-          history: item.history || item.chart_data || []
-        }));
+        const mapped: IndexData[] = items.map((item: any) => {
+          // Extract history prices from history array
+          const historyData = item.history || [];
+          const historyPrices = historyData.map((h: any) => h.close || h.price || 0);
+          
+          return {
+            symbol: item.symbol || item.ticker || "",
+            name: item.name || item.display_name || "",
+            price: parseFloat(item.price || item.last_price || item.current_price || 0),
+            change: parseFloat(item.change || item.price_change || 0),
+            changesPercentage: parseFloat(item.changesPercentage || item.changePercent || item.percent_change || 0),
+            history: historyPrices
+          };
+        });
         setIndices(mapped);
       }
     } catch (error) {
@@ -125,11 +130,10 @@ const Dashboard = () => {
       if (Array.isArray(items) && items.length > 0) {
         const mapped: SectorData[] = items.map((item: any) => ({
           name: item.name || item.sector || "",
-          lastPrice: parseFloat(item.lastPrice || item.last_price || item.price || 0),
-          changePercent: parseFloat(item.changePercent || item.percent_change || item.change_percent || 0)
+          changesPercentage: parseFloat(item.changesPercentage || item.changePercent || item.percent_change || 0)
         }));
         // Sort by absolute change
-        mapped.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+        mapped.sort((a, b) => Math.abs(b.changesPercentage) - Math.abs(a.changesPercentage));
         setSectors(mapped);
       }
     } catch (error) {
@@ -158,7 +162,7 @@ const Dashboard = () => {
           ticker: item.ticker || item.symbol || "",
           name: item.name || item.company_name || "",
           price: parseFloat(item.price || item.last_price || 0),
-          changePercent: parseFloat(item.changePercent || item.percent_change || item.change_percent || 0)
+          changesPercentage: parseFloat(item.changesPercentage || item.changePercent || item.percent_change || 0)
         }));
         setGainers(mappedGainers);
       }
@@ -168,7 +172,7 @@ const Dashboard = () => {
           ticker: item.ticker || item.symbol || "",
           name: item.name || item.company_name || "",
           price: parseFloat(item.price || item.last_price || 0),
-          changePercent: parseFloat(item.changePercent || item.percent_change || item.change_percent || 0)
+          changesPercentage: parseFloat(item.changesPercentage || item.changePercent || item.percent_change || 0)
         }));
         setLosers(mappedLosers);
       }

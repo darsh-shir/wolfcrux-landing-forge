@@ -6,7 +6,7 @@ interface MoverData {
   ticker: string;
   name: string;
   price: number;
-  changePercent: number;
+  changesPercentage: number;
 }
 
 interface MarketMoversProps {
@@ -17,19 +17,19 @@ interface MarketMoversProps {
 
 const MarketMovers = ({ gainers, losers, loading }: MarketMoversProps) => {
   const defaultGainers = [
-    { ticker: "NVDA", name: "NVIDIA Corporation", price: 142.87, changePercent: 4.52 },
-    { ticker: "SMCI", name: "Super Micro Computer", price: 34.56, changePercent: 3.87 },
-    { ticker: "AMD", name: "Advanced Micro Devices", price: 128.45, changePercent: 3.21 },
-    { ticker: "TSLA", name: "Tesla Inc", price: 398.23, changePercent: 2.89 },
-    { ticker: "MSTR", name: "MicroStrategy Inc", price: 378.90, changePercent: 2.45 }
+    { ticker: "NVDA", name: "NVIDIA Corporation", price: 142.87, changesPercentage: 4.52 },
+    { ticker: "SMCI", name: "Super Micro Computer", price: 34.56, changesPercentage: 3.87 },
+    { ticker: "AMD", name: "Advanced Micro Devices", price: 128.45, changesPercentage: 3.21 },
+    { ticker: "TSLA", name: "Tesla Inc", price: 398.23, changesPercentage: 2.89 },
+    { ticker: "MSTR", name: "MicroStrategy Inc", price: 378.90, changesPercentage: 2.45 }
   ];
 
   const defaultLosers = [
-    { ticker: "INTC", name: "Intel Corporation", price: 19.87, changePercent: -3.45 },
-    { ticker: "BA", name: "Boeing Company", price: 167.23, changePercent: -2.89 },
-    { ticker: "DIS", name: "Walt Disney Co", price: 112.45, changePercent: -2.12 },
-    { ticker: "NKE", name: "Nike Inc", price: 74.56, changePercent: -1.87 },
-    { ticker: "PFE", name: "Pfizer Inc", price: 26.78, changePercent: -1.54 }
+    { ticker: "INTC", name: "Intel Corporation", price: 19.87, changesPercentage: -3.45 },
+    { ticker: "BA", name: "Boeing Company", price: 167.23, changesPercentage: -2.89 },
+    { ticker: "DIS", name: "Walt Disney Co", price: 112.45, changesPercentage: -2.12 },
+    { ticker: "NKE", name: "Nike Inc", price: 74.56, changesPercentage: -1.87 },
+    { ticker: "PFE", name: "Pfizer Inc", price: 26.78, changesPercentage: -1.54 }
   ];
 
   const displayGainers = gainers.length > 0 ? gainers : defaultGainers;
@@ -75,7 +75,7 @@ const MarketMovers = ({ gainers, losers, loading }: MarketMoversProps) => {
                 variant="secondary" 
                 className={`text-xs font-semibold ${isGainer ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
               >
-                {isGainer ? '+' : ''}{item.changePercent.toFixed(2)}%
+                {isGainer ? '+' : ''}{item.changesPercentage.toFixed(2)}%
               </Badge>
             </div>
           </div>
