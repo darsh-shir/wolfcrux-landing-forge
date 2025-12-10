@@ -1,17 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExternalLink, Newspaper, Clock } from "lucide-react";
 
-interface NewsItem {
-  id: string;
-  headline: string;
-  source: string;
-  datetime: string;
+interface RawSource {
+  id: number;
   url: string;
-  category?: string;
+  name: string;
+  snippet: string;
+  timestamp: string;
+}
+
+interface RawPost {
+  headline: string;
+  text: string;
+  timestamp: string;
+  sources: RawSource[];
 }
 
 interface MarketNewsProps {
-  data: NewsItem[];
+  data: any; // because API structure is nested
   loading: boolean;
 }
 
@@ -24,7 +30,7 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
       const diffMins = Math.floor(diffMs / 60000);
       const diffHours = Math.floor(diffMs / 3600000);
       const diffDays = Math.floor(diffMs / 86400000);
-      
+
       if (diffMins < 1) return "Just now";
       if (diffMins < 60) return `${diffMins}m ago`;
       if (diffHours < 24) return `${diffHours}h ago`;
@@ -34,20 +40,38 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
     }
   };
 
-  const news = data.length > 0 ? data : [
-    { id: "1", headline: "Federal Reserve signals cautious approach to rate cuts in 2025", source: "Reuters", datetime: new Date().toISOString(), url: "#", category: "Fed" },
-    { id: "2", headline: "Tech stocks rally on strong earnings expectations", source: "Bloomberg", datetime: new Date(Date.now() - 3600000).toISOString(), url: "#", category: "Markets" },
-    { id: "3", headline: "Oil prices surge amid Middle East tensions", source: "CNBC", datetime: new Date(Date.now() - 7200000).toISOString(), url: "#", category: "Commodities" },
-    { id: "4", headline: "Treasury yields climb as inflation concerns persist", source: "WSJ", datetime: new Date(Date.now() - 10800000).toISOString(), url: "#", category: "Bonds" },
-    { id: "5", headline: "Jobs report preview: What economists expect for December", source: "MarketWatch", datetime: new Date(Date.now() - 14400000).toISOString(), url: "#", category: "Economy" },
-    { id: "6", headline: "Retail investors show renewed interest in dividend stocks", source: "Barron's", datetime: new Date(Date.now() - 18000000).toISOString(), url: "#", category: "Markets" }
-  ];
+  /* ✅ MAP YOUR REAL JSON HERE */
+  const news: {
+    id: string;
+    headline: string;
+    source: string;
+    datetime: string;
+    url: string;
+  }[] =
+    data?.posts?.length > 0
+      ? data.posts.map((post: RawPost, index: number) => ({
+          id: String(index),
+          headline: post.headline,
+          source: post.sources?.[0]?.name || "Source",
+          datetime: post.timestamp,
+          url: post.sources?.[0]?.url || "#",
+        }))
+      : [
+          {
+            id: "1",
+            headline: "Federal Reserve signals cautious approach to rate cuts",
+            source: "Reuters",
+            datetime: new Date().toISOString(),
+            url: "#",
+          },
+        ];
 
-  if (loading && data.length === 0) {
+  /* ================= LOADING ================= */
+  if (loading && (!data || !data.posts)) {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Newspaper className="w-4 h-4" />
             Market News
           </CardTitle>
@@ -55,7 +79,10 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
         <CardContent>
           <div className="space-y-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="animate-pulse space-y-2 pb-4 border-b border-border/30 last:border-0">
+              <div
+                key={i}
+                className="animate-pulse space-y-2 pb-4 border-b border-border/30 last:border-0"
+              >
                 <div className="h-4 w-full bg-muted rounded" />
                 <div className="h-4 w-3/4 bg-muted rounded" />
                 <div className="h-3 w-24 bg-muted rounded" />
@@ -67,18 +94,20 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
     );
   }
 
+  /* ================= MAIN UI ================= */
   return (
     <Card className="bg-card border border-border/50 shadow-sm h-full">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Newspaper className="w-4 h-4" />
           Market News
         </CardTitle>
       </CardHeader>
+
       <CardContent>
         <div className="space-y-1 max-h-[400px] overflow-y-auto">
           {news.map((item) => (
-            <a 
+            <a
               key={item.id}
               href={item.url}
               target="_blank"
@@ -91,6 +120,7 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
                 </h3>
                 <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
+
               <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                 <span className="font-medium">{item.source}</span>
                 <span>•</span>
