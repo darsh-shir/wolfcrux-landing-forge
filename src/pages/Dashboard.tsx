@@ -138,24 +138,37 @@ const Dashboard = () => {
     }
   };
 
-  /* ===================== FETCH NEWS ✅ FIXED ===================== */
-  const fetchNews = async () => {
-    try {
-      setLoadingNews(true);
-      const url = encodeURIComponent(
-        "https://www.perplexity.ai/rest/finance/general-news/market?country=US"
-      );
-      const response = await fetch(`${PROXY_URL}${url}`);
-      const data = await response.json();
+  /* ===================== FETCH NEWS ===================== */
+const fetchNews = async () => {
+  try {
+    setLoadingNews(true);
+    const url = encodeURIComponent(
+      "https://www.perplexity.ai/rest/finance/general-news/market?country=US"
+    );
+    const response = await fetch(`${PROXY_URL}${url}`);
+    const data = await response.json();
 
-      // ✅ STORE FULL RAW JSON (NO MAPPING)
-      setNews(data);
-    } catch (e) {
-      console.error("News fetch failed", e);
-    } finally {
-      setLoadingNews(false);
+    const items = data?.posts || data?.data || [];
+
+    if (Array.isArray(items)) {
+      setNews(
+        items.slice(0, 10).map((item: any, i: number) => ({
+          id: String(i),
+          headline: item.headline,
+          text: item.text || "", // ✅ FIXED
+          source: item.sources?.[0]?.name || "Unknown",
+          datetime: item.timestamp || new Date().toISOString(),
+          url: item.sources?.[0]?.url || "#",
+          category: item.category || "",
+        }))
+      );
     }
-  };
+  } catch (e) {
+    console.error("News fetch failed", e);
+  } finally {
+    setLoadingNews(false);
+  }
+};
 
   /* ===================== FETCH ALL ===================== */
   const fetchAll = useCallback(async () => {
