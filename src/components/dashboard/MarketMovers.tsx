@@ -3,7 +3,6 @@ import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 
 interface MoverData {
   symbol: string;
-  name: string;
   price: number;
   changesPercentage: number;
 }
@@ -33,8 +32,8 @@ const MarketMovers = ({
     type: "gainer" | "loser" | "active";
   }) => {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 pb-1 border-b border-border/40">
           {icon}
           <span className="text-sm font-semibold">{title}</span>
         </div>
@@ -43,7 +42,7 @@ const MarketMovers = ({
           [...Array(5)].map((_, i) => (
             <div
               key={i}
-              className="h-14 rounded-xl bg-muted/40 animate-pulse"
+              className="h-12 rounded-lg bg-muted/40 animate-pulse"
             />
           ))
         ) : (
@@ -67,27 +66,22 @@ const MarketMovers = ({
             return (
               <div
                 key={item.symbol}
-                className={`p-3 rounded-xl border ${tint} hover:shadow-md transition-all`}
+                className={`px-3 py-2 rounded-lg border ${tint} flex items-center justify-between`}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-foreground">
-                      {item.symbol}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">
-                      {item.name}
-                    </p>
-                  </div>
+                {/* LEFT: TICKER */}
+                <span className="text-sm font-bold text-foreground">
+                  {item.symbol}
+                </span>
 
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-foreground">
-                      ${item.price.toFixed(2)}
-                    </p>
-                    <p className={`text-xs font-semibold ${textColor}`}>
-                      {isPositive ? "+" : ""}
-                      {item.changesPercentage.toFixed(2)}%
-                    </p>
-                  </div>
+                {/* RIGHT: PRICE + CHANGE */}
+                <div className="text-right">
+                  <p className="text-xs font-semibold text-foreground">
+                    ${item.price.toFixed(2)}
+                  </p>
+                  <p className={`text-xs font-bold ${textColor}`}>
+                    {isPositive ? "+" : ""}
+                    {item.changesPercentage.toFixed(2)}%
+                  </p>
                 </div>
               </div>
             );
@@ -99,14 +93,14 @@ const MarketMovers = ({
 
   return (
     <Card className="bg-card border border-border/50 shadow-sm h-full">
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold text-foreground">
           Market Movers
         </CardTitle>
       </CardHeader>
 
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Column
             title="Top Gainers"
             data={gainers}
