@@ -3,8 +3,7 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface SectorData {
   name: string;
-  lastPrice: number;
-  changePercent: number;
+  changesPercentage: number;
 }
 
 interface SectorPerformanceProps {
@@ -14,18 +13,18 @@ interface SectorPerformanceProps {
 
 const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
   const sectors = data.length > 0 ? data : [
-    { name: "Technology", lastPrice: 3245.67, changePercent: 1.24 },
-    { name: "Healthcare", lastPrice: 1523.89, changePercent: 0.87 },
-    { name: "Financials", lastPrice: 892.45, changePercent: 0.52 },
-    { name: "Consumer Discretionary", lastPrice: 1687.23, changePercent: -0.34 },
-    { name: "Communication Services", lastPrice: 278.56, changePercent: 0.91 },
-    { name: "Industrials", lastPrice: 1089.34, changePercent: -0.18 },
-    { name: "Consumer Staples", lastPrice: 845.12, changePercent: 0.23 },
-    { name: "Energy", lastPrice: 678.90, changePercent: -1.45 },
-    { name: "Utilities", lastPrice: 389.67, changePercent: 0.15 },
-    { name: "Real Estate", lastPrice: 256.78, changePercent: -0.67 },
-    { name: "Materials", lastPrice: 534.21, changePercent: -0.28 }
-  ].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+    { name: "Technology", changesPercentage: 1.24 },
+    { name: "Healthcare", changesPercentage: 0.87 },
+    { name: "Financials", changesPercentage: 0.52 },
+    { name: "Consumer Discretionary", changesPercentage: -0.34 },
+    { name: "Communication Services", changesPercentage: 0.91 },
+    { name: "Industrials", changesPercentage: -0.18 },
+    { name: "Consumer Staples", changesPercentage: 0.23 },
+    { name: "Energy", changesPercentage: -1.45 },
+    { name: "Utilities", changesPercentage: 0.15 },
+    { name: "Real Estate", changesPercentage: -0.67 },
+    { name: "Materials", changesPercentage: -0.28 }
+  ].sort((a, b) => Math.abs(b.changesPercentage) - Math.abs(a.changesPercentage));
 
   if (loading && data.length === 0) {
     return (
@@ -55,7 +54,7 @@ const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
       <CardContent>
         <div className="space-y-1">
           {sectors.map((sector) => {
-            const isPositive = sector.changePercent >= 0;
+            const isPositive = sector.changesPercentage >= 0;
             return (
               <div 
                 key={sector.name} 
@@ -69,14 +68,9 @@ const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
                   )}
                   <span className="text-sm font-medium text-foreground">{sector.name}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">
-                    {sector.lastPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                  <span className={`text-sm font-semibold min-w-[60px] text-right ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                    {isPositive ? '+' : ''}{sector.changePercent.toFixed(2)}%
-                  </span>
-                </div>
+                <span className={`text-sm font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                  {isPositive ? '+' : ''}{sector.changesPercentage.toFixed(2)}%
+                </span>
               </div>
             );
           })}
