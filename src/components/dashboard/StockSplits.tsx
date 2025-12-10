@@ -29,7 +29,7 @@ const StockSplits = () => {
       // ✅ EXACT PATH FROM YOUR JSON
       const rawList = json?.StockSplitCalendar?.data?.list || [];
 
-      const mappedSplits: SplitData[] = rawList.slice(0, 10).map((item: any) => ({
+      const mappedSplits: SplitData[] = rawList.slice(0, 100).map((item: any) => ({
         companyName: item.name,
         ticker: item.ticker,
         splitRatio: item.split?.ratio?.text || "",
