@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Calendar, Scissors } from "lucide-react";
+import { BarChart3, Scissors } from "lucide-react";
 
 // Dashboard components
 import IndexCards from "@/components/dashboard/IndexCards";
@@ -114,6 +114,7 @@ const Dashboard = () => {
         mapped.sort(
           (a, b) => Math.abs(b.changesPercentage) - Math.abs(a.changesPercentage)
         );
+
         setSectors(mapped);
       }
     } catch (e) {
@@ -188,7 +189,7 @@ const Dashboard = () => {
   /* ===================== AUTO REFRESH ===================== */
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 10000);
+    const interval = setInterval(fetchAll, 10000); // ✅ 10 seconds
     return () => clearInterval(interval);
   }, [fetchAll]);
 
@@ -206,11 +207,13 @@ const Dashboard = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="overview">
-                <BarChart3 className="w-4 h-4 mr-2" /> Overview
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Overview
               </TabsTrigger>
 
               <TabsTrigger value="splits">
-                <Scissors className="w-4 h-4 mr-2" /> Stock Splits
+                <Scissors className="w-4 h-4 mr-2" />
+                Stock Splits
               </TabsTrigger>
             </TabsList>
 
@@ -239,12 +242,15 @@ const Dashboard = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <MarketNews data={news} loading={loadingNews} />
-                <StockSplits />
+
+                {/* ✅ OVERVIEW: ONLY 6 (COMPACT) */}
+                <StockSplits limit={6} compact />
               </div>
             </TabsContent>
 
-            {/* ================= STOCK SPLITS FULL TAB ================= */}
+            {/* ================= FULL STOCK SPLITS TAB ================= */}
             <TabsContent value="splits" className="mt-6">
+              {/* ✅ FULL DATA (NO LIMIT, FULL VIEW) */}
               <StockSplits />
             </TabsContent>
           </Tabs>
