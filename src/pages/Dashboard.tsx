@@ -38,15 +38,6 @@ interface MoverData {
   changesPercentage: number;
 }
 
-interface NewsItem {
-  id: string;
-  headline: string;
-  source: string;
-  datetime: string;
-  url: string;
-  category?: string;
-}
-
 /* ===================== COMPONENT ===================== */
 
 const Dashboard = () => {
@@ -55,7 +46,9 @@ const Dashboard = () => {
   const [gainers, setGainers] = useState<MoverData[]>([]);
   const [losers, setLosers] = useState<MoverData[]>([]);
   const [actives, setActives] = useState<MoverData[]>([]);
-  const [news, setNews] = useState<NewsItem[]>([]);
+
+  // ✅ CHANGE HERE: store full raw JSON
+  const [news, setNews] = useState<any>(null);
 
   const [loadingIndices, setLoadingIndices] = useState(true);
   const [loadingSectors, setLoadingSectors] = useState(true);
@@ -145,7 +138,7 @@ const Dashboard = () => {
     }
   };
 
-  /* ===================== FETCH NEWS ===================== */
+  /* ===================== FETCH NEWS ✅ FIXED ===================== */
   const fetchNews = async () => {
     try {
       setLoadingNews(true);
@@ -154,20 +147,9 @@ const Dashboard = () => {
       );
       const response = await fetch(`${PROXY_URL}${url}`);
       const data = await response.json();
-      const items = data?.data || data || [];
 
-      if (Array.isArray(items)) {
-        setNews(
-          items.slice(0, 10).map((item: any, i: number) => ({
-            id: String(i),
-            headline: item.headline || item.title,
-            source: item.source || item.publisher,
-            datetime: item.datetime || new Date().toISOString(),
-            url: item.url || "#",
-            category: item.category,
-          }))
-        );
-      }
+      // ✅ STORE FULL RAW JSON (NO MAPPING)
+      setNews(data);
     } catch (e) {
       console.error("News fetch failed", e);
     } finally {
@@ -189,7 +171,7 @@ const Dashboard = () => {
   /* ===================== AUTO REFRESH ===================== */
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 10000); // ✅ 10 seconds
+    const interval = setInterval(fetchAll, 10000);
     return () => clearInterval(interval);
   }, [fetchAll]);
 
@@ -241,16 +223,16 @@ const Dashboard = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* ✅ NOW RECEIVES FULL RAW JSON */}
                 <MarketNews data={news} loading={loadingNews} />
 
-                {/* ✅ OVERVIEW: ONLY 6 (COMPACT) */}
+                {/* ✅ OVERVIEW: ONLY 6 */}
                 <StockSplits limit={6} compact />
               </div>
             </TabsContent>
 
             {/* ================= FULL STOCK SPLITS TAB ================= */}
             <TabsContent value="splits" className="mt-6">
-              {/* ✅ FULL DATA (NO LIMIT, FULL VIEW) */}
               <StockSplits />
             </TabsContent>
           </Tabs>
