@@ -1,27 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExternalLink, Newspaper, Clock } from "lucide-react";
 
-interface RawSource {
-  id: number;
-  url: string;
-  name: string;
-  snippet: string;
-  timestamp: string;
-}
-
-interface RawPost {
-  headline: string;
-  text: string;
-  timestamp: string;
-  sources: RawSource[];
-}
-
 interface MarketNewsProps {
-  data: any; // because API structure is nested
+  data: any;
   loading: boolean;
 }
 
 const MarketNews = ({ data, loading }: MarketNewsProps) => {
+  const posts = data?.posts || [];
+
   const formatTimeAgo = (dateString: string): string => {
     try {
       const date = new Date(dateString);
@@ -40,34 +27,7 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
     }
   };
 
-  /* ✅ MAP YOUR REAL JSON HERE */
-  const news: {
-    id: string;
-    headline: string;
-    source: string;
-    datetime: string;
-    url: string;
-  }[] =
-    data?.posts?.length > 0
-      ? data.posts.map((post: RawPost, index: number) => ({
-          id: String(index),
-          headline: post.headline,
-          source: post.sources?.[0]?.name || "Source",
-          datetime: post.timestamp,
-          url: post.sources?.[0]?.url || "#",
-        }))
-      : [
-          {
-            id: "1",
-            headline: "Federal Reserve signals cautious approach to rate cuts",
-            source: "Reuters",
-            datetime: new Date().toISOString(),
-            url: "#",
-          },
-        ];
-
-  /* ================= LOADING ================= */
-  if (loading && (!data || !data.posts)) {
+  if (loading && posts.length === 0) {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
         <CardHeader className="pb-3">
@@ -79,13 +39,9 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
         <CardContent>
           <div className="space-y-4">
             {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="animate-pulse space-y-2 pb-4 border-b border-border/30 last:border-0"
-              >
-                <div className="h-4 w-full bg-muted rounded" />
-                <div className="h-4 w-3/4 bg-muted rounded" />
-                <div className="h-3 w-24 bg-muted rounded" />
+              <div key={i} className="animate-pulse space-y-2">
+                <div className="h-4 bg-muted rounded w-full" />
+                <div className="h-3 bg-muted rounded w-3/4" />
               </div>
             ))}
           </div>
@@ -94,7 +50,6 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
     );
   }
 
-  /* ================= MAIN UI ================= */
   return (
     <Card className="bg-card border border-border/50 shadow-sm h-full">
       <CardHeader className="pb-3">
@@ -105,32 +60,41 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
       </CardHeader>
 
       <CardContent>
-        <div className="space-y-1 max-h-[400px] overflow-y-auto">
-          {news.map((item) => (
-            <a
-              key={item.id}
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block py-3 px-3 rounded-lg hover:bg-muted/50 transition-colors group"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-sm font-medium text-foreground leading-snug group-hover:text-accent transition-colors">
-                  {item.headline}
-                </h3>
-                <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
+        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+          {posts.slice(0, 6).map((item: any, i: number) => {
+            const source = item.sources?.[0];
 
-              <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                <span className="font-medium">{item.source}</span>
-                <span>•</span>
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  <span>{formatTimeAgo(item.datetime)}</span>
+            return (
+              <a
+                key={i}
+                href={source?.url || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-3 rounded-lg hover:bg-muted/50 transition group"
+              >
+                <div className="flex justify-between gap-2">
+                  <h3 className="text-sm font-semibold leading-snug">
+                    {item.headline}
+                  </h3>
+                  <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition" />
                 </div>
-              </div>
-            </a>
-          ))}
+
+                {/* ✅ THIS IS THE FIX: SHOW TEXT NOT SOURCE NAME */}
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  {item.text}
+                </p>
+
+                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                  <span className="font-medium">
+                    {source?.name || "Market"}
+                  </span>
+                  <span>•</span>
+                  <Clock className="w-3 h-3" />
+                  <span>{formatTimeAgo(item.timestamp)}</span>
+                </div>
+              </a>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
