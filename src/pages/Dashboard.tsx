@@ -3,9 +3,7 @@ import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BarChart3, Calendar, Clock, Globe } from "lucide-react";
+import { BarChart3, Calendar, Scissors } from "lucide-react";
 
 // Dashboard components
 import IndexCards from "@/components/dashboard/IndexCards";
@@ -49,22 +47,9 @@ interface NewsItem {
   category?: string;
 }
 
-interface EconomicEvent {
-  id: string;
-  title: string;
-  country: string;
-  date: string;
-  time: string;
-  impact: "high" | "medium" | "low";
-  actual?: string;
-  forecast?: string;
-  previous?: string;
-}
-
 /* ===================== COMPONENT ===================== */
 
 const Dashboard = () => {
-  /** Market Data */
   const [indices, setIndices] = useState<IndexData[]>([]);
   const [sectors, setSectors] = useState<SectorData[]>([]);
   const [gainers, setGainers] = useState<MoverData[]>([]);
@@ -72,16 +57,12 @@ const Dashboard = () => {
   const [actives, setActives] = useState<MoverData[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
 
-  /** Loading */
   const [loadingIndices, setLoadingIndices] = useState(true);
   const [loadingSectors, setLoadingSectors] = useState(true);
   const [loadingMovers, setLoadingMovers] = useState(true);
   const [loadingNews, setLoadingNews] = useState(true);
 
-  /** Other */
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [economicEvents, setEconomicEvents] = useState<EconomicEvent[]>([]);
-  const [loadingEvents, setLoadingEvents] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
   /* ===================== FETCH INDICES ===================== */
@@ -142,7 +123,7 @@ const Dashboard = () => {
     }
   };
 
-  /* ===================== FETCH MOVERS (GAINERS + LOSERS + ACTIVES) ===================== */
+  /* ===================== FETCH MOVERS ===================== */
   const fetchMovers = async () => {
     try {
       setLoadingMovers(true);
@@ -153,42 +134,9 @@ const Dashboard = () => {
       const response = await fetch(`${PROXY_URL}${url}`);
       const data = await response.json();
 
-      const gainersData = data?.gainers || [];
-      const losersData = data?.losers || [];
-      const activesData = data?.actives || [];
-
-      if (Array.isArray(gainersData)) {
-        setGainers(
-          gainersData.slice(0, 5).map((item: any) => ({
-            symbol: item.symbol,
-            name: item.name,
-            price: parseFloat(item.price),
-            changesPercentage: parseFloat(item.changesPercentage),
-          }))
-        );
-      }
-
-      if (Array.isArray(losersData)) {
-        setLosers(
-          losersData.slice(0, 5).map((item: any) => ({
-            symbol: item.symbol,
-            name: item.name,
-            price: parseFloat(item.price),
-            changesPercentage: parseFloat(item.changesPercentage),
-          }))
-        );
-      }
-
-      if (Array.isArray(activesData)) {
-        setActives(
-          activesData.slice(0, 5).map((item: any) => ({
-            symbol: item.symbol,
-            name: item.name,
-            price: parseFloat(item.price),
-            changesPercentage: parseFloat(item.changesPercentage),
-          }))
-        );
-      }
+      setGainers((data?.gainers || []).slice(0, 5));
+      setLosers((data?.losers || []).slice(0, 5));
+      setActives((data?.actives || []).slice(0, 5));
     } catch (e) {
       console.error("Mover fetch failed", e);
     } finally {
@@ -240,7 +188,7 @@ const Dashboard = () => {
   /* ===================== AUTO REFRESH ===================== */
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 10000); // ✅ 10 seconds
+    const interval = setInterval(fetchAll, 10000);
     return () => clearInterval(interval);
   }, [fetchAll]);
 
@@ -254,19 +202,19 @@ const Dashboard = () => {
       <div className="min-h-screen bg-background">
         <Navigation />
 
-        <main className="pt-24 pb-16 px-4 max-w-7xl mx-auto space-y-6">
+        <main className="pt-24 pb-16 px-4 max-w-7xl mx-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="overview">
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Overview
+                <BarChart3 className="w-4 h-4 mr-2" /> Overview
               </TabsTrigger>
-              <TabsTrigger value="calendar">
-                <Calendar className="w-4 h-4 mr-2" />
-                Calendar
+
+              <TabsTrigger value="splits">
+                <Scissors className="w-4 h-4 mr-2" /> Stock Splits
               </TabsTrigger>
             </TabsList>
 
+            {/* ================= OVERVIEW TAB ================= */}
             <TabsContent value="overview" className="space-y-6">
               <IndexCards
                 data={indices}
@@ -293,6 +241,11 @@ const Dashboard = () => {
                 <MarketNews data={news} loading={loadingNews} />
                 <StockSplits />
               </div>
+            </TabsContent>
+
+            {/* ================= STOCK SPLITS FULL TAB ================= */}
+            <TabsContent value="splits" className="mt-6">
+              <StockSplits />
             </TabsContent>
           </Tabs>
         </main>
