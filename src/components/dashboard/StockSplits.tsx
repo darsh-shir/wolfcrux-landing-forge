@@ -10,7 +10,13 @@ interface SplitData {
   exDate: string;
 }
 
-const StockSplits = () => {
+/* ✅ NEW PROPS */
+interface StockSplitsProps {
+  limit?: number;     // Overview = 6, Tab = all
+  compact?: boolean; // Overview = true
+}
+
+const StockSplits = ({ limit, compact }: StockSplitsProps) => {
   const [splits, setSplits] = useState<SplitData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,16 +35,16 @@ const StockSplits = () => {
       // ✅ EXACT PATH FROM YOUR JSON
       const rawList = json?.StockSplitCalendar?.data?.list || [];
 
-      const mappedSplits: SplitData[] = rawList.slice(0, 100).map((item: any) => ({
+      const mappedSplits: SplitData[] = rawList.map((item: any) => ({
         companyName: item.name,
         ticker: item.ticker,
         splitRatio: item.split?.ratio?.text || "",
         exDate: item.split?.date || "",
       }));
 
+      // ✅ SORT BY DATE (LATEST FIRST)
       mappedSplits.sort(
-        (a, b) =>
-          new Date(a.exDate).getTime() - new Date(b.exDate).getTime()
+        (a, b) => new Date(b.exDate).getTime() - new Date(a.exDate).getTime()
       );
 
       setSplits(mappedSplits);
@@ -60,7 +66,7 @@ const StockSplits = () => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       month: "short",
-      day: "numeric",
+      day: "2-digit",
       year: "numeric",
     });
   };
@@ -78,6 +84,9 @@ const StockSplits = () => {
     const interval = setInterval(fetchSplits, 300000);
     return () => clearInterval(interval);
   }, []);
+
+  /* ✅ LIMIT FOR OVERVIEW */
+  const visibleSplits = limit ? splits.slice(0, limit) : splits;
 
   /* ================= LOADING STATE ================= */
 
@@ -99,7 +108,49 @@ const StockSplits = () => {
     );
   }
 
-  /* ================= MAIN UI ================= */
+  /* ================= ✅ COMPACT MODE (OVERVIEW) ================= */
+
+  if (compact) {
+    return (
+      <Card className="bg-card border border-border/50 shadow-sm h-full">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Scissors className="w-4 h-4" />
+            Recent Stock Splits
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          {visibleSplits.map((split, index) => (
+            <div
+              key={index}
+              className="border rounded-lg p-3 text-sm space-y-1"
+            >
+              {/* DATE */}
+              <div className="text-xs text-muted-foreground">
+                {formatDate(split.exDate)}
+              </div>
+
+              {/* TICKER */}
+              <div className="font-bold">{split.ticker}</div>
+
+              {/* TYPE (FORWARD/REVERSE AUTO FROM RATIO) */}
+              <div className="uppercase text-[11px]">
+                {split.splitRatio.includes("for")
+                  ? "forward"
+                  : "reverse"}
+              </div>
+
+              {/* RATIO */}
+              <div className="font-semibold">{split.splitRatio}</div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  /* ================= ✅ FULL TABLE MODE (SPLIT TAB) ================= */
 
   return (
     <Card className="bg-card border border-border/50 shadow-sm h-full">
@@ -111,7 +162,7 @@ const StockSplits = () => {
       </CardHeader>
 
       <CardContent>
-        {splits.length === 0 ? (
+        {visibleSplits.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             No upcoming stock splits
           </p>
@@ -127,7 +178,7 @@ const StockSplits = () => {
                 </tr>
               </thead>
               <tbody>
-                {splits.map((split, index) => {
+                {visibleSplits.map((split, index) => {
                   const daysUntil = getDaysUntil(split.exDate);
 
                   return (
