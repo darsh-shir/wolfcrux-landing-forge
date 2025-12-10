@@ -258,7 +258,7 @@ const Dashboard = () => {
     fetchEconomicEvents();
     
     // Auto refresh every 30 seconds
-    const interval = setInterval(fetchAll, 30000);
+    const interval = setInterval(fetchAll, 10000);
     return () => clearInterval(interval);
   }, [fetchAll]);
 
