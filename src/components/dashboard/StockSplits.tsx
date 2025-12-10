@@ -6,14 +6,26 @@ import { Scissors } from "lucide-react";
 interface SplitData {
   companyName: string;
   ticker: string;
-  splitRatio: string;
-  exDate: string;
+  splitType: string;   // "forward" | "reverse"
+  splitRatio: string;  // e.g. "1 for 3.00" or "0.98 for 1"
+  exDate: string;      // ISO date string from API
 }
 
-/* ✅ NEW PROPS */
+/**
+ * StockSplits component
+ *
+ * Props:
+ * - limit?: number -> when provided (e.g. 6) component shows the first `limit` items in the JSON order (overview)
+ * - compact?: boolean -> when true, shows compact card list (overview)
+ *
+ * Behaviour:
+ * - Keeps the original JSON order for the overview (no sorting)
+ * - Split tab (full view) displays ALL items sorted ASCENDING by date (oldest -> newest)
+ * - Shows split type (forward/reverse) using item.split.type from JSON
+ */
 interface StockSplitsProps {
-  limit?: number;     // Overview = 6, Tab = all
-  compact?: boolean; // Overview = true
+  limit?: number;
+  compact?: boolean;
 }
 
 const StockSplits = ({ limit, compact }: StockSplitsProps) => {
@@ -32,21 +44,19 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
 
       const json = await response.json();
 
-      // ✅ EXACT PATH FROM YOUR JSON
+      // RAW LIST exactly as provided in JSON
       const rawList = json?.StockSplitCalendar?.data?.list || [];
 
+      // Map keeping the original rawList order (do NOT sort here)
       const mappedSplits: SplitData[] = rawList.map((item: any) => ({
-        companyName: item.name,
-        ticker: item.ticker,
+        companyName: item.name || "",
+        ticker: item.ticker || "",
+        splitType: (item.split?.type || "").toString().toLowerCase(), // forward / reverse
         splitRatio: item.split?.ratio?.text || "",
         exDate: item.split?.date || "",
       }));
 
-      // ✅ SORT BY DATE (LATEST FIRST)
-      mappedSplits.sort(
-        (a, b) => new Date(b.exDate).getTime() - new Date(a.exDate).getTime()
-      );
-
+      // do not reorder mappedSplits here — keep JSON order for overview
       setSplits(mappedSplits);
     } catch (err) {
       console.error("Error fetching splits:", err);
@@ -57,39 +67,49 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
   };
 
   const getFallbackSplits = (): SplitData[] => [
-    { companyName: "Broadcom Inc", ticker: "AVGO", splitRatio: "10:1", exDate: "2025-12-20" },
-    { companyName: "Chipotle", ticker: "CMG", splitRatio: "50:1", exDate: "2025-12-22" },
-    { companyName: "Walmart", ticker: "WMT", splitRatio: "3:1", exDate: "2025-12-28" },
+    { companyName: "Broadcom Inc", ticker: "AVGO", splitType: "forward", splitRatio: "10:1", exDate: "2025-12-20" },
+    { companyName: "Chipotle", ticker: "CMG", splitType: "forward", splitRatio: "50:1", exDate: "2025-12-22" },
+    { companyName: "Walmart", ticker: "WMT", splitType: "forward", splitRatio: "3:1", exDate: "2025-12-28" },
   ];
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-    });
+  const formatDateShort = (iso: string) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
   };
 
-  const getDaysUntil = (dateString: string): number => {
-    const date = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
-    return Math.ceil((date.getTime() - today.getTime()) / 86400000);
+  const daysUntil = (iso: string) => {
+    try {
+      const d = new Date(iso);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      d.setHours(0, 0, 0, 0);
+      const diff = Math.ceil((d.getTime() - today.getTime()) / 86400000);
+      if (diff === 0) return "Today";
+      if (diff === 1) return "Tomorrow";
+      return `${diff} days`;
+    } catch {
+      return "";
+    }
   };
 
   useEffect(() => {
     fetchSplits();
-    const interval = setInterval(fetchSplits, 300000);
+    const interval = setInterval(fetchSplits, 300000); // 5 minutes
     return () => clearInterval(interval);
   }, []);
 
-  /* ✅ LIMIT FOR OVERVIEW */
-  const visibleSplits = limit ? splits.slice(0, limit) : splits;
+  // Overview: keep JSON order and show first `limit` entries
+  const overviewVisible = limit ? splits.slice(0, limit) : splits;
 
-  /* ================= LOADING STATE ================= */
+  // Full tab: show ALL entries sorted ascending by date (oldest first)
+  const fullSortedAscending = [...splits].sort((a, b) => {
+    const ta = a.exDate ? new Date(a.exDate).getTime() : 0;
+    const tb = b.exDate ? new Date(b.exDate).getTime() : 0;
+    return ta - tb;
+  });
 
+  /* ================= LOADING PLACEHOLDER ================= */
   if (loading && splits.length === 0) {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
@@ -100,16 +120,15 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-10 bg-muted rounded animate-pulse" />
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-14 bg-muted rounded animate-pulse" />
           ))}
         </CardContent>
       </Card>
     );
   }
 
-  /* ================= ✅ COMPACT MODE (OVERVIEW) ================= */
-
+  /* ================= COMPACT OVERVIEW (first `limit` in JSON order) ================= */
   if (compact) {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
@@ -121,37 +140,33 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {visibleSplits.map((split, index) => (
-            <div
-              key={index}
-              className="border rounded-lg p-3 text-sm space-y-1"
-            >
-              {/* DATE */}
-              <div className="text-xs text-muted-foreground">
-                {formatDate(split.exDate)}
+          {overviewVisible.map((split, idx) => {
+            // display: date top, then row with ticker left and ratio + type right (compact)
+            const isForward = (split.splitType || "").toLowerCase() === "forward";
+            const badgeClass = isForward ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
+
+            return (
+              <div key={idx} className="border rounded-lg p-3 bg-background/50">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-xs text-muted-foreground">{formatDateShort(split.exDate)}</div>
+                    <div className="mt-1 font-bold text-foreground text-sm">{split.ticker}</div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground">{split.splitType}</div>
+                    <div className="mt-1 font-semibold text-foreground">{split.splitRatio}</div>
+                  </div>
+                </div>
               </div>
-
-              {/* TICKER */}
-              <div className="font-bold">{split.ticker}</div>
-
-              {/* TYPE (FORWARD/REVERSE AUTO FROM RATIO) */}
-              <div className="uppercase text-[11px]">
-                {split.splitRatio.includes("for")
-                  ? "forward"
-                  : "reverse"}
-              </div>
-
-              {/* RATIO */}
-              <div className="font-semibold">{split.splitRatio}</div>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
     );
   }
 
-  /* ================= ✅ FULL TABLE MODE (SPLIT TAB) ================= */
-
+  /* ================= FULL SPLIT TAB (all, ascending by date) ================= */
   return (
     <Card className="bg-card border border-border/50 shadow-sm h-full">
       <CardHeader className="pb-3">
@@ -162,61 +177,29 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
       </CardHeader>
 
       <CardContent>
-        {visibleSplits.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No upcoming stock splits
-          </p>
+        {fullSortedAscending.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">No upcoming stock splits</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/50">
-                  <th className="text-left pb-2">Company</th>
-                  <th className="text-left pb-2">Ticker</th>
-                  <th className="text-center pb-2">Ratio</th>
-                  <th className="text-right pb-2">Ex-Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleSplits.map((split, index) => {
-                  const daysUntil = getDaysUntil(split.exDate);
+          <div className="space-y-3">
+            {fullSortedAscending.map((split, idx) => {
+              const isForward = (split.splitType || "").toLowerCase() === "forward";
+              const badge = isForward ? "FORWARD" : "REVERSE";
 
-                  return (
-                    <tr
-                      key={index}
-                      className="border-b border-border/30 last:border-0"
-                    >
-                      <td className="py-2 font-medium">
-                        {split.companyName}
-                      </td>
+              return (
+                <div key={idx} className="border rounded-lg p-3">
+                  <div className="text-xs text-muted-foreground">{formatDateShort(split.exDate)}</div>
+                  <div className="mt-1 font-bold text-foreground text-base">{split.ticker}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{split.companyName}</div>
 
-                      <td className="py-2">
-                        <Badge variant="secondary">
-                          {split.ticker}
-                        </Badge>
-                      </td>
-
-                      <td className="py-2 text-center font-semibold">
-                        {split.splitRatio}
-                      </td>
-
-                      <td className="py-2 text-right">
-                        <div className="flex flex-col items-end">
-                          <span>{formatDate(split.exDate)}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {daysUntil === 0
-                              ? "Today"
-                              : daysUntil === 1
-                              ? "Tomorrow"
-                              : `${daysUntil} days`}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  <div className="flex items-center justify-between mt-3">
+                    <div className={`text-xs font-semibold uppercase ${isForward ? "text-green-600" : "text-red-600"}`}>
+                      {badge}
+                    </div>
+                    <div className="font-semibold text-foreground">{split.splitRatio}</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </CardContent>
