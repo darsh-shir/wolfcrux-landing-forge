@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 
 interface MoverData {
@@ -16,81 +15,91 @@ interface MarketMoversProps {
   loading: boolean;
 }
 
-const MarketMovers = ({ gainers, losers, actives, loading }: MarketMoversProps) => {
-  const defaultGainers: MoverData[] = [];
-  const defaultLosers: MoverData[] = [];
-  const defaultActives: MoverData[] = [];
-
-  const displayGainers = gainers.length > 0 ? gainers : defaultGainers;
-  const displayLosers = losers.length > 0 ? losers : defaultLosers;
-  const displayActives = actives.length > 0 ? actives : defaultActives;
-
-  const MoversList = ({
+const MarketMovers = ({
+  gainers,
+  losers,
+  actives,
+  loading,
+}: MarketMoversProps) => {
+  const Column = ({
+    title,
+    icon,
     data,
     type,
   }: {
+    title: string;
+    icon: JSX.Element;
     data: MoverData[];
     type: "gainer" | "loser" | "active";
   }) => {
-    if (loading && data.length === 0) {
-      return (
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="animate-pulse flex items-center justify-between py-2">
-              <div className="h-4 w-20 bg-muted rounded" />
-              <div className="h-4 w-16 bg-muted rounded" />
-            </div>
-          ))}
-        </div>
-      );
-    }
-
     return (
-      <div className="space-y-1">
-        {data.map((item) => {
-          const isPositive = item.changesPercentage >= 0;
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+          {icon}
+          <span className="text-sm font-semibold">{title}</span>
+        </div>
 
-          return (
+        {loading ? (
+          [...Array(5)].map((_, i) => (
             <div
-              key={item.symbol}
-              className={`flex items-center justify-between py-2.5 px-3 rounded-lg transition-colors
-                ${type === "gainer" ? "bg-green-500/10 hover:bg-green-500/20" : ""}
-                ${type === "loser" ? "bg-red-500/10 hover:bg-red-500/20" : ""}
-                ${type === "active" ? "bg-blue-500/10 hover:bg-blue-500/20" : ""}
-              `}
-            >
-              <div className="flex-1 min-w-0">
-                <span className="font-semibold text-foreground">{item.symbol}</span>
-                <p className="text-xs text-muted-foreground truncate max-w-[140px]">
-                  {item.name}
-                </p>
-              </div>
+              key={i}
+              className="h-14 rounded-xl bg-muted/40 animate-pulse"
+            />
+          ))
+        ) : (
+          data.map((item) => {
+            const isPositive = item.changesPercentage >= 0;
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  ${item.price.toFixed(2)}
-                </span>
+            const tint =
+              type === "active"
+                ? "bg-blue-500/10 border-blue-500/20"
+                : isPositive
+                ? "bg-green-500/10 border-green-500/20"
+                : "bg-red-500/10 border-red-500/20";
 
-                <Badge
-                  variant="secondary"
-                  className={`text-xs font-semibold
-                    ${isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}
-                  `}
-                >
-                  {isPositive ? "+" : ""}
-                  {item.changesPercentage.toFixed(2)}%
-                </Badge>
+            const textColor =
+              type === "active"
+                ? "text-blue-600"
+                : isPositive
+                ? "text-green-600"
+                : "text-red-600";
+
+            return (
+              <div
+                key={item.symbol}
+                className={`p-3 rounded-xl border ${tint} hover:shadow-md transition-all`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-foreground">
+                      {item.symbol}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">
+                      {item.name}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-foreground">
+                      ${item.price.toFixed(2)}
+                    </p>
+                    <p className={`text-xs font-semibold ${textColor}`}>
+                      {isPositive ? "+" : ""}
+                      {item.changesPercentage.toFixed(2)}%
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     );
   };
 
   return (
     <Card className="bg-card border border-border/50 shadow-sm h-full">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-4">
         <CardTitle className="text-base font-semibold text-foreground">
           Market Movers
         </CardTitle>
@@ -98,38 +107,26 @@ const MarketMovers = ({ gainers, losers, actives, loading }: MarketMoversProps) 
 
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* GAINERS */}
-          <div>
-            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/50">
-              <TrendingUp className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-semibold text-green-600">
-                Top Gainers
-              </span>
-            </div>
-            <MoversList data={displayGainers} type="gainer" />
-          </div>
+          <Column
+            title="Top Gainers"
+            data={gainers}
+            type="gainer"
+            icon={<TrendingUp className="w-4 h-4 text-green-600" />}
+          />
 
-          {/* LOSERS */}
-          <div>
-            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/50">
-              <TrendingDown className="w-4 h-4 text-red-600" />
-              <span className="text-sm font-semibold text-red-600">
-                Top Losers
-              </span>
-            </div>
-            <MoversList data={displayLosers} type="loser" />
-          </div>
+          <Column
+            title="Top Losers"
+            data={losers}
+            type="loser"
+            icon={<TrendingDown className="w-4 h-4 text-red-600" />}
+          />
 
-          {/* ACTIVES */}
-          <div>
-            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/50">
-              <Activity className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-semibold text-blue-600">
-                Most Active
-              </span>
-            </div>
-            <MoversList data={displayActives} type="active" />
-          </div>
+          <Column
+            title="Most Active"
+            data={actives}
+            type="active"
+            icon={<Activity className="w-4 h-4 text-blue-600" />}
+          />
         </div>
       </CardContent>
     </Card>
