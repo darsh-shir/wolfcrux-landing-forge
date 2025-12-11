@@ -43,6 +43,7 @@ interface MoverData {
 interface SentimentData {
   sentiment: string;
   market_status: string;
+  created: string;
 }
 
 /* ===================== COMPONENT ===================== */
@@ -70,7 +71,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
 
   /* ===================== FETCH SENTIMENT ===================== */
-  const fetchSentiment = async () => {
+  const fetchSentiment = useCallback(async () => {
     try {
       setLoadingSentiment(true);
       const url = encodeURIComponent(
@@ -81,13 +82,14 @@ const Dashboard = () => {
       setSentiment({
         sentiment: data?.sentiment || "",
         market_status: data?.market_status || "",
+        created: data?.created || "",
       });
     } catch (e) {
       console.error("Sentiment fetch failed", e);
     } finally {
       setLoadingSentiment(false);
     }
-  };
+  }, []);
 
   /* ===================== FETCH INDICES ===================== */
   const fetchIndices = async () => {
@@ -207,6 +209,12 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, [fetchAll]);
 
+  /* ===================== SENTIMENT 10s REFRESH ===================== */
+  useEffect(() => {
+    const sentimentInterval = setInterval(fetchSentiment, 10000);
+    return () => clearInterval(sentimentInterval);
+  }, [fetchSentiment]);
+
   /* ===================== UI ===================== */
   return (
     <>
@@ -223,6 +231,7 @@ const Dashboard = () => {
             <MarketSentiment
               sentiment={sentiment?.sentiment || ""}
               marketStatus={sentiment?.market_status || ""}
+              created={sentiment?.created || ""}
               loading={loadingSentiment}
             />
           </div>
