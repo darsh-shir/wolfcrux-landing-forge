@@ -246,7 +246,7 @@ const Dashboard = () => {
 
               <TabsTrigger value="news">
                 <Newspaper className="w-4 h-4 mr-2" />
-                Market News
+                News
               </TabsTrigger>
 
               <TabsTrigger value="splits">
