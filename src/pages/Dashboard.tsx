@@ -3,7 +3,8 @@ import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Scissors, Newspaper, Calendar } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { BarChart3, Scissors, Newspaper, Calendar, Moon, Sun } from "lucide-react";
 
 // Dashboard components
 import IndexCards from "@/components/dashboard/IndexCards";
@@ -70,6 +71,7 @@ const Dashboard = () => {
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [darkMode, setDarkMode] = useState(false);
 
   /* ===================== FETCH SENTIMENT ===================== */
   const fetchSentiment = useCallback(async () => {
@@ -226,9 +228,17 @@ const Dashboard = () => {
       <div className="min-h-screen bg-background">
         <Navigation />
 
-        <main className="pt-24 pb-16 px-4 max-w-7xl mx-auto">
-          {/* Market Sentiment Header */}
-          <div className="flex justify-end mb-4">
+        <main className={`pt-24 pb-16 px-4 max-w-7xl mx-auto ${darkMode ? 'dark-dashboard' : ''}`}>
+          {/* Market Sentiment Header + Dark Mode Toggle */}
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2">
+              <Sun className={`w-4 h-4 ${darkMode ? 'text-muted-foreground' : 'text-amber-500'}`} />
+              <Switch
+                checked={darkMode}
+                onCheckedChange={setDarkMode}
+              />
+              <Moon className={`w-4 h-4 ${darkMode ? 'text-blue-400' : 'text-muted-foreground'}`} />
+            </div>
             <MarketSentiment
               sentiment={sentiment?.sentiment || ""}
               marketStatus={sentiment?.market_status || ""}

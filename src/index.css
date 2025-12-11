@@ -86,3 +86,28 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Dark Dashboard Styles - Only applies to dashboard content */
+.dark-dashboard {
+  --background: 222 47% 8%;
+  --foreground: 210 20% 98%;
+  --card: 222 47% 12%;
+  --card-foreground: 210 20% 98%;
+  --popover: 222 47% 12%;
+  --popover-foreground: 210 20% 98%;
+  --primary: 210 20% 98%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 20% 98%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 200 95% 45%;
+  --accent-foreground: 0 0% 100%;
+  --border: 217 33% 20%;
+  --input: 217 33% 17%;
+  background-color: hsl(222 47% 8%);
+  color: hsl(210 20% 98%);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-top: -0.5rem;
+}
