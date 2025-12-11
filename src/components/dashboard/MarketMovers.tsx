@@ -5,6 +5,8 @@ interface MoverData {
   symbol: string;
   price: number;
   changesPercentage: number;
+  image?: string;
+  imageDark?: string;
 }
 
 interface MarketMoversProps {
@@ -68,10 +70,22 @@ const MarketMovers = ({
                 key={item.symbol}
                 className={`px-3 py-2 rounded-lg border ${tint} flex items-center justify-between`}
               >
-                {/* LEFT: TICKER */}
-                <span className="text-sm font-bold text-foreground">
-                  {item.symbol}
-                </span>
+                {/* LEFT: LOGO + TICKER */}
+                <div className="flex items-center gap-2">
+                  {item.image && (
+                    <img 
+                      src={item.image} 
+                      alt={item.symbol}
+                      className="w-5 h-5 rounded-sm object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <span className="text-sm font-bold text-foreground">
+                    {item.symbol}
+                  </span>
+                </div>
 
                 {/* RIGHT: PRICE + CHANGE */}
                 <div className="text-right">
