@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Scissors } from "lucide-react";
+import { BarChart3, Scissors, Newspaper } from "lucide-react";
 
 // Dashboard components
 import IndexCards from "@/components/dashboard/IndexCards";
@@ -11,6 +11,8 @@ import SectorPerformance from "@/components/dashboard/SectorPerformance";
 import MarketMovers from "@/components/dashboard/MarketMovers";
 import MarketNews from "@/components/dashboard/MarketNews";
 import StockSplits from "@/components/dashboard/StockSplits";
+import MarketSentiment from "@/components/dashboard/MarketSentiment";
+import NewsOverview from "@/components/dashboard/NewsOverview";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
@@ -38,6 +40,11 @@ interface MoverData {
   changesPercentage: number;
 }
 
+interface SentimentData {
+  sentiment: string;
+  market_status: string;
+}
+
 /* ===================== COMPONENT ===================== */
 
 const Dashboard = () => {
@@ -47,8 +54,12 @@ const Dashboard = () => {
   const [losers, setLosers] = useState<MoverData[]>([]);
   const [actives, setActives] = useState<MoverData[]>([]);
 
-  // ✅ CHANGE HERE: store full raw JSON
-  const [news, setNews] = useState<any>(null);
+  // News data - store raw posts array
+  const [newsPosts, setNewsPosts] = useState<any[]>([]);
+
+  // Market sentiment
+  const [sentiment, setSentiment] = useState<SentimentData | null>(null);
+  const [loadingSentiment, setLoadingSentiment] = useState(true);
 
   const [loadingIndices, setLoadingIndices] = useState(true);
   const [loadingSectors, setLoadingSectors] = useState(true);
@@ -57,6 +68,26 @@ const Dashboard = () => {
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+
+  /* ===================== FETCH SENTIMENT ===================== */
+  const fetchSentiment = async () => {
+    try {
+      setLoadingSentiment(true);
+      const url = encodeURIComponent(
+        "https://www.perplexity.ai/rest/finance/market-sentiment/market?country=US"
+      );
+      const response = await fetch(`${PROXY_URL}${url}`);
+      const data = await response.json();
+      setSentiment({
+        sentiment: data?.sentiment || "",
+        market_status: data?.market_status || "",
+      });
+    } catch (e) {
+      console.error("Sentiment fetch failed", e);
+    } finally {
+      setLoadingSentiment(false);
+    }
+  };
 
   /* ===================== FETCH INDICES ===================== */
   const fetchIndices = async () => {
@@ -139,40 +170,28 @@ const Dashboard = () => {
   };
 
   /* ===================== FETCH NEWS ===================== */
-const fetchNews = async () => {
-  try {
-    setLoadingNews(true);
-    const url = encodeURIComponent(
-      "https://www.perplexity.ai/rest/finance/general-news/market?country=US"
-    );
-    const response = await fetch(`${PROXY_URL}${url}`);
-    const data = await response.json();
-
-    const items = data?.posts || data?.data || [];
-
-    if (Array.isArray(items)) {
-      setNews(
-        items.slice(0, 10).map((item: any, i: number) => ({
-          id: String(i),
-          headline: item.headline,
-          text: item.text || "", // ✅ FIXED
-          source: item.sources?.[0]?.name || "Unknown",
-          datetime: item.timestamp || new Date().toISOString(),
-          url: item.sources?.[0]?.url || "#",
-          category: item.category || "",
-        }))
+  const fetchNews = async () => {
+    try {
+      setLoadingNews(true);
+      const url = encodeURIComponent(
+        "https://www.perplexity.ai/rest/finance/general-news/market?country=US"
       );
+      const response = await fetch(`${PROXY_URL}${url}`);
+      const data = await response.json();
+
+      const posts = data?.posts || [];
+      setNewsPosts(posts);
+    } catch (e) {
+      console.error("News fetch failed", e);
+    } finally {
+      setLoadingNews(false);
     }
-  } catch (e) {
-    console.error("News fetch failed", e);
-  } finally {
-    setLoadingNews(false);
-  }
-};
+  };
 
   /* ===================== FETCH ALL ===================== */
   const fetchAll = useCallback(async () => {
     await Promise.all([
+      fetchSentiment(),
       fetchIndices(),
       fetchSectors(),
       fetchMovers(),
@@ -184,7 +203,7 @@ const fetchNews = async () => {
   /* ===================== AUTO REFRESH ===================== */
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 10000);
+    const interval = setInterval(fetchAll, 30000);
     return () => clearInterval(interval);
   }, [fetchAll]);
 
@@ -199,11 +218,25 @@ const fetchNews = async () => {
         <Navigation />
 
         <main className="pt-24 pb-16 px-4 max-w-7xl mx-auto">
+          {/* Market Sentiment Header */}
+          <div className="flex justify-end mb-4">
+            <MarketSentiment
+              sentiment={sentiment?.sentiment || ""}
+              marketStatus={sentiment?.market_status || ""}
+              loading={loadingSentiment}
+            />
+          </div>
+
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="overview">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Overview
+              </TabsTrigger>
+
+              <TabsTrigger value="news">
+                <Newspaper className="w-4 h-4 mr-2" />
+                Market News
               </TabsTrigger>
 
               <TabsTrigger value="splits">
@@ -236,12 +269,17 @@ const fetchNews = async () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* ✅ NOW RECEIVES FULL RAW JSON */}
-                <MarketNews data={news} loading={loadingNews} />
+                {/* Overview: Only headline + text */}
+                <NewsOverview data={newsPosts} loading={loadingNews} />
 
-                {/* ✅ OVERVIEW: ONLY 6 */}
+                {/* Overview: compact splits */}
                 <StockSplits limit={6} compact />
               </div>
+            </TabsContent>
+
+            {/* ================= MARKET NEWS TAB ================= */}
+            <TabsContent value="news" className="mt-6">
+              <MarketNews data={{ posts: newsPosts }} loading={loadingNews} />
             </TabsContent>
 
             {/* ================= FULL STOCK SPLITS TAB ================= */}

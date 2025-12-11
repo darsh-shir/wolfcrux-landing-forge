@@ -29,7 +29,7 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
 
   if (loading && posts.length === 0) {
     return (
-      <Card className="bg-card border border-border/50 shadow-sm h-full">
+      <Card className="bg-card border border-border/50 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Newspaper className="w-4 h-4" />
@@ -51,7 +51,7 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
   }
 
   return (
-    <Card className="bg-card border border-border/50 shadow-sm h-full">
+    <Card className="bg-card border border-border/50 shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Newspaper className="w-4 h-4" />
@@ -60,41 +60,68 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
       </CardHeader>
 
       <CardContent>
-        <div className="space-y-2 max-h-[400px] overflow-y-auto">
-          {posts.slice(0, 6).map((item: any, i: number) => {
-            const source = item.sources?.[0];
+        <div className="space-y-6">
+          {posts.map((item: any, i: number) => {
+            const sources = item.sources || [];
 
             return (
-              <a
-                key={i}
-                href={source?.url || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block p-3 rounded-lg hover:bg-muted/50 transition group"
-              >
-                <div className="flex justify-between gap-2">
-                  <h3 className="text-sm font-semibold leading-snug">
-                    {item.headline}
-                  </h3>
-                  <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition" />
-                </div>
+              <div key={i} className="border-b border-border/30 pb-6 last:border-0 last:pb-0">
+                {/* Headline */}
+                <h3 className="text-base font-semibold text-foreground leading-snug">
+                  {item.headline}
+                </h3>
 
-                {/* ✅ THIS IS THE FIX: SHOW TEXT NOT SOURCE NAME */}
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                {/* Text */}
+                <p className="text-sm text-muted-foreground mt-2">
                   {item.text}
                 </p>
 
+                {/* Timestamp */}
                 <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                  <span className="font-medium">
-                    {source?.name || "Market"}
-                  </span>
-                  <span>•</span>
                   <Clock className="w-3 h-3" />
                   <span>{formatTimeAgo(item.timestamp)}</span>
                 </div>
-              </a>
+
+                {/* Sources */}
+                {sources.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Sources
+                    </p>
+                    <div className="space-y-2">
+                      {sources.map((source: any, sIdx: number) => (
+                        <a
+                          key={sIdx}
+                          href={source.url || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-start gap-2 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition group"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground line-clamp-1">
+                              {source.name}
+                            </p>
+                            {source.snippet && (
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                {source.snippet}
+                              </p>
+                            )}
+                          </div>
+                          <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition shrink-0 mt-0.5" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             );
           })}
+
+          {posts.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No market news available
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
