@@ -26,7 +26,7 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
     
     try {
       const response = await fetch(
-        `https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=https://www.perplexity.ai/rest/finance/peers/${symbol}`
+        `https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=https://www.perplexity.ai/rest/finance/news/${symbol}`
       );
       const data = await response.json();
       setStockNews(data);
