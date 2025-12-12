@@ -58,59 +58,54 @@ const Earnings = ({ data = [], loading = false }: EarningsProps) => {
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-8">
         {data.map((day, dayIndex) => (
-          <div key={dayIndex} className="space-y-2">
+          <div key={dayIndex} className="space-y-4">
             {/* Date Header */}
-            <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">
+            <h3 className="text-base font-bold text-foreground border-b pb-2">
               {formatDate(day.date)}
             </h3>
 
-            {/* Earnings */}
             {day.earnings.length > 0 ? (
-              <div className="space-y-1">
+              <div className="space-y-4">
                 {day.earnings.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between px-3 py-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                  >
-                    {/* Left: Logo + Info */}
-                    <div className="flex items-center gap-3">
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.symbol}
-                          className="w-8 h-8 rounded object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
-                          {item.symbol.slice(0, 2)}
+                  <div key={idx} className="pb-4 border-b last:border-none">
+                    <div className="flex items-center justify-between">
+
+                      {/* LEFT SIDE — LOGO + NAME + SYMBOL */}
+                      <div className="flex items-center gap-3">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.symbol}
+                            className="w-8 h-8 rounded object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-semibold text-muted-foreground">
+                            {item.symbol.slice(0, 2)}
+                          </div>
+                        )}
+
+                        <div>
+                          <p className="font-bold text-foreground">{item.name}</p>
+                          <p className="text-sm text-muted-foreground">{item.symbol}</p>
                         </div>
-                      )}
-
-                      <div>
-                        <p className="font-medium text-foreground">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">{item.symbol}</p>
                       </div>
-                    </div>
 
-                    {/* Right: Q + Time */}
-                    <div className="text-right">
-                      <span className="inline-flex items-center gap-2 px-2 py-1 rounded bg-muted text-xs font-medium text-muted-foreground">
-                        {item.quarter}{" "}
-                        <span className="text-foreground">{item.time}</span>
-                      </span>
+                      {/* RIGHT SIDE — QUARTER + TIME */}
+                      <div className="text-right text-sm space-y-1">
+                        <p className="font-semibold text-foreground">{item.quarter}</p>
+                        <p className="text-muted-foreground">{item.time}</p>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground py-2 px-3">
-                No earnings scheduled
-              </p>
+              <p className="text-sm text-muted-foreground py-2">No earnings scheduled</p>
             )}
           </div>
         ))}
