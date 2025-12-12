@@ -67,7 +67,7 @@ const Earnings = () => {
         dates.push(iso);
       }
 
-      setSelectedDate(dates[5]); // today auto-select
+      setSelectedDate(dates[5]); // Select today
 
       const results: EarningsDay[] = [];
 
@@ -129,10 +129,12 @@ const Earnings = () => {
 
     let arr = [...selectedDay.earnings];
 
+    // Sort by market cap
     if (sortMode === "marketcap") {
       return arr.sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
     }
 
+    // Sort by session + time
     const sessionRank: any = {
       "PRE-MARKET": 1,
       "MARKET HOURS": 2,
@@ -200,7 +202,7 @@ const Earnings = () => {
                   : "bg-muted text-muted-foreground hover:bg-muted/60"
               }`}
             >
-              {formatDisplayDate(d.date)}
+              {formatDisplayDate(d.date)} ({d.earnings.length})
             </button>
           ))}
         </div>
@@ -220,65 +222,116 @@ const Earnings = () => {
         {/* SELECTED DATE HEADER */}
         {selectedDay && (
           <h3 className="text-md font-semibold text-muted-foreground border-b pb-2">
-            {formatHeaderDate(selectedDay.date)}
+            {formatHeaderDate(selectedDay.date)} — {selectedDay.earnings.length} Earnings
           </h3>
         )}
 
-        {/* SESSION GROUPS (H4 STYLE) */}
-        {["PRE-MARKET", "MARKET HOURS", "POST-MARKET"].map((session) => (
-          <div key={session}>
-            {grouped[session].length > 0 && (
-              <>
-                <div className="relative flex items-center py-4">
-                  <div className="flex-grow border-t" />
-                  <span className="mx-4 text-xs font-semibold text-muted-foreground">
-                    {session}
-                  </span>
-                  <div className="flex-grow border-t" />
+        {/* MARKETCAP MODE → NO SESSION HEADERS */}
+        {sortMode === "marketcap" && (
+          <div className="space-y-2">
+            {sortedEarnings.map((e, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between px-3 py-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  {e.image ? (
+                    <img
+                      src={e.image}
+                      className="w-8 h-8 rounded object-contain"
+                      alt={e.symbol}
+                      onError={(ev) =>
+                        ((ev.target as HTMLImageElement).style.display = "none")
+                      }
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-bold">
+                      {e.symbol.slice(0, 2)}
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="font-medium flex items-center gap-2">
+                      {e.symbol}
+                      <span className="px-2 py-0.5 rounded bg-muted text-[10px] font-semibold">
+                        {e.session.replace("-MARKET", "").replace(" HOURS", "")}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">{e.name}</p>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  {grouped[session].map((e, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between px-3 py-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        {e.image ? (
-                          <img
-                            src={e.image}
-                            className="w-8 h-8 rounded object-contain"
-                            alt={e.symbol}
-                            onError={(ev) =>
-                              ((ev.target as HTMLImageElement).style.display = "none")
-                            }
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-bold">
-                            {e.symbol.slice(0, 2)}
-                          </div>
-                        )}
+                <div className="text-right text-xs text-muted-foreground">
+                  {e.quarter} • {e.time}
+                  <br />
+                  {e.marketCap
+                    ? `${(e.marketCap / 1_000_000_000).toFixed(1)}B`
+                    : "—"}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-                        <div>
-                          <p className="font-medium">{e.symbol}</p>
-                          <p className="text-xs text-muted-foreground">{e.name}</p>
+        {/* TIME MODE → GROUPED BY SESSION */}
+        {sortMode === "time" &&
+          ["PRE-MARKET", "MARKET HOURS", "POST-MARKET"].map((session) => (
+            <div key={session}>
+              {grouped[session].length > 0 && (
+                <>
+                  <div className="relative flex items-center py-4">
+                    <div className="flex-grow border-t" />
+                    <span className="mx-4 text-xs font-semibold text-muted-foreground">
+                      {session}
+                    </span>
+                    <div className="flex-grow border-t" />
+                  </div>
+
+                  <div className="space-y-2">
+                    {grouped[session].map((e, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between px-3 py-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          {e.image ? (
+                            <img
+                              src={e.image}
+                              className="w-8 h-8 rounded object-contain"
+                              alt={e.symbol}
+                              onError={(ev) =>
+                                ((ev.target as HTMLImageElement).style.display =
+                                  "none")
+                              }
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-bold">
+                              {e.symbol.slice(0, 2)}
+                            </div>
+                          )}
+
+                          <div>
+                            <p className="font-medium">{e.symbol}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {e.name}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right text-xs text-muted-foreground">
+                          {e.quarter} • {e.time}
+                          <br />
+                          {e.marketCap
+                            ? `${(e.marketCap / 1_000_000_000).toFixed(1)}B`
+                            : "—"}
                         </div>
                       </div>
-
-                      <div className="text-right text-xs text-muted-foreground">
-                        {e.quarter} • {e.time}
-                        <br />
-                        {e.marketCap
-                          ? `${(e.marketCap / 1_000_000_000).toFixed(1)}B`
-                          : "—"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        ))}
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
       </CardContent>
     </Card>
   );
