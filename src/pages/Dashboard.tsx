@@ -47,6 +47,19 @@ interface SentimentData {
   created: string;
 }
 
+interface EarningsItem {
+  symbol: string;
+  name: string;
+  image?: string;
+  quarter: string;
+  time: string;
+}
+
+interface EarningsDay {
+  date: string;
+  earnings: EarningsItem[];
+}
+
 /* ===================== COMPONENT ===================== */
 
 const Dashboard = () => {
@@ -68,6 +81,40 @@ const Dashboard = () => {
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+
+  const [earningsData, setEarningsData] = useState<EarningsDay[]>([]);
+  const [earningsLoading, setEarningsLoading] = useState(true);
+
+  /* ===================== FETCH EARNINGS ===================== */
+  const fetchEarnings = async () => {
+    try {
+      setEarningsLoading(true);
+
+      const url = encodeURIComponent(
+        "https://www.perplexity.ai/rest/finance/earnings/calendar?country=US"
+      );
+
+      const response = await fetch(`${PROXY_URL}${url}`);
+      const data = await response.json();
+
+      const mapped: EarningsDay[] = (data?.days || []).map((d: any) => ({
+        date: d.date,
+        earnings: (d.earnings || []).map((e: any) => ({
+          symbol: e.symbol,
+          name: e.name,
+          image: e.image,
+          quarter: e.quarter || "Q",
+          time: e.time || "N/A",
+        })),
+      }));
+
+      setEarningsData(mapped);
+    } catch (e) {
+      console.error("Earnings fetch failed", e);
+    } finally {
+      setEarningsLoading(false);
+    }
+  };
 
   /* ===================== FETCH SENTIMENT ===================== */
   const fetchSentiment = useCallback(async () => {
@@ -102,15 +149,16 @@ const Dashboard = () => {
       const items = data?.data || data?.indices || data || [];
 
       if (Array.isArray(items)) {
-        const mapped: IndexData[] = items.map((item: any) => ({
-          symbol: item.symbol || item.ticker || "",
-          name: item.name || item.display_name || "",
-          price: parseFloat(item.price || item.last_price || 0),
-          change: parseFloat(item.change || 0),
-          changesPercentage: parseFloat(item.changesPercentage || 0),
-          history: (item.history || []).map((h: any) => h.close || 0),
-        }));
-        setIndices(mapped);
+        setIndices(
+          items.map((item: any) => ({
+            symbol: item.symbol || item.ticker || "",
+            name: item.name || item.display_name || "",
+            price: parseFloat(item.price || item.last_price || 0),
+            change: parseFloat(item.change || 0),
+            changesPercentage: parseFloat(item.changesPercentage || 0),
+            history: (item.history || []).map((h: any) => h.close || 0),
+          }))
+        );
       }
     } catch (e) {
       console.error("Indices fetch failed", e);
@@ -180,8 +228,7 @@ const Dashboard = () => {
       const response = await fetch(`${PROXY_URL}${url}`);
       const data = await response.json();
 
-      const posts = data?.posts || [];
-      setNewsPosts(posts);
+      setNewsPosts(data?.posts || []);
     } catch (e) {
       console.error("News fetch failed", e);
     } finally {
@@ -197,6 +244,7 @@ const Dashboard = () => {
       fetchSectors(),
       fetchMovers(),
       fetchNews(),
+      fetchEarnings(),
     ]);
     setLastUpdated(new Date());
   }, []);
@@ -299,7 +347,7 @@ const Dashboard = () => {
 
             {/* ================= EARNINGS TAB ================= */}
             <TabsContent value="earnings" className="mt-6">
-              <Earnings />
+              <Earnings data={earningsData} loading={earningsLoading} />
             </TabsContent>
           </Tabs>
         </main>
