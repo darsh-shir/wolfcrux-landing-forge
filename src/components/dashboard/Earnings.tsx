@@ -15,49 +15,9 @@ interface EarningsDay {
 }
 
 interface EarningsProps {
-  data?: EarningsDay[];
-  loading?: boolean;
+  data: EarningsDay[];
+  loading: boolean;
 }
-
-// Placeholder data for 8 days - replace with API data
-const placeholderData: EarningsDay[] = [
-  {
-    date: "2025-12-11",
-    earnings: [
-      { symbol: "AVGO", name: "Broadcom Inc.", quarter: "Q4 '25", time: "5:00 PM" },
-      { symbol: "COST", name: "Costco Wholesale Corporation", quarter: "Q1 '26", time: "5:00 PM" },
-      { symbol: "CIEN", name: "Ciena Corporation", quarter: "Q4 '25", time: "8:30 AM" },
-    ],
-  },
-  {
-    date: "2025-12-12",
-    earnings: [],
-  },
-  {
-    date: "2025-12-13",
-    earnings: [],
-  },
-  {
-    date: "2025-12-14",
-    earnings: [],
-  },
-  {
-    date: "2025-12-15",
-    earnings: [],
-  },
-  {
-    date: "2025-12-16",
-    earnings: [],
-  },
-  {
-    date: "2025-12-17",
-    earnings: [],
-  },
-  {
-    date: "2025-12-18",
-    earnings: [],
-  },
-];
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
@@ -68,7 +28,7 @@ const formatDate = (dateStr: string) => {
   });
 };
 
-const Earnings = ({ data = placeholderData, loading = false }: EarningsProps) => {
+const Earnings = ({ data = [], loading = false }: EarningsProps) => {
   if (loading) {
     return (
       <Card>
@@ -97,6 +57,7 @@ const Earnings = ({ data = placeholderData, loading = false }: EarningsProps) =>
           Earnings Calendar
         </CardTitle>
       </CardHeader>
+
       <CardContent className="space-y-6">
         {data.map((day, dayIndex) => (
           <div key={dayIndex} className="space-y-2">
@@ -105,7 +66,7 @@ const Earnings = ({ data = placeholderData, loading = false }: EarningsProps) =>
               {formatDate(day.date)}
             </h3>
 
-            {/* Earnings Rows */}
+            {/* Earnings */}
             {day.earnings.length > 0 ? (
               <div className="space-y-1">
                 {day.earnings.map((item, idx) => (
@@ -113,7 +74,7 @@ const Earnings = ({ data = placeholderData, loading = false }: EarningsProps) =>
                     key={idx}
                     className="flex items-center justify-between px-3 py-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                   >
-                    {/* Left: Logo + Company Info */}
+                    {/* Left: Logo + Info */}
                     <div className="flex items-center gap-3">
                       {item.image ? (
                         <img
@@ -129,16 +90,18 @@ const Earnings = ({ data = placeholderData, loading = false }: EarningsProps) =>
                           {item.symbol.slice(0, 2)}
                         </div>
                       )}
+
                       <div>
                         <p className="font-medium text-foreground">{item.name}</p>
                         <p className="text-xs text-muted-foreground">{item.symbol}</p>
                       </div>
                     </div>
 
-                    {/* Right: Quarter + Time */}
+                    {/* Right: Q + Time */}
                     <div className="text-right">
                       <span className="inline-flex items-center gap-2 px-2 py-1 rounded bg-muted text-xs font-medium text-muted-foreground">
-                        {item.quarter} <span className="text-foreground">{item.time}</span>
+                        {item.quarter}{" "}
+                        <span className="text-foreground">{item.time}</span>
                       </span>
                     </div>
                   </div>
