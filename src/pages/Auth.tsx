@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import MobileBlock from "@/components/MobileBlock";
 import logo from "@/assets/wolfcrux-logo.png";
 import { z } from "zod";
 
@@ -87,7 +88,7 @@ const Auth = () => {
   }
 
   return (
-    <>
+    <MobileBlock>
       <Navigation />
       <div className="min-h-screen bg-background flex items-center justify-center pt-20 pb-12 px-4">
         <Card className="w-full max-w-md">
@@ -164,7 +165,7 @@ const Auth = () => {
         </Card>
       </div>
       <Footer />
-    </>
+    </MobileBlock>
   );
 };
 
