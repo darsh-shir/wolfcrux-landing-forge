@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance_records: {
+        Row: {
+          created_at: string
+          id: string
+          is_deductible: boolean
+          notes: string | null
+          record_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_deductible?: boolean
+          notes?: string | null
+          record_date: string
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_deductible?: boolean
+          notes?: string | null
+          record_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       holidays: {
         Row: {
           created_at: string
@@ -35,66 +68,48 @@ export type Database = {
         }
         Relationships: []
       }
-      leave_balances: {
+      monthly_leave_summary: {
         Row: {
+          allowed_full_days: number
+          allowed_half_days: number
           created_at: string
+          deductible_count: number
           id: string
-          total_leaves: number
+          late_count: number
+          month: number
           updated_at: string
-          used_leaves: number
+          used_full_days: number
+          used_half_days: number
           user_id: string
           year: number
         }
         Insert: {
+          allowed_full_days?: number
+          allowed_half_days?: number
           created_at?: string
+          deductible_count?: number
           id?: string
-          total_leaves?: number
+          late_count?: number
+          month: number
           updated_at?: string
-          used_leaves?: number
+          used_full_days?: number
+          used_half_days?: number
           user_id: string
-          year?: number
+          year: number
         }
         Update: {
+          allowed_full_days?: number
+          allowed_half_days?: number
           created_at?: string
+          deductible_count?: number
           id?: string
-          total_leaves?: number
+          late_count?: number
+          month?: number
           updated_at?: string
-          used_leaves?: number
+          used_full_days?: number
+          used_half_days?: number
           user_id?: string
           year?: number
-        }
-        Relationships: []
-      }
-      leave_requests: {
-        Row: {
-          created_at: string
-          id: string
-          leave_date: string
-          leave_type: string
-          reason: string | null
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          leave_date: string
-          leave_type: string
-          reason?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          leave_date?: string
-          leave_type?: string
-          reason?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -124,6 +139,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      trader_account_assignments: {
+        Row: {
+          account_id: string
+          assignment_date: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          assignment_date: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          assignment_date?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trader_account_assignments_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "trading_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trading_accounts: {
         Row: {

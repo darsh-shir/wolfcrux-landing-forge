@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Calendar, Check, X, Trash2 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Plus, Calendar, Trash2, Edit, UserCheck, Clock, AlertTriangle } from "lucide-react";
+import { format, parseISO, startOfMonth, endOfMonth, getDaysInMonth } from "date-fns";
 
 interface Profile {
   id: string;
@@ -25,21 +27,26 @@ interface Holiday {
   name: string;
 }
 
-interface LeaveRequest {
+interface AttendanceRecord {
   id: string;
   user_id: string;
-  leave_date: string;
-  leave_type: "full" | "half";
-  status: "pending" | "approved" | "rejected";
-  reason: string | null;
+  record_date: string;
+  status: "present" | "absent" | "half_day" | "late";
+  is_deductible: boolean;
+  notes: string | null;
 }
 
-interface LeaveBalance {
+interface MonthlySummary {
   id: string;
   user_id: string;
-  total_leaves: number;
-  used_leaves: number;
   year: number;
+  month: number;
+  allowed_full_days: number;
+  allowed_half_days: number;
+  used_full_days: number;
+  used_half_days: number;
+  late_count: number;
+  deductible_count: number;
 }
 
 interface LeavesManagementProps {
@@ -49,14 +56,29 @@ interface LeavesManagementProps {
 const LeavesManagement = ({ users }: LeavesManagementProps) => {
   const { toast } = useToast();
   const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [monthlySummaries, setMonthlySummaries] = useState<MonthlySummary[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Filters
+  const [selectedTrader, setSelectedTrader] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
 
   // Holiday form
   const [showHolidayDialog, setShowHolidayDialog] = useState(false);
   const [holidayDate, setHolidayDate] = useState("");
   const [holidayName, setHolidayName] = useState("");
+
+  // Attendance form
+  const [showAttendanceDialog, setShowAttendanceDialog] = useState(false);
+  const [attendanceTrader, setAttendanceTrader] = useState("");
+  const [attendanceDate, setAttendanceDate] = useState("");
+  const [attendanceStatus, setAttendanceStatus] = useState<"present" | "absent" | "half_day" | "late">("present");
+  const [attendanceNotes, setAttendanceNotes] = useState("");
+  const [editingAttendance, setEditingAttendance] = useState<AttendanceRecord | null>(null);
+
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "holiday" | "attendance"; id: string } | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -64,15 +86,15 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [holidaysRes, requestsRes, balancesRes] = await Promise.all([
+    const [holidaysRes, attendanceRes, summariesRes] = await Promise.all([
       supabase.from("holidays").select("*").order("holiday_date"),
-      supabase.from("leave_requests").select("*").order("leave_date", { ascending: false }),
-      supabase.from("leave_balances").select("*"),
+      supabase.from("attendance_records").select("*").order("record_date", { ascending: false }),
+      supabase.from("monthly_leave_summary").select("*"),
     ]);
 
     if (holidaysRes.data) setHolidays(holidaysRes.data);
-    if (requestsRes.data) setLeaveRequests(requestsRes.data as LeaveRequest[]);
-    if (balancesRes.data) setLeaveBalances(balancesRes.data as LeaveBalance[]);
+    if (attendanceRes.data) setAttendanceRecords(attendanceRes.data as AttendanceRecord[]);
+    if (summariesRes.data) setMonthlySummaries(summariesRes.data as MonthlySummary[]);
     setLoading(false);
   };
 
@@ -81,15 +103,61 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     return u?.full_name || "Unknown";
   };
 
-  const getUserBalance = (userId: string) => {
-    const balance = leaveBalances.find((b) => b.user_id === userId);
-    if (!balance) return { total: 18, used: 0, remaining: 18 };
-    return {
-      total: Number(balance.total_leaves),
-      used: Number(balance.used_leaves),
-      remaining: Number(balance.total_leaves) - Number(balance.used_leaves),
-    };
-  };
+  // Filter records by selected month and trader
+  const filteredRecords = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const start = startOfMonth(new Date(year, month - 1));
+    const end = endOfMonth(new Date(year, month - 1));
+
+    return attendanceRecords.filter((r) => {
+      const recordDate = parseISO(r.record_date);
+      const inRange = recordDate >= start && recordDate <= end;
+      const matchesTrader = selectedTrader === "all" || r.user_id === selectedTrader;
+      return inRange && matchesTrader;
+    });
+  }, [attendanceRecords, selectedMonth, selectedTrader]);
+
+  // Calculate monthly stats per trader
+  const traderMonthlyStats = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const stats: Record<string, {
+      fullDays: number;
+      halfDays: number;
+      lateCount: number;
+      deductibleCount: number;
+      allowedFull: number;
+      allowedHalf: number;
+    }> = {};
+
+    users.forEach((u) => {
+      const userRecords = attendanceRecords.filter((r) => {
+        const recordDate = parseISO(r.record_date);
+        return r.user_id === u.user_id &&
+          recordDate.getFullYear() === year &&
+          recordDate.getMonth() + 1 === month;
+      });
+
+      const fullDays = userRecords.filter((r) => r.status === "absent").length;
+      const halfDays = userRecords.filter((r) => r.status === "half_day").length;
+      const lateCount = userRecords.filter((r) => r.status === "late").length;
+      const deductibleCount = userRecords.filter((r) => r.is_deductible).reduce((sum, r) => {
+        if (r.status === "absent") return sum + 1;
+        if (r.status === "half_day") return sum + 0.5;
+        return sum;
+      }, 0);
+
+      stats[u.user_id] = {
+        fullDays,
+        halfDays,
+        lateCount,
+        deductibleCount,
+        allowedFull: 1,
+        allowedHalf: 1,
+      };
+    });
+
+    return stats;
+  }, [users, attendanceRecords, selectedMonth]);
 
   const handleAddHoliday = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,118 +182,305 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     }
   };
 
-  const handleDeleteHoliday = async (id: string) => {
-    const { error } = await supabase.from("holidays").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      fetchData();
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+
+    if (deleteTarget.type === "holiday") {
+      const { error } = await supabase.from("holidays").delete().eq("id", deleteTarget.id);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Deleted", description: "Holiday removed" });
+        fetchData();
+      }
+    } else if (deleteTarget.type === "attendance") {
+      const { error } = await supabase.from("attendance_records").delete().eq("id", deleteTarget.id);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Deleted", description: "Attendance record removed" });
+        fetchData();
+      }
     }
+
+    setDeleteTarget(null);
   };
 
-  const handleApproveLeave = async (request: LeaveRequest) => {
-    // Update request status
-    const { error: updateError } = await supabase
-      .from("leave_requests")
-      .update({ status: "approved" })
-      .eq("id", request.id);
-
-    if (updateError) {
-      toast({ title: "Error", description: updateError.message, variant: "destructive" });
+  const handleSaveAttendance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!attendanceTrader || !attendanceDate) {
+      toast({ title: "Error", description: "Please select trader and date", variant: "destructive" });
       return;
     }
 
-    // Update leave balance
-    const deduction = request.leave_type === "full" ? 1 : 0.5;
-    const balance = leaveBalances.find((b) => b.user_id === request.user_id);
-    
-    if (balance) {
-      await supabase
-        .from("leave_balances")
-        .update({ used_leaves: Number(balance.used_leaves) + deduction })
-        .eq("id", balance.id);
+    // Check if exceeds monthly limit
+    const [year, month] = attendanceDate.split("-").map(Number);
+    const existingRecords = attendanceRecords.filter((r) => {
+      const recordDate = parseISO(r.record_date);
+      return r.user_id === attendanceTrader &&
+        recordDate.getFullYear() === year &&
+        recordDate.getMonth() + 1 === month &&
+        r.id !== editingAttendance?.id;
+    });
+
+    const usedFullDays = existingRecords.filter((r) => r.status === "absent").length;
+    const usedHalfDays = existingRecords.filter((r) => r.status === "half_day").length;
+
+    let isDeductible = false;
+    if (attendanceStatus === "absent" && usedFullDays >= 1) {
+      isDeductible = true;
+    } else if (attendanceStatus === "half_day" && usedHalfDays >= 1) {
+      isDeductible = true;
+    }
+
+    if (editingAttendance) {
+      const { error } = await supabase.from("attendance_records")
+        .update({
+          user_id: attendanceTrader,
+          record_date: attendanceDate,
+          status: attendanceStatus,
+          is_deductible: isDeductible,
+          notes: attendanceNotes || null,
+        })
+        .eq("id", editingAttendance.id);
+
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Success", description: "Attendance updated" });
+        resetAttendanceForm();
+        fetchData();
+      }
     } else {
-      // Create balance if doesn't exist
-      await supabase.from("leave_balances").insert({
-        user_id: request.user_id,
-        total_leaves: 18,
-        used_leaves: deduction,
+      const { error } = await supabase.from("attendance_records").insert({
+        user_id: attendanceTrader,
+        record_date: attendanceDate,
+        status: attendanceStatus,
+        is_deductible: isDeductible,
+        notes: attendanceNotes || null,
       });
-    }
 
-    toast({ title: "Success", description: "Leave approved" });
-    fetchData();
-  };
-
-  const handleRejectLeave = async (id: string) => {
-    const { error } = await supabase
-      .from("leave_requests")
-      .update({ status: "rejected" })
-      .eq("id", id);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Leave rejected" });
-      fetchData();
+      if (error) {
+        if (error.code === "23505") {
+          toast({ title: "Error", description: "Record already exists for this date", variant: "destructive" });
+        } else {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+        }
+      } else {
+        toast({ title: "Success", description: `Marked as ${attendanceStatus}${isDeductible ? " (Deductible)" : ""}` });
+        resetAttendanceForm();
+        fetchData();
+      }
     }
   };
 
-  const pendingRequests = leaveRequests.filter((r) => r.status === "pending");
-  const processedRequests = leaveRequests.filter((r) => r.status !== "pending");
+  const resetAttendanceForm = () => {
+    setShowAttendanceDialog(false);
+    setAttendanceTrader("");
+    setAttendanceDate("");
+    setAttendanceStatus("present");
+    setAttendanceNotes("");
+    setEditingAttendance(null);
+  };
+
+  const openEditAttendance = (record: AttendanceRecord) => {
+    setEditingAttendance(record);
+    setAttendanceTrader(record.user_id);
+    setAttendanceDate(record.record_date);
+    setAttendanceStatus(record.status);
+    setAttendanceNotes(record.notes || "");
+    setShowAttendanceDialog(true);
+  };
+
+  const getStatusBadge = (status: string, isDeductible: boolean) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      present: "default",
+      absent: "destructive",
+      half_day: "secondary",
+      late: "outline",
+    };
+
+    return (
+      <div className="flex items-center gap-1">
+        <Badge variant={variants[status] || "outline"}>
+          {status === "half_day" ? "Half Day" : status.charAt(0).toUpperCase() + status.slice(1)}
+        </Badge>
+        {isDeductible && (
+          <Badge variant="destructive" className="text-xs">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Deductible
+          </Badge>
+        )}
+      </div>
+    );
+  };
+
+  // Generate months for dropdown
+  const months = useMemo(() => {
+    const result = [];
+    for (let i = 0; i < 12; i++) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      result.push(format(date, "yyyy-MM"));
+    }
+    return result;
+  }, []);
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="requests" className="space-y-4">
+      <Tabs defaultValue="attendance" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="requests">
-            Leave Requests
-            {pendingRequests.length > 0 && (
-              <Badge variant="destructive" className="ml-2">{pendingRequests.length}</Badge>
-            )}
+          <TabsTrigger value="attendance">
+            <UserCheck className="h-4 w-4 mr-2" />
+            Attendance
           </TabsTrigger>
-          <TabsTrigger value="balances">Leave Balances</TabsTrigger>
-          <TabsTrigger value="holidays">Holidays</TabsTrigger>
+          <TabsTrigger value="summary">
+            <Clock className="h-4 w-4 mr-2" />
+            Monthly Summary
+          </TabsTrigger>
+          <TabsTrigger value="holidays">
+            <Calendar className="h-4 w-4 mr-2" />
+            Holidays
+          </TabsTrigger>
         </TabsList>
 
-        {/* Leave Requests Tab */}
-        <TabsContent value="requests">
+        {/* ATTENDANCE TAB */}
+        <TabsContent value="attendance">
           <Card>
-            <CardHeader>
-              <CardTitle>Pending Leave Requests</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Attendance Management</CardTitle>
+              <Dialog open={showAttendanceDialog} onOpenChange={(open) => {
+                if (!open) resetAttendanceForm();
+                else setShowAttendanceDialog(true);
+              }}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="gap-1">
+                    <Plus className="h-4 w-4" />
+                    Mark Attendance
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{editingAttendance ? "Edit Attendance" : "Mark Attendance"}</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSaveAttendance} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Trader</Label>
+                      <Select value={attendanceTrader} onValueChange={setAttendanceTrader}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select trader" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map((u) => (
+                            <SelectItem key={u.user_id} value={u.user_id}>
+                              {u.full_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Date</Label>
+                      <Input
+                        type="date"
+                        value={attendanceDate}
+                        onChange={(e) => setAttendanceDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select value={attendanceStatus} onValueChange={(v) => setAttendanceStatus(v as typeof attendanceStatus)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="present">Present</SelectItem>
+                          <SelectItem value="absent">Absent (Full Day)</SelectItem>
+                          <SelectItem value="half_day">Half Day</SelectItem>
+                          <SelectItem value="late">Late</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Notes (optional)</Label>
+                      <Input
+                        value={attendanceNotes}
+                        onChange={(e) => setAttendanceNotes(e.target.value)}
+                        placeholder="Any remarks..."
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" className="w-full">
+                        {editingAttendance ? "Update" : "Save"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent>
-              {pendingRequests.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4">No pending requests</p>
+              {/* Filters */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Select value={selectedTrader} onValueChange={setSelectedTrader}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="All Traders" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Traders</SelectItem>
+                    {users.map((u) => (
+                      <SelectItem key={u.user_id} value={u.user_id}>
+                        {u.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {format(parseISO(`${m}-01`), "MMM yyyy")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {filteredRecords.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No attendance records for selected period</p>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Employee</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Reason</TableHead>
+                      <TableHead>Trader</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Notes</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingRequests.map((req) => (
-                      <TableRow key={req.id}>
-                        <TableCell className="font-medium">{getUserName(req.user_id)}</TableCell>
-                        <TableCell>{format(parseISO(req.leave_date), "MMM d, yyyy")}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {req.leave_type === "full" ? "Full Day" : "Half Day"}
-                          </Badge>
+                    {filteredRecords.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell className="font-medium">
+                          {format(parseISO(record.record_date), "MMM d, yyyy")}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{req.reason || "—"}</TableCell>
+                        <TableCell>{getUserName(record.user_id)}</TableCell>
+                        <TableCell>{getStatusBadge(record.status, record.is_deductible)}</TableCell>
+                        <TableCell className="text-muted-foreground">{record.notes || "—"}</TableCell>
                         <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleApproveLeave(req)}>
-                              <Check className="h-4 w-4" />
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => openEditAttendance(record)}>
+                              <Edit className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleRejectLeave(req.id)}>
-                              <X className="h-4 w-4" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteTarget({ type: "attendance", id: record.id })}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         </TableCell>
@@ -234,66 +489,83 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                   </TableBody>
                 </Table>
               )}
-
-              {processedRequests.length > 0 && (
-                <div className="mt-6">
-                  <h4 className="font-medium mb-3">History</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Employee</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {processedRequests.slice(0, 10).map((req) => (
-                        <TableRow key={req.id}>
-                          <TableCell>{getUserName(req.user_id)}</TableCell>
-                          <TableCell>{format(parseISO(req.leave_date), "MMM d, yyyy")}</TableCell>
-                          <TableCell>{req.leave_type === "full" ? "Full" : "Half"}</TableCell>
-                          <TableCell>
-                            <Badge variant={req.status === "approved" ? "default" : "destructive"}>
-                              {req.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Leave Balances Tab */}
-        <TabsContent value="balances">
+        {/* MONTHLY SUMMARY TAB */}
+        <TabsContent value="summary">
           <Card>
             <CardHeader>
-              <CardTitle>Leave Balances</CardTitle>
+              <CardTitle>Monthly Summary - {format(parseISO(`${selectedMonth}-01`), "MMMM yyyy")}</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="mb-4">
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {format(parseISO(`${m}-01`), "MMM yyyy")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Used</TableHead>
-                    <TableHead className="text-right">Remaining</TableHead>
+                    <TableHead>Trader</TableHead>
+                    <TableHead className="text-center">Allowed</TableHead>
+                    <TableHead className="text-center">Full Days Used</TableHead>
+                    <TableHead className="text-center">Half Days Used</TableHead>
+                    <TableHead className="text-center">Late Count</TableHead>
+                    <TableHead className="text-center">Deductible</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => {
-                    const balance = getUserBalance(user.user_id);
+                    const stats = traderMonthlyStats[user.user_id] || {
+                      fullDays: 0,
+                      halfDays: 0,
+                      lateCount: 0,
+                      deductibleCount: 0,
+                      allowedFull: 1,
+                      allowedHalf: 1,
+                    };
+
                     return (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.full_name}</TableCell>
-                        <TableCell className="text-right">{balance.total}</TableCell>
-                        <TableCell className="text-right">{balance.used}</TableCell>
-                        <TableCell className="text-right font-semibold text-primary">
-                          {balance.remaining}
+                        <TableCell className="text-center">
+                          <span className="text-sm text-muted-foreground">
+                            1 Full + 1 Half
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={stats.fullDays > 1 ? "destructive" : "secondary"}>
+                            {stats.fullDays}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={stats.halfDays > 1 ? "destructive" : "secondary"}>
+                            {stats.halfDays}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={stats.lateCount > 0 ? "outline" : "secondary"}>
+                            {stats.lateCount}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {stats.deductibleCount > 0 ? (
+                            <Badge variant="destructive">{stats.deductibleCount}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">0</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
@@ -304,7 +576,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
           </Card>
         </TabsContent>
 
-        {/* Holidays Tab */}
+        {/* HOLIDAYS TAB */}
         <TabsContent value="holidays">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -360,7 +632,11 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                         <TableCell>{format(parseISO(h.holiday_date), "MMM d, yyyy")}</TableCell>
                         <TableCell className="font-medium">{h.name}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteHoliday(h.id)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteTarget({ type: "holiday", id: h.id })}
+                          >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </TableCell>
@@ -373,6 +649,24 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this {deleteTarget?.type} record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

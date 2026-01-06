@@ -1,29 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { Calendar, Plus } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 
-interface LeaveRequest {
+interface AttendanceRecord {
   id: string;
-  leave_date: string;
-  leave_type: "full" | "half";
-  status: "pending" | "approved" | "rejected";
-  reason: string | null;
-}
-
-interface LeaveBalance {
-  total_leaves: number;
-  used_leaves: number;
+  record_date: string;
+  status: "present" | "absent" | "half_day" | "late";
+  is_deductible: boolean;
+  notes: string | null;
 }
 
 interface Holiday {
@@ -34,18 +24,11 @@ interface Holiday {
 
 const LeaveApplication = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   
-  const [requests, setRequests] = useState<LeaveRequest[]>([]);
-  const [balance, setBalance] = useState<LeaveBalance>({ total_leaves: 18, used_leaves: 0 });
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Form state
-  const [leaveDate, setLeaveDate] = useState("");
-  const [leaveType, setLeaveType] = useState<"full" | "half">("full");
-  const [reason, setReason] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
 
   useEffect(() => {
     if (user) fetchData();
@@ -53,175 +36,219 @@ const LeaveApplication = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [requestsRes, balanceRes, holidaysRes] = await Promise.all([
-      supabase.from("leave_requests").select("*").order("leave_date", { ascending: false }),
-      supabase.from("leave_balances").select("*").maybeSingle(),
+    const [attendanceRes, holidaysRes] = await Promise.all([
+      supabase.from("attendance_records").select("*").order("record_date", { ascending: false }),
       supabase.from("holidays").select("*").order("holiday_date"),
     ]);
 
-    if (requestsRes.data) setRequests(requestsRes.data as LeaveRequest[]);
-    if (balanceRes.data) setBalance(balanceRes.data as LeaveBalance);
+    if (attendanceRes.data) setAttendanceRecords(attendanceRes.data as AttendanceRecord[]);
     if (holidaysRes.data) setHolidays(holidaysRes.data);
     setLoading(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !leaveDate) {
-      toast({ title: "Error", description: "Please select a date", variant: "destructive" });
-      return;
-    }
+  // Filter records by selected month
+  const filteredRecords = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const start = startOfMonth(new Date(year, month - 1));
+    const end = endOfMonth(new Date(year, month - 1));
 
-    const remaining = Number(balance.total_leaves) - Number(balance.used_leaves);
-    const requestAmount = leaveType === "full" ? 1 : 0.5;
-    
-    if (requestAmount > remaining) {
-      toast({ title: "Error", description: "Insufficient leave balance", variant: "destructive" });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    const { error } = await supabase.from("leave_requests").insert({
-      user_id: user.id,
-      leave_date: leaveDate,
-      leave_type: leaveType,
-      reason: reason || null,
+    return attendanceRecords.filter((r) => {
+      const recordDate = parseISO(r.record_date);
+      return recordDate >= start && recordDate <= end;
     });
+  }, [attendanceRecords, selectedMonth]);
 
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Success", description: "Leave request submitted" });
-      setLeaveDate("");
-      setReason("");
-      fetchData();
+  // Calculate stats for selected month
+  const monthlyStats = useMemo(() => {
+    const fullDays = filteredRecords.filter((r) => r.status === "absent").length;
+    const halfDays = filteredRecords.filter((r) => r.status === "half_day").length;
+    const lateCount = filteredRecords.filter((r) => r.status === "late").length;
+    const deductibleCount = filteredRecords.filter((r) => r.is_deductible).reduce((sum, r) => {
+      if (r.status === "absent") return sum + 1;
+      if (r.status === "half_day") return sum + 0.5;
+      return sum;
+    }, 0);
+
+    // Remaining from monthly allowance (1 full + 1 half = 1.5)
+    const usedInLimit = Math.min(fullDays, 1) + Math.min(halfDays, 1) * 0.5;
+    const pending = 1.5 - usedInLimit;
+
+    return {
+      fullDays,
+      halfDays,
+      lateCount,
+      deductibleCount,
+      pending: Math.max(0, pending),
+    };
+  }, [filteredRecords]);
+
+  // Generate months for dropdown
+  const months = useMemo(() => {
+    const result = [];
+    for (let i = 0; i < 12; i++) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      result.push(format(date, "yyyy-MM"));
     }
+    return result;
+  }, []);
 
-    setIsSubmitting(false);
+  const getStatusBadge = (status: string, isDeductible: boolean) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      present: "default",
+      absent: "destructive",
+      half_day: "secondary",
+      late: "outline",
+    };
+
+    return (
+      <div className="flex items-center gap-1">
+        <Badge variant={variants[status] || "outline"}>
+          {status === "half_day" ? "Half Day" : status.charAt(0).toUpperCase() + status.slice(1)}
+        </Badge>
+        {isDeductible && (
+          <Badge variant="destructive" className="text-xs">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Deductible
+          </Badge>
+        )}
+      </div>
+    );
   };
 
-  const remaining = Number(balance.total_leaves) - Number(balance.used_leaves);
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Leave Balance Card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Info Banner */}
+      <Card className="bg-muted/50 border-dashed">
+        <CardContent className="pt-6">
+          <p className="text-sm text-muted-foreground text-center">
+            Attendance is managed by admin. You can view your leave status and history below.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Monthly Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Total Leaves</p>
-              <p className="text-3xl font-bold">{balance.total_leaves}</p>
+              <div className="flex justify-center mb-2">
+                <div className="p-2 rounded-full bg-destructive/10">
+                  <Calendar className="h-5 w-5 text-destructive" />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">Full Days</p>
+              <p className="text-2xl font-bold">{monthlyStats.fullDays}</p>
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Used</p>
-              <p className="text-3xl font-bold text-orange-500">{balance.used_leaves}</p>
+              <div className="flex justify-center mb-2">
+                <div className="p-2 rounded-full bg-secondary">
+                  <Calendar className="h-5 w-5 text-secondary-foreground" />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">Half Days</p>
+              <p className="text-2xl font-bold">{monthlyStats.halfDays}</p>
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Remaining</p>
-              <p className="text-3xl font-bold text-primary">{remaining}</p>
+              <div className="flex justify-center mb-2">
+                <div className="p-2 rounded-full bg-primary/10">
+                  <CheckCircle className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">Pending</p>
+              <p className="text-2xl font-bold text-primary">{monthlyStats.pending.toFixed(1)}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="flex justify-center mb-2">
+                <div className="p-2 rounded-full bg-amber-100">
+                  <Clock className="h-5 w-5 text-amber-600" />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">Late Count</p>
+              <p className="text-2xl font-bold">{monthlyStats.lateCount}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="flex justify-center mb-2">
+                <div className="p-2 rounded-full bg-destructive/10">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">Deductible</p>
+              <p className="text-2xl font-bold text-destructive">{monthlyStats.deductibleCount}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Apply for Leave */}
+      {/* Attendance History */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-['Space_Grotesk']">
-            <Plus className="h-5 w-5" />
-            Apply for Leave
-          </CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="font-['Space_Grotesk']">Attendance History</CardTitle>
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {format(parseISO(`${m}-01`), "MMM yyyy")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Leave Date</Label>
-                <Input
-                  type="date"
-                  value={leaveDate}
-                  onChange={(e) => setLeaveDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Leave Type</Label>
-                <Select value={leaveType} onValueChange={(v) => setLeaveType(v as "full" | "half")}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full">Full Day (1.0)</SelectItem>
-                    <SelectItem value="half">Half Day (0.5)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Reason (optional)</Label>
-              <Textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Reason for leave..."
-                rows={2}
-              />
-            </div>
-            <Button type="submit" disabled={isSubmitting || remaining <= 0}>
-              {isSubmitting ? "Submitting..." : "Submit Request"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* My Leave Requests */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-['Space_Grotesk']">My Leave Requests</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {requests.length === 0 ? (
-            <p className="text-center text-muted-foreground py-4">No leave requests</p>
+          {filteredRecords.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              No attendance records for {format(parseISO(`${selectedMonth}-01`), "MMMM yyyy")}
+            </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Reason</TableHead>
+                  <TableHead>Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {requests.map((req) => (
-                  <TableRow key={req.id}>
-                    <TableCell>{format(parseISO(req.leave_date), "MMM d, yyyy")}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {req.leave_type === "full" ? "Full Day" : "Half Day"}
-                      </Badge>
+                {filteredRecords.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell className="font-medium">
+                      {format(parseISO(record.record_date), "MMM d, yyyy")}
                     </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          req.status === "approved"
-                            ? "default"
-                            : req.status === "rejected"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                      >
-                        {req.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{req.reason || "—"}</TableCell>
+                    <TableCell>{getStatusBadge(record.status, record.is_deductible)}</TableCell>
+                    <TableCell className="text-muted-foreground">{record.notes || "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -230,7 +257,7 @@ const LeaveApplication = () => {
         </CardContent>
       </Card>
 
-      {/* Holidays */}
+      {/* Upcoming Holidays */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 font-['Space_Grotesk']">
