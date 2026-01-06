@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, UserPlus, Key, Trash2, Edit } from "lucide-react";
 
@@ -46,17 +47,18 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const [newPassword, setNewPassword] = useState("");
   const [newFullName, setNewFullName] = useState("");
   const [newRole, setNewRole] = useState<"admin" | "user">("user");
-  const [newAccountNumbers, setNewAccountNumbers] = useState<string[]>(["", ""]);
   const [isCreating, setIsCreating] = useState(false);
 
   // Edit user form
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editFullName, setEditFullName] = useState("");
-  const [editAccountNumbers, setEditAccountNumbers] = useState<string[]>([]);
 
   // Reset password
   const [resetPasswordUser, setResetPasswordUser] = useState<Profile | null>(null);
   const [newPasswordValue, setNewPasswordValue] = useState("");
+
+  // Delete confirmation
+  const [deleteUser, setDeleteUser] = useState<Profile | null>(null);
 
   useEffect(() => {
     fetchRoles();
@@ -86,8 +88,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     setIsCreating(true);
 
     try {
-      // Create user via Supabase Auth Admin API (edge function needed)
-      // For now, we'll use signUp and then update role
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newEmail,
         password: newPassword,
@@ -105,30 +105,12 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
         await supabase.from("user_roles").update({ role: "admin" }).eq("user_id", authData.user.id);
       }
 
-      // Create trading accounts with the provided account numbers
-      const validAccounts = newAccountNumbers.filter((acc) => acc.trim());
-      for (let i = 0; i < validAccounts.length; i++) {
-        await supabase.from("trading_accounts").insert({
-          user_id: authData.user.id,
-          account_name: `Account ${i + 1}`,
-          account_number: validAccounts[i],
-        });
-      }
-
-      // Create leave balance for user (18 leaves per year)
-      await supabase.from("leave_balances").insert({
-        user_id: authData.user.id,
-        total_leaves: 18,
-        used_leaves: 0,
-      });
-
       toast({ title: "Success", description: "User created successfully" });
       setShowCreateDialog(false);
       setNewEmail("");
       setNewPassword("");
       setNewFullName("");
       setNewRole("user");
-      setNewAccountNumbers(["", ""]);
       onRefresh();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -142,27 +124,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     if (!editingUser) return;
 
     try {
-      // Update profile
       await supabase.from("profiles").update({ full_name: editFullName }).eq("user_id", editingUser.user_id);
-
-      // Update/create accounts
-      const existingAccounts = getUserAccounts(editingUser.user_id);
-      
-      for (let i = 0; i < editAccountNumbers.length; i++) {
-        const accNum = editAccountNumbers[i];
-        if (existingAccounts[i]) {
-          await supabase.from("trading_accounts")
-            .update({ account_number: accNum || null })
-            .eq("id", existingAccounts[i].id);
-        } else if (accNum.trim()) {
-          await supabase.from("trading_accounts").insert({
-            user_id: editingUser.user_id,
-            account_name: `Account ${i + 1}`,
-            account_number: accNum,
-          });
-        }
-      }
-
       toast({ title: "Success", description: "User updated successfully" });
       setEditingUser(null);
       onRefresh();
@@ -175,7 +137,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     e.preventDefault();
     if (!resetPasswordUser || !newPasswordValue) return;
 
-    // Note: Admin password reset requires edge function with service role
     toast({ 
       title: "Note", 
       description: "Password reset requires server-side implementation. User can use 'Forgot Password' flow.",
@@ -185,14 +146,22 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     setNewPasswordValue("");
   };
 
+  const handleDeleteUser = async () => {
+    if (!deleteUser) return;
+
+    // Note: Full user deletion requires admin API / edge function
+    // For now, just show a message
+    toast({ 
+      title: "Note", 
+      description: "Full user deletion requires server-side implementation.",
+      variant: "default" 
+    });
+    setDeleteUser(null);
+  };
+
   const openEditDialog = (user: Profile) => {
     setEditingUser(user);
     setEditFullName(user.full_name);
-    const userAccounts = getUserAccounts(user.user_id);
-    setEditAccountNumbers([
-      userAccounts[0]?.account_number || "",
-      userAccounts[1]?.account_number || "",
-    ]);
   };
 
   return (
@@ -203,12 +172,12 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           <DialogTrigger asChild>
             <Button className="gap-2">
               <UserPlus className="h-4 w-4" />
-              Add User
+              Add Trader
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
+              <DialogTitle>Create New Trader</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div className="space-y-2">
@@ -244,28 +213,13 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="user">Trader</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Account Numbers</Label>
-                <div className="space-y-2">
-                  <Input
-                    value={newAccountNumbers[0]}
-                    onChange={(e) => setNewAccountNumbers([e.target.value, newAccountNumbers[1]])}
-                    placeholder="Account 1 Number"
-                  />
-                  <Input
-                    value={newAccountNumbers[1]}
-                    onChange={(e) => setNewAccountNumbers([newAccountNumbers[0], e.target.value])}
-                    placeholder="Account 2 Number"
-                  />
-                </div>
-              </div>
               <Button type="submit" className="w-full" disabled={isCreating}>
-                {isCreating ? "Creating..." : "Create User"}
+                {isCreating ? "Creating..." : "Create Trader"}
               </Button>
             </form>
           </DialogContent>
@@ -274,7 +228,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
 
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
+          <CardTitle>All Traders</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -283,7 +237,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Accounts</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -294,15 +247,8 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <Badge variant={getUserRole(user.user_id) === "admin" ? "default" : "secondary"}>
-                      {getUserRole(user.user_id)}
+                      {getUserRole(user.user_id) === "admin" ? "Admin" : "Trader"}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {getUserAccounts(user.user_id).map((acc) => (
-                      <span key={acc.id} className="text-sm text-muted-foreground block">
-                        {acc.account_number || acc.account_name}
-                      </span>
-                    ))}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
@@ -312,7 +258,40 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                       <Button variant="ghost" size="sm" onClick={() => setResetPasswordUser(user)}>
                         <Key className="h-4 w-4" />
                       </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteUser(user)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Accounts Management */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Trading Accounts</CardTitle>
+          <AccountDialog accounts={accounts} onRefresh={onRefresh} />
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Account Number</TableHead>
+                <TableHead>Account Name</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {accounts.map((account) => (
+                <TableRow key={account.id}>
+                  <TableCell className="font-medium">{account.account_number || "—"}</TableCell>
+                  <TableCell>{account.account_name}</TableCell>
+                  <TableCell>
+                    <AccountActions account={account} onRefresh={onRefresh} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -325,7 +304,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle>Edit Trader</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleEditUser} className="space-y-4">
             <div className="space-y-2">
@@ -334,21 +313,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                 value={editFullName}
                 onChange={(e) => setEditFullName(e.target.value)}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Account Numbers</Label>
-              <div className="space-y-2">
-                <Input
-                  value={editAccountNumbers[0] || ""}
-                  onChange={(e) => setEditAccountNumbers([e.target.value, editAccountNumbers[1] || ""])}
-                  placeholder="Account 1 Number"
-                />
-                <Input
-                  value={editAccountNumbers[1] || ""}
-                  onChange={(e) => setEditAccountNumbers([editAccountNumbers[0] || "", e.target.value])}
-                  placeholder="Account 2 Number"
-                />
-              </div>
             </div>
             <Button type="submit" className="w-full">Save Changes</Button>
           </form>
@@ -375,7 +339,187 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteUser} onOpenChange={() => setDeleteUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Trader?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete {deleteUser?.full_name} and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+};
+
+// Sub-component for adding accounts
+const AccountDialog = ({ accounts, onRefresh }: { accounts: TradingAccount[]; onRefresh: () => void }) => {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [accountName, setAccountName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accountName) {
+      toast({ title: "Error", description: "Account name is required", variant: "destructive" });
+      return;
+    }
+
+    setIsCreating(true);
+
+    // For non-dedicated accounts, we use a placeholder user_id
+    // In a real system, you might want to handle this differently
+    const { error } = await supabase.from("trading_accounts").insert({
+      user_id: "00000000-0000-0000-0000-000000000000", // Placeholder for shared accounts
+      account_name: accountName,
+      account_number: accountNumber || null,
+    });
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Success", description: "Account created" });
+      setOpen(false);
+      setAccountName("");
+      setAccountNumber("");
+      onRefresh();
+    }
+
+    setIsCreating(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="gap-1">
+          <Plus className="h-4 w-4" />
+          Add Account
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Trading Account</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Account Name *</Label>
+            <Input
+              value={accountName}
+              onChange={(e) => setAccountName(e.target.value)}
+              placeholder="e.g., Account A"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Account Number</Label>
+            <Input
+              value={accountNumber}
+              onChange={(e) => setAccountNumber(e.target.value)}
+              placeholder="e.g., 12345678"
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={isCreating}>
+            {isCreating ? "Creating..." : "Create Account"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Sub-component for account actions
+const AccountActions = ({ account, onRefresh }: { account: TradingAccount; onRefresh: () => void }) => {
+  const { toast } = useToast();
+  const [showDelete, setShowDelete] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editName, setEditName] = useState(account.account_name);
+  const [editNumber, setEditNumber] = useState(account.account_number || "");
+
+  const handleDelete = async () => {
+    const { error } = await supabase.from("trading_accounts").delete().eq("id", account.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Deleted", description: "Account removed" });
+      onRefresh();
+    }
+    setShowDelete(false);
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { error } = await supabase.from("trading_accounts")
+      .update({ account_name: editName, account_number: editNumber || null })
+      .eq("id", account.id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Success", description: "Account updated" });
+      setShowEdit(false);
+      onRefresh();
+    }
+  };
+
+  return (
+    <>
+      <div className="flex gap-2">
+        <Button variant="ghost" size="sm" onClick={() => setShowEdit(true)}>
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => setShowDelete(true)}>
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEdit} onOpenChange={setShowEdit}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Account</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEdit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Account Name</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Account Number</Label>
+              <Input value={editNumber} onChange={(e) => setEditNumber(e.target.value)} />
+            </div>
+            <Button type="submit" className="w-full">Save</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this account and all associated trading data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

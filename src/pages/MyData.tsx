@@ -77,7 +77,7 @@ const MyData = () => {
 
   const getAccountName = (accountId: string) => {
     const account = accounts.find((a) => a.id === accountId);
-    return account?.account_name || "Unknown";
+    return account?.account_number || account?.account_name || "Unknown";
   };
 
   // Get date range based on filter
@@ -157,7 +157,7 @@ const MyData = () => {
               My Dashboard
             </h1>
             <p className="text-muted-foreground font-['Inter'] mt-2">
-              View your trading performance and manage your account
+              View your trading performance and attendance
             </p>
           </div>
 
@@ -167,9 +167,9 @@ const MyData = () => {
                 <BarChart3 className="h-4 w-4" />
                 Trading Data
               </TabsTrigger>
-              <TabsTrigger value="leaves" className="gap-2">
+              <TabsTrigger value="attendance" className="gap-2">
                 <Calendar className="h-4 w-4" />
-                Leaves
+                Attendance
               </TabsTrigger>
               <TabsTrigger value="settings" className="gap-2">
                 <Key className="h-4 w-4" />
@@ -235,7 +235,7 @@ const MyData = () => {
               </div>
 
               {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
@@ -283,63 +283,7 @@ const MyData = () => {
                     </div>
                   </CardContent>
                 </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-amber-100">
-                        <DollarSign className="h-5 w-5 text-amber-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Accounts</p>
-                        <p className="text-2xl font-bold">{accounts.length}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
-
-              {/* Accounts Summary */}
-              <Card className="mb-8">
-                <CardHeader>
-                  <CardTitle className="font-['Space_Grotesk']">My Trading Accounts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {dataLoading ? (
-                    <div className="space-y-2">
-                      {[1, 2].map((i) => (
-                        <div key={i} className="h-12 bg-muted animate-pulse rounded" />
-                      ))}
-                    </div>
-                  ) : accounts.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">
-                      No trading accounts found. Contact your administrator.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {accounts.map((account) => {
-                        const accountPnl = filteredData
-                          .filter((t) => t.account_id === account.id)
-                          .reduce((sum, t) => sum + Number(t.net_pnl), 0);
-                        
-                        return (
-                          <div key={account.id} className="p-4 border rounded-lg bg-muted/50">
-                            <h3 className="font-semibold">{account.account_name}</h3>
-                            {account.account_number && (
-                              <p className="text-sm text-muted-foreground">
-                                #{account.account_number}
-                              </p>
-                            )}
-                            <p className={`text-lg font-bold mt-2 ${accountPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                              ${accountPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
 
               {/* Trading Data Table */}
               <Card>
@@ -403,8 +347,8 @@ const MyData = () => {
               </Card>
             </TabsContent>
 
-            {/* LEAVES TAB */}
-            <TabsContent value="leaves">
+            {/* ATTENDANCE TAB - Read-only */}
+            <TabsContent value="attendance">
               <LeaveApplication />
             </TabsContent>
 
