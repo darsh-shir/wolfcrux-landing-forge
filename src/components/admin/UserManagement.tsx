@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, UserPlus, Key, Trash2, Edit } from "lucide-react";
+import { Plus, UserPlus, Key, Trash2, Edit, Loader2 } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -56,9 +56,11 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   // Reset password
   const [resetPasswordUser, setResetPasswordUser] = useState<Profile | null>(null);
   const [newPasswordValue, setNewPasswordValue] = useState("");
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Delete confirmation
   const [deleteUser, setDeleteUser] = useState<Profile | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchRoles();
@@ -72,10 +74,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const getUserRole = (userId: string) => {
     const r = roles.find((role) => role.user_id === userId);
     return r?.role || "user";
-  };
-
-  const getUserAccounts = (userId: string) => {
-    return accounts.filter((a) => a.user_id === userId);
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -137,26 +135,61 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     e.preventDefault();
     if (!resetPasswordUser || !newPasswordValue) return;
 
-    toast({ 
-      title: "Note", 
-      description: "Password reset requires server-side implementation. User can use 'Forgot Password' flow.",
-      variant: "default" 
-    });
-    setResetPasswordUser(null);
-    setNewPasswordValue("");
+    if (newPasswordValue.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+
+    setIsResettingPassword(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke("admin-operations", {
+        body: {
+          action: "reset_password",
+          userId: resetPasswordUser.user_id,
+          password: newPasswordValue,
+        },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+
+      toast({ title: "Success", description: "Password reset successfully" });
+      setResetPasswordUser(null);
+      setNewPasswordValue("");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+
+    setIsResettingPassword(false);
   };
 
   const handleDeleteUser = async () => {
     if (!deleteUser) return;
 
-    // Note: Full user deletion requires admin API / edge function
-    // For now, just show a message
-    toast({ 
-      title: "Note", 
-      description: "Full user deletion requires server-side implementation.",
-      variant: "default" 
-    });
-    setDeleteUser(null);
+    setIsDeleting(true);
+
+    try {
+      const response = await supabase.functions.invoke("admin-operations", {
+        body: {
+          action: "delete_user",
+          userId: deleteUser.user_id,
+        },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+
+      toast({ title: "Success", description: "User deleted successfully" });
+      setDeleteUser(null);
+      onRefresh();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+
+    setIsDeleting(false);
   };
 
   const openEditDialog = (user: Profile) => {
@@ -333,9 +366,20 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                 value={newPasswordValue}
                 onChange={(e) => setNewPasswordValue(e.target.value)}
                 placeholder="••••••••"
+                minLength={6}
               />
+              <p className="text-sm text-muted-foreground">Minimum 6 characters</p>
             </div>
-            <Button type="submit" className="w-full">Reset Password</Button>
+            <Button type="submit" className="w-full" disabled={isResettingPassword}>
+              {isResettingPassword ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                "Reset Password"
+              )}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
@@ -350,9 +394,20 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -379,9 +434,8 @@ const AccountDialog = ({ accounts, onRefresh }: { accounts: TradingAccount[]; on
     setIsCreating(true);
 
     // For non-dedicated accounts, we use a placeholder user_id
-    // In a real system, you might want to handle this differently
     const { error } = await supabase.from("trading_accounts").insert({
-      user_id: "00000000-0000-0000-0000-000000000000", // Placeholder for shared accounts
+      user_id: "00000000-0000-0000-0000-000000000000",
       account_name: accountName,
       account_number: accountNumber || null,
     });
@@ -491,13 +545,19 @@ const AccountActions = ({ account, onRefresh }: { account: TradingAccount; onRef
           <form onSubmit={handleEdit} className="space-y-4">
             <div className="space-y-2">
               <Label>Account Name</Label>
-              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>Account Number</Label>
-              <Input value={editNumber} onChange={(e) => setEditNumber(e.target.value)} />
+              <Input
+                value={editNumber}
+                onChange={(e) => setEditNumber(e.target.value)}
+              />
             </div>
-            <Button type="submit" className="w-full">Save</Button>
+            <Button type="submit" className="w-full">Save Changes</Button>
           </form>
         </DialogContent>
       </Dialog>
@@ -508,7 +568,7 @@ const AccountActions = ({ account, onRefresh }: { account: TradingAccount; onRef
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Account?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this account and all associated trading data.
+              This will permanently delete {account.account_name}. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

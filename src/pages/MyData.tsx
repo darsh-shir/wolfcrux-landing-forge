@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, TrendingDown, Calendar, DollarSign, BarChart3, Key } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar, BarChart3, Key, DollarSign } from "lucide-react";
 import ChangePassword from "@/components/user/ChangePassword";
 import LeaveApplication from "@/components/user/LeaveApplication";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, parseISO } from "date-fns";
@@ -29,6 +29,7 @@ interface TradingData {
   late_remarks: string | null;
   notes: string | null;
   account_id: string;
+  user_id: string;
 }
 
 type TimeFilter = "monthly" | "quarterly" | "yearly";
@@ -62,11 +63,14 @@ const MyData = () => {
   }, [user]);
 
   const fetchData = async () => {
+    if (!user) return;
+    
     setDataLoading(true);
     
+    // Fetch only the current user's data by filtering with user_id
     const [accountsRes, tradesRes] = await Promise.all([
       supabase.from("trading_accounts").select("*").order("account_name"),
-      supabase.from("trading_data").select("*").order("trade_date", { ascending: false }),
+      supabase.from("trading_data").select("*").eq("user_id", user.id).order("trade_date", { ascending: false }),
     ]);
 
     if (accountsRes.data) setAccounts(accountsRes.data);
@@ -106,9 +110,38 @@ const MyData = () => {
     });
   }, [tradingData, dateRange]);
 
-  const totalPnl = filteredData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
-  const totalShares = filteredData.reduce((sum, t) => sum + t.shares_traded, 0);
-  const tradingDays = filteredData.filter((t) => !t.is_holiday).length;
+  // Group data by date to calculate combined metrics
+  const dailySummary = useMemo(() => {
+    const grouped: Record<string, { pnl: number; shares: number; entries: TradingData[] }> = {};
+    
+    filteredData.forEach((t) => {
+      if (!grouped[t.trade_date]) {
+        grouped[t.trade_date] = { pnl: 0, shares: 0, entries: [] };
+      }
+      grouped[t.trade_date].pnl += Number(t.net_pnl);
+      grouped[t.trade_date].shares += t.shares_traded;
+      grouped[t.trade_date].entries.push(t);
+    });
+
+    return Object.entries(grouped).map(([date, data]) => {
+      const brokerage = (data.shares / 1000) * 14;
+      const netAfterBrokerage = data.pnl - brokerage;
+      return {
+        date,
+        combinedPnl: data.pnl,
+        totalShares: data.shares,
+        brokerage,
+        netAfterBrokerage,
+        entries: data.entries,
+      };
+    }).sort((a, b) => b.date.localeCompare(a.date));
+  }, [filteredData]);
+
+  const totalPnl = dailySummary.reduce((sum, d) => sum + d.combinedPnl, 0);
+  const totalShares = dailySummary.reduce((sum, d) => sum + d.totalShares, 0);
+  const totalBrokerage = (totalShares / 1000) * 14;
+  const netAfterBrokerage = totalPnl - totalBrokerage;
+  const tradingDays = dailySummary.length;
 
   // Generate months for dropdown
   const months = useMemo(() => {
@@ -235,7 +268,7 @@ const MyData = () => {
               </div>
 
               {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
@@ -247,9 +280,45 @@ const MyData = () => {
                         )}
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Total P&L</p>
+                        <p className="text-sm text-muted-foreground">Gross P&L</p>
                         <p className={`text-2xl font-bold ${totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                           ${totalPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-orange-100">
+                        <DollarSign className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Brokerage</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          -${totalBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${netAfterBrokerage >= 0 ? "bg-green-100" : "bg-red-100"}`}>
+                        {netAfterBrokerage >= 0 ? (
+                          <TrendingUp className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <TrendingDown className="h-5 w-5 text-red-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Net P&L</p>
+                        <p className={`text-2xl font-bold ${netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          ${netAfterBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         </p>
                       </div>
                     </div>
@@ -269,26 +338,12 @@ const MyData = () => {
                     </div>
                   </CardContent>
                 </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-purple-100">
-                        <Calendar className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Trading Days</p>
-                        <p className="text-2xl font-bold">{tradingDays}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
 
               {/* Trading Data Table */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="font-['Space_Grotesk']">Trading History</CardTitle>
+                  <CardTitle className="font-['Space_Grotesk']">Trading History (Daily Summary)</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {dataLoading ? (
@@ -297,7 +352,7 @@ const MyData = () => {
                         <div key={i} className="h-12 bg-muted animate-pulse rounded" />
                       ))}
                     </div>
-                  ) : filteredData.length === 0 ? (
+                  ) : dailySummary.length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">
                       No trading data for the selected period.
                     </p>
@@ -307,35 +362,39 @@ const MyData = () => {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Date</TableHead>
-                            <TableHead>Account</TableHead>
-                            <TableHead className="text-right">Net P&L</TableHead>
+                            <TableHead>Accounts</TableHead>
+                            <TableHead className="text-right">Gross P&L</TableHead>
                             <TableHead className="text-right">Shares</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Remarks</TableHead>
+                            <TableHead className="text-right">Brokerage</TableHead>
+                            <TableHead className="text-right">Net P&L</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredData.map((trade) => (
-                            <TableRow key={trade.id}>
+                          {dailySummary.map((day) => (
+                            <TableRow key={day.date}>
                               <TableCell className="font-medium">
-                                {format(parseISO(trade.trade_date), "MMM d, yyyy")}
-                              </TableCell>
-                              <TableCell>{getAccountName(trade.account_id)}</TableCell>
-                              <TableCell className={`text-right font-semibold ${Number(trade.net_pnl) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                                ${Number(trade.net_pnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {trade.shares_traded.toLocaleString()}
+                                {format(parseISO(day.date), "MMM d, yyyy")}
                               </TableCell>
                               <TableCell>
-                                {trade.is_holiday ? (
-                                  <Badge variant="secondary">Holiday</Badge>
-                                ) : (
-                                  <Badge variant="outline">Trading</Badge>
-                                )}
+                                <div className="flex flex-wrap gap-1">
+                                  {day.entries.map((e) => (
+                                    <Badge key={e.id} variant="outline" className="text-xs">
+                                      {getAccountName(e.account_id)}
+                                    </Badge>
+                                  ))}
+                                </div>
                               </TableCell>
-                              <TableCell className="text-muted-foreground">
-                                {trade.late_remarks || trade.notes || "—"}
+                              <TableCell className={`text-right font-semibold ${day.combinedPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                ${day.combinedPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {day.totalShares.toLocaleString()}
+                              </TableCell>
+                              <TableCell className="text-right text-orange-600">
+                                -${day.brokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                              </TableCell>
+                              <TableCell className={`text-right font-bold ${day.netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                ${day.netAfterBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                               </TableCell>
                             </TableRow>
                           ))}
