@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Calendar, Trash2, Edit, UserCheck, Clock, AlertTriangle } from "lucide-react";
+import { Plus, Calendar, Trash2, Edit, UserCheck, Clock } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, getDaysInMonth } from "date-fns";
 
 interface Profile {
@@ -120,16 +120,18 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
   // Calculate monthly stats per trader
   const traderMonthlyStats = useMemo(() => {
     const [year, month] = selectedMonth.split("-").map(Number);
+    const currentYear = new Date().getFullYear();
+    
     const stats: Record<string, {
       fullDays: number;
       halfDays: number;
       lateCount: number;
-      deductibleCount: number;
-      allowedFull: number;
-      allowedHalf: number;
+      pending: number;
+      totalThisYear: number;
     }> = {};
 
     users.forEach((u) => {
+      // Monthly records
       const userRecords = attendanceRecords.filter((r) => {
         const recordDate = parseISO(r.record_date);
         return r.user_id === u.user_id &&
@@ -137,10 +139,24 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
           recordDate.getMonth() + 1 === month;
       });
 
+      // Yearly records
+      const yearlyRecords = attendanceRecords.filter((r) => {
+        const recordDate = parseISO(r.record_date);
+        return r.user_id === u.user_id &&
+          recordDate.getFullYear() === currentYear &&
+          (r.status === "absent" || r.status === "half_day");
+      });
+
       const fullDays = userRecords.filter((r) => r.status === "absent").length;
       const halfDays = userRecords.filter((r) => r.status === "half_day").length;
       const lateCount = userRecords.filter((r) => r.status === "late").length;
-      const deductibleCount = userRecords.filter((r) => r.is_deductible).reduce((sum, r) => {
+      
+      // Pending = 1.5 - used (max 1 full + 0.5 half)
+      const usedInLimit = Math.min(fullDays, 1) + Math.min(halfDays, 1) * 0.5;
+      const pending = Math.max(0, 1.5 - usedInLimit);
+
+      // Total leaves this year (full days + half days as 0.5)
+      const totalThisYear = yearlyRecords.reduce((sum, r) => {
         if (r.status === "absent") return sum + 1;
         if (r.status === "half_day") return sum + 0.5;
         return sum;
@@ -150,9 +166,8 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
         fullDays,
         halfDays,
         lateCount,
-        deductibleCount,
-        allowedFull: 1,
-        allowedHalf: 1,
+        pending,
+        totalThisYear,
       };
     });
 
@@ -292,7 +307,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     setShowAttendanceDialog(true);
   };
 
-  const getStatusBadge = (status: string, isDeductible: boolean) => {
+  const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       present: "default",
       absent: "destructive",
@@ -301,17 +316,9 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     };
 
     return (
-      <div className="flex items-center gap-1">
-        <Badge variant={variants[status] || "outline"}>
-          {status === "half_day" ? "Half Day" : status.charAt(0).toUpperCase() + status.slice(1)}
-        </Badge>
-        {isDeductible && (
-          <Badge variant="destructive" className="text-xs">
-            <AlertTriangle className="h-3 w-3 mr-1" />
-            Deductible
-          </Badge>
-        )}
-      </div>
+      <Badge variant={variants[status] || "outline"}>
+        {status === "half_day" ? "Half Day" : status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
     );
   };
 
@@ -468,7 +475,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                           {format(parseISO(record.record_date), "MMM d, yyyy")}
                         </TableCell>
                         <TableCell>{getUserName(record.user_id)}</TableCell>
-                        <TableCell>{getStatusBadge(record.status, record.is_deductible)}</TableCell>
+                        <TableCell>{getStatusBadge(record.status)}</TableCell>
                         <TableCell className="text-muted-foreground">{record.notes || "—"}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
@@ -523,7 +530,8 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                     <TableHead className="text-center">Full Days Used</TableHead>
                     <TableHead className="text-center">Half Days Used</TableHead>
                     <TableHead className="text-center">Late Count</TableHead>
-                    <TableHead className="text-center">Deductible</TableHead>
+                    <TableHead className="text-center">Pending</TableHead>
+                    <TableHead className="text-center">Total (This Year)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -532,9 +540,8 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                       fullDays: 0,
                       halfDays: 0,
                       lateCount: 0,
-                      deductibleCount: 0,
-                      allowedFull: 1,
-                      allowedHalf: 1,
+                      pending: 1.5,
+                      totalThisYear: 0,
                     };
 
                     return (
@@ -561,11 +568,14 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          {stats.deductibleCount > 0 ? (
-                            <Badge variant="destructive">{stats.deductibleCount}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">0</span>
-                          )}
+                          <Badge variant="default" className="bg-primary">
+                            {stats.pending.toFixed(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary">
+                            {stats.totalThisYear}
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     );
