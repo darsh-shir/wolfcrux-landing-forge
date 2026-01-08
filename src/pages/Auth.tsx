@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import MobileBlock from "@/components/MobileBlock";
+
 import logo from "@/assets/wolfcrux-logo.png";
 import { z } from "zod";
 
@@ -88,20 +88,20 @@ const Auth = () => {
   }
 
   return (
-    <MobileBlock>
+    <>
       <Navigation />
-      <div className="min-h-screen bg-background flex items-center justify-center pt-20 pb-12 px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <img src={logo} alt="Wolfcrux" className="h-16 w-16 object-contain" />
+      <div className="min-h-screen bg-background flex items-center justify-center pt-16 sm:pt-20 pb-8 sm:pb-12 px-4">
+        <Card className="w-full max-w-sm sm:max-w-md">
+          <CardHeader className="text-center px-4 sm:px-6">
+            <div className="flex justify-center mb-3 sm:mb-4">
+              <img src={logo} alt="Wolfcrux" className="h-12 w-12 sm:h-16 sm:w-16 object-contain" />
             </div>
-            <CardTitle className="text-2xl font-['Space_Grotesk']">Welcome Back</CardTitle>
-            <CardDescription className="font-['Inter']">
+            <CardTitle className="text-xl sm:text-2xl font-['Space_Grotesk']">Welcome Back</CardTitle>
+            <CardDescription className="font-['Inter'] text-sm">
               Sign in to access your trading dashboard
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-['Inter']">Email</Label>
@@ -158,14 +158,14 @@ const Auth = () => {
               </Button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-muted-foreground font-['Inter']">
+            <p className="mt-6 text-center text-xs sm:text-sm text-muted-foreground font-['Inter']">
               Contact your administrator if you need an account.
             </p>
           </CardContent>
         </Card>
       </div>
       <Footer />
-    </MobileBlock>
+    </>
   );
 };
 
