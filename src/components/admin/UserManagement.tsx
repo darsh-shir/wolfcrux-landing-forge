@@ -86,22 +86,18 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     setIsCreating(true);
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newEmail,
-        password: newPassword,
-        options: {
-          data: { full_name: newFullName },
-          emailRedirectTo: window.location.origin,
+      const response = await supabase.functions.invoke("admin-operations", {
+        body: {
+          action: "create_user",
+          email: newEmail,
+          password: newPassword,
+          fullName: newFullName,
+          role: newRole,
         },
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Failed to create user");
-
-      // Update role if admin
-      if (newRole === "admin") {
-        await supabase.from("user_roles").update({ role: "admin" }).eq("user_id", authData.user.id);
-      }
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
 
       toast({ title: "Success", description: "User created successfully" });
       setShowCreateDialog(false);
@@ -433,9 +429,8 @@ const AccountDialog = ({ accounts, onRefresh }: { accounts: TradingAccount[]; on
 
     setIsCreating(true);
 
-    // For non-dedicated accounts, we use a placeholder user_id
+    // For non-dedicated accounts, user_id is null
     const { error } = await supabase.from("trading_accounts").insert({
-      user_id: "00000000-0000-0000-0000-000000000000",
       account_name: accountName,
       account_number: accountNumber || null,
     });

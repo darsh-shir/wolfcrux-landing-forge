@@ -51,9 +51,45 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { action, userId, password } = await req.json();
+    const { action, userId, password, email, fullName, role } = await req.json();
 
     switch (action) {
+      case "create_user": {
+        if (!email || !password || !fullName) {
+          return new Response(JSON.stringify({ error: "email, password, and fullName are required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Create user using admin API
+        const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+          email: email,
+          password: password,
+          email_confirm: true,
+          user_metadata: { full_name: fullName },
+        });
+
+        if (createError) {
+          return new Response(JSON.stringify({ error: createError.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update role if admin
+        if (role === "admin" && newUser.user) {
+          await adminClient
+            .from("user_roles")
+            .update({ role: "admin" })
+            .eq("user_id", newUser.user.id);
+        }
+
+        return new Response(JSON.stringify({ success: true, userId: newUser.user?.id }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       case "delete_user": {
         if (!userId) {
           return new Response(JSON.stringify({ error: "userId is required" }), {
