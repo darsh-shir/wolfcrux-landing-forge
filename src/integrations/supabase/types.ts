@@ -178,21 +178,21 @@ export type Database = {
           account_number: string | null
           created_at: string
           id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           account_name: string
           account_number?: string | null
           created_at?: string
           id?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           account_name?: string
           account_number?: string | null
           created_at?: string
           id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
