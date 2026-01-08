@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { Calendar, Clock, CheckCircle } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 
 interface AttendanceRecord {
@@ -35,9 +35,10 @@ const LeaveApplication = () => {
   }, [user]);
 
   const fetchData = async () => {
+    if (!user) return;
     setLoading(true);
     const [attendanceRes, holidaysRes] = await Promise.all([
-      supabase.from("attendance_records").select("*").order("record_date", { ascending: false }),
+      supabase.from("attendance_records").select("*").eq("user_id", user.id).order("record_date", { ascending: false }),
       supabase.from("holidays").select("*").order("holiday_date"),
     ]);
 
@@ -63,11 +64,6 @@ const LeaveApplication = () => {
     const fullDays = filteredRecords.filter((r) => r.status === "absent").length;
     const halfDays = filteredRecords.filter((r) => r.status === "half_day").length;
     const lateCount = filteredRecords.filter((r) => r.status === "late").length;
-    const deductibleCount = filteredRecords.filter((r) => r.is_deductible).reduce((sum, r) => {
-      if (r.status === "absent") return sum + 1;
-      if (r.status === "half_day") return sum + 0.5;
-      return sum;
-    }, 0);
 
     // Remaining from monthly allowance (1 full + 1 half = 1.5)
     const usedInLimit = Math.min(fullDays, 1) + Math.min(halfDays, 1) * 0.5;
@@ -77,7 +73,6 @@ const LeaveApplication = () => {
       fullDays,
       halfDays,
       lateCount,
-      deductibleCount,
       pending: Math.max(0, pending),
     };
   }, [filteredRecords]);
@@ -93,7 +88,7 @@ const LeaveApplication = () => {
     return result;
   }, []);
 
-  const getStatusBadge = (status: string, isDeductible: boolean) => {
+  const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       present: "default",
       absent: "destructive",
@@ -102,17 +97,9 @@ const LeaveApplication = () => {
     };
 
     return (
-      <div className="flex items-center gap-1">
-        <Badge variant={variants[status] || "outline"}>
-          {status === "half_day" ? "Half Day" : status.charAt(0).toUpperCase() + status.slice(1)}
-        </Badge>
-        {isDeductible && (
-          <Badge variant="destructive" className="text-xs">
-            <AlertTriangle className="h-3 w-3 mr-1" />
-            Deductible
-          </Badge>
-        )}
-      </div>
+      <Badge variant={variants[status] || "outline"}>
+        {status === "half_day" ? "Half Day" : status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
     );
   };
 
@@ -138,7 +125,7 @@ const LeaveApplication = () => {
       </Card>
 
       {/* Monthly Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
@@ -194,20 +181,6 @@ const LeaveApplication = () => {
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="flex justify-center mb-2">
-                <div className="p-2 rounded-full bg-destructive/10">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">Deductible</p>
-              <p className="text-2xl font-bold text-destructive">{monthlyStats.deductibleCount}</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Attendance History */}
@@ -247,7 +220,7 @@ const LeaveApplication = () => {
                     <TableCell className="font-medium">
                       {format(parseISO(record.record_date), "MMM d, yyyy")}
                     </TableCell>
-                    <TableCell>{getStatusBadge(record.status, record.is_deductible)}</TableCell>
+                    <TableCell>{getStatusBadge(record.status)}</TableCell>
                     <TableCell className="text-muted-foreground">{record.notes || "—"}</TableCell>
                   </TableRow>
                 ))}
