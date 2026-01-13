@@ -6,11 +6,12 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard } from "lucide-react";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
 import TradingDataView from "@/components/admin/TradingDataView";
 import LeavesManagement from "@/components/admin/LeavesManagement";
+import AdminDashboard from "@/components/admin/dashboard/AdminDashboard";
 
 interface Profile {
   id: string;
@@ -21,7 +22,7 @@ interface Profile {
 
 interface TradingAccount {
   id: string;
-  user_id: string;
+  user_id: string | null;
   account_name: string;
   account_number: string | null;
 }
@@ -85,7 +86,7 @@ const Admin = () => {
 
   if (loading || !isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
@@ -94,32 +95,36 @@ const Admin = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background pt-24 pb-12 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold font-['Space_Grotesk'] text-foreground">
-              Admin Panel
-            </h1>
-            <p className="text-muted-foreground font-['Inter'] mt-2">
-              Manage users, trading data, and leaves
-            </p>
-          </div>
-
-          <Tabs defaultValue="users" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="users" className="gap-2">
+      <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-12 px-4">
+        <div className="max-w-[1600px] mx-auto">
+          <Tabs defaultValue="dashboard" className="space-y-6">
+            <TabsList className="bg-muted/30 border border-border/50">
+              <TabsTrigger value="dashboard" className="gap-2 data-[state=active]:bg-background">
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="users" className="gap-2 data-[state=active]:bg-background">
                 <Users className="h-4 w-4" />
                 Users
               </TabsTrigger>
-              <TabsTrigger value="trading" className="gap-2">
+              <TabsTrigger value="trading" className="gap-2 data-[state=active]:bg-background">
                 <BarChart3 className="h-4 w-4" />
                 Trading Data
               </TabsTrigger>
-              <TabsTrigger value="leaves" className="gap-2">
+              <TabsTrigger value="leaves" className="gap-2 data-[state=active]:bg-background">
                 <Calendar className="h-4 w-4" />
-                Leaves & Holidays
+                Leaves
               </TabsTrigger>
             </TabsList>
+
+            {/* DASHBOARD TAB */}
+            <TabsContent value="dashboard">
+              <AdminDashboard 
+                users={users} 
+                accounts={accounts} 
+                tradingData={tradingData} 
+              />
+            </TabsContent>
 
             {/* USERS TAB */}
             <TabsContent value="users">
