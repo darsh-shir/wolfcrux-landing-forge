@@ -95,7 +95,7 @@ const Admin = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-12 px-4">
+      <div className="min-h-screen bg-background pt-24 pb-12 px-4">
         <div className="max-w-[1600px] mx-auto">
           <Tabs defaultValue="dashboard" className="space-y-6">
             <TabsList className="bg-muted/30 border border-border/50">

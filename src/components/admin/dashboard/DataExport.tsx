@@ -67,9 +67,6 @@ const DataExport = ({ employees, dailyPnLData, getEmployeeDailyPnL }: DataExport
       "Max Loss (Day)": e.maxLoss.toFixed(2),
       "Win Rate %": e.winRate.toFixed(2),
       "Avg Daily PnL": e.avgDailyPnl.toFixed(2),
-      "Max Drawdown": e.maxDrawdown.toFixed(2),
-      "Capital Allocated": e.capitalAllocated.toFixed(2),
-      "Current Equity": e.currentEquity.toFixed(2),
       "Trading Days": e.tradingDays,
       "Winning Days": e.winningDays,
       "Losing Days": e.losingDays,
@@ -94,7 +91,7 @@ const DataExport = ({ employees, dailyPnLData, getEmployeeDailyPnL }: DataExport
   };
 
   return (
-    <Card className="bg-card/50 border-border/50">
+    <Card className="border-border/50">
       <CardHeader>
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <FileSpreadsheet className="h-5 w-5" />
@@ -106,7 +103,7 @@ const DataExport = ({ employees, dailyPnLData, getEmployeeDailyPnL }: DataExport
           {/* Company PnL Export */}
           <div className="bg-muted/30 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
-              <BarChart3 className="h-5 w-5 text-purple-400" />
+              <BarChart3 className="h-5 w-5 text-purple-600" />
               <h3 className="font-medium">Company PnL History</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
@@ -125,11 +122,11 @@ const DataExport = ({ employees, dailyPnLData, getEmployeeDailyPnL }: DataExport
           {/* Employee Summary Export */}
           <div className="bg-muted/30 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Users className="h-5 w-5 text-blue-400" />
+              <Users className="h-5 w-5 text-blue-600" />
               <h3 className="font-medium">Employee Summary</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Export all employee performance metrics including PnL, win rates, and drawdowns.
+              Export all employee performance metrics including PnL and win rates.
             </p>
             <Button 
               onClick={exportEmployeeSummary} 
@@ -144,7 +141,7 @@ const DataExport = ({ employees, dailyPnLData, getEmployeeDailyPnL }: DataExport
           {/* Individual Equity Export */}
           <div className="bg-muted/30 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
-              <BarChart3 className="h-5 w-5 text-emerald-400" />
+              <BarChart3 className="h-5 w-5 text-emerald-600" />
               <h3 className="font-medium">Employee Equity Curve</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-3">
@@ -152,7 +149,7 @@ const DataExport = ({ employees, dailyPnLData, getEmployeeDailyPnL }: DataExport
             </p>
             <div className="space-y-2">
               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger className="bg-background/50">
+                <SelectTrigger>
                   <SelectValue placeholder="Select employee..." />
                 </SelectTrigger>
                 <SelectContent>

@@ -121,21 +121,7 @@ export const useDashboardData = ({
       }
     });
 
-    // Calculate drawdown
-    let maxEquity = 0;
-    let maxDrawdown = 0;
-    let runningEquity = 0;
-    
-    const sortedDates = Object.keys(dailyPnls).sort();
-    sortedDates.forEach((date) => {
-      runningEquity += dailyPnls[date];
-      maxEquity = Math.max(maxEquity, runningEquity);
-      const drawdown = maxEquity - runningEquity;
-      maxDrawdown = Math.max(maxDrawdown, drawdown);
-    });
-
     const activeUsers = new Set(tradingData.map((t) => t.user_id));
-    const totalCapitalDeployed = accounts.length * 25000; // Assuming $25k per account
 
     return {
       totalPnl,
@@ -143,11 +129,8 @@ export const useDashboardData = ({
       weekPnl,
       monthPnl,
       totalActiveEmployees: activeUsers.size,
-      totalCapitalDeployed,
       totalRealizedProfit,
       totalRealizedLoss,
-      netCompanyEquity: totalCapitalDeployed + totalPnl,
-      maxDrawdown,
       bestDayPnl: bestDayPnl === -Infinity ? 0 : bestDayPnl,
       worstDayPnl: worstDayPnl === Infinity ? 0 : worstDayPnl,
       bestDayDate,
@@ -186,9 +169,6 @@ export const useDashboardData = ({
           maxLoss: 0,
           winRate: 0,
           avgDailyPnl: 0,
-          maxDrawdown: 0,
-          capitalAllocated: 0,
-          currentEquity: 0,
           tradingDays: 0,
           winningDays: 0,
           losingDays: 0,
@@ -210,22 +190,6 @@ export const useDashboardData = ({
       const winRate = tradingDays > 0 ? (winningDays / tradingDays) * 100 : 0;
       const avgDailyPnl = tradingDays > 0 ? totalPnl / tradingDays : 0;
 
-      // Calculate max drawdown
-      let maxEquity = 0;
-      let maxDrawdown = 0;
-      let runningEquity = 0;
-      
-      const sortedDates = Object.keys(dailyPnls).sort();
-      sortedDates.forEach((date) => {
-        runningEquity += dailyPnls[date];
-        maxEquity = Math.max(maxEquity, runningEquity);
-        const drawdown = maxEquity - runningEquity;
-        maxDrawdown = Math.max(maxDrawdown, drawdown);
-      });
-
-      const capitalAllocated = 25000; // Base capital
-      const currentEquity = capitalAllocated + totalPnl;
-
       return {
         userId: user.user_id,
         name: user.full_name,
@@ -237,9 +201,6 @@ export const useDashboardData = ({
         maxLoss,
         winRate,
         avgDailyPnl,
-        maxDrawdown,
-        capitalAllocated,
-        currentEquity,
         tradingDays,
         winningDays,
         losingDays,
