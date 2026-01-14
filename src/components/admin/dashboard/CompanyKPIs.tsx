@@ -1,8 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { 
-  TrendingUp, TrendingDown, Users, DollarSign, 
-  PiggyBank, AlertTriangle, ArrowUpRight, ArrowDownRight,
-  Activity, Wallet
+  TrendingUp, TrendingDown, Users, 
+  PiggyBank, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
 import { CompanyStats } from "./types";
 import { format, parseISO } from "date-fns";
@@ -28,7 +27,7 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
       value: formatCurrency(stats.totalPnl),
       subLabel: "Lifetime",
       icon: stats.totalPnl >= 0 ? TrendingUp : TrendingDown,
-      color: stats.totalPnl >= 0 ? "text-emerald-400" : "text-red-400",
+      color: stats.totalPnl >= 0 ? "text-emerald-600" : "text-red-600",
       bgColor: stats.totalPnl >= 0 ? "bg-emerald-500/10" : "bg-red-500/10",
     },
     {
@@ -36,7 +35,7 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
       value: formatCurrency(stats.todayPnl),
       subLabel: "Today",
       icon: stats.todayPnl >= 0 ? ArrowUpRight : ArrowDownRight,
-      color: stats.todayPnl >= 0 ? "text-emerald-400" : "text-red-400",
+      color: stats.todayPnl >= 0 ? "text-emerald-600" : "text-red-600",
       bgColor: stats.todayPnl >= 0 ? "bg-emerald-500/10" : "bg-red-500/10",
     },
     {
@@ -44,7 +43,7 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
       value: formatCurrency(stats.weekPnl),
       subLabel: "Week PnL",
       icon: stats.weekPnl >= 0 ? ArrowUpRight : ArrowDownRight,
-      color: stats.weekPnl >= 0 ? "text-emerald-400" : "text-red-400",
+      color: stats.weekPnl >= 0 ? "text-emerald-600" : "text-red-600",
       bgColor: stats.weekPnl >= 0 ? "bg-emerald-500/10" : "bg-red-500/10",
     },
     {
@@ -52,7 +51,7 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
       value: formatCurrency(stats.monthPnl),
       subLabel: "Month PnL",
       icon: stats.monthPnl >= 0 ? ArrowUpRight : ArrowDownRight,
-      color: stats.monthPnl >= 0 ? "text-emerald-400" : "text-red-400",
+      color: stats.monthPnl >= 0 ? "text-emerald-600" : "text-red-600",
       bgColor: stats.monthPnl >= 0 ? "bg-emerald-500/10" : "bg-red-500/10",
     },
     {
@@ -60,55 +59,31 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
       value: stats.totalActiveEmployees.toString(),
       subLabel: "Trading Staff",
       icon: Users,
-      color: "text-blue-400",
+      color: "text-blue-600",
       bgColor: "bg-blue-500/10",
-    },
-    {
-      label: "Capital Deployed",
-      value: formatCurrency(stats.totalCapitalDeployed),
-      subLabel: "Total Capital",
-      icon: DollarSign,
-      color: "text-purple-400",
-      bgColor: "bg-purple-500/10",
     },
     {
       label: "Realized Profit",
       value: formatCurrency(stats.totalRealizedProfit),
       subLabel: "Total Gains",
       icon: PiggyBank,
-      color: "text-emerald-400",
+      color: "text-emerald-600",
       bgColor: "bg-emerald-500/10",
     },
     {
       label: "Realized Loss",
       value: formatCurrency(stats.totalRealizedLoss),
       subLabel: "Total Losses",
-      icon: AlertTriangle,
-      color: "text-red-400",
+      icon: TrendingDown,
+      color: "text-red-600",
       bgColor: "bg-red-500/10",
-    },
-    {
-      label: "Net Equity",
-      value: formatCurrency(stats.netCompanyEquity),
-      subLabel: "Company Value",
-      icon: Wallet,
-      color: "text-cyan-400",
-      bgColor: "bg-cyan-500/10",
-    },
-    {
-      label: "Max Drawdown",
-      value: formatCurrency(stats.maxDrawdown),
-      subLabel: "Peak to Trough",
-      icon: Activity,
-      color: "text-orange-400",
-      bgColor: "bg-orange-500/10",
     },
     {
       label: "Best Day",
       value: formatCurrency(stats.bestDayPnl),
       subLabel: stats.bestDayDate ? format(parseISO(stats.bestDayDate), "MMM d, yyyy") : "N/A",
       icon: TrendingUp,
-      color: "text-emerald-400",
+      color: "text-emerald-600",
       bgColor: "bg-emerald-500/10",
     },
     {
@@ -116,17 +91,17 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
       value: formatCurrency(stats.worstDayPnl),
       subLabel: stats.worstDayDate ? format(parseISO(stats.worstDayDate), "MMM d, yyyy") : "N/A",
       icon: TrendingDown,
-      color: "text-red-400",
+      color: "text-red-600",
       bgColor: "bg-red-500/10",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-4">
       {kpis.map((kpi, index) => (
         <Card 
           key={index} 
-          className="bg-card/50 border-border/50 backdrop-blur-sm hover:bg-card/70 transition-colors"
+          className="border-border/50 hover:bg-muted/30 transition-colors"
         >
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">

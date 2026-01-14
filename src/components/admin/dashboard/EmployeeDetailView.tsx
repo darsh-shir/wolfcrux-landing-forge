@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { 
   X, TrendingUp, TrendingDown, Target, Activity,
-  Calendar, DollarSign, Percent, AlertTriangle
+  Calendar, DollarSign, Percent
 } from "lucide-react";
 import { EmployeeStats, DailyPnL } from "./types";
 import { format, parseISO } from "date-fns";
@@ -31,16 +31,6 @@ const EmployeeDetailView = ({ employee, dailyPnL, onClose }: EmployeeDetailViewP
     return format(parseISO(value), "MMM d");
   };
 
-  // Calculate drawdown data
-  const drawdownData = (() => {
-    let maxEquity = 0;
-    return dailyPnL.map((d) => {
-      maxEquity = Math.max(maxEquity, d.equity);
-      const drawdown = ((maxEquity - d.equity) / maxEquity) * 100;
-      return { ...d, drawdown };
-    });
-  })();
-
   // Calculate average winning and losing days
   const winningDaysPnL = dailyPnL.filter((d) => d.pnl > 0);
   const losingDaysPnL = dailyPnL.filter((d) => d.pnl < 0);
@@ -52,18 +42,17 @@ const EmployeeDetailView = ({ employee, dailyPnL, onClose }: EmployeeDetailViewP
     : 0;
 
   const stats = [
-    { label: "Total PnL", value: formatCurrency(employee.totalPnl), icon: DollarSign, color: employee.totalPnl >= 0 ? "text-emerald-400" : "text-red-400" },
-    { label: "Today PnL", value: formatCurrency(employee.todayPnl), icon: TrendingUp, color: employee.todayPnl >= 0 ? "text-emerald-400" : "text-red-400" },
-    { label: "Win Rate", value: `${employee.winRate.toFixed(1)}%`, icon: Target, color: employee.winRate >= 50 ? "text-emerald-400" : "text-orange-400" },
-    { label: "Max Drawdown", value: formatCurrency(employee.maxDrawdown), icon: AlertTriangle, color: "text-orange-400" },
-    { label: "Trading Days", value: employee.tradingDays.toString(), icon: Calendar, color: "text-blue-400" },
-    { label: "Avg Daily PnL", value: formatCurrency(employee.avgDailyPnl), icon: Activity, color: employee.avgDailyPnl >= 0 ? "text-emerald-400" : "text-red-400" },
-    { label: "Max Profit (Day)", value: formatCurrency(employee.maxProfit), icon: TrendingUp, color: "text-emerald-400" },
-    { label: "Max Loss (Day)", value: formatCurrency(employee.maxLoss), icon: TrendingDown, color: "text-red-400" },
-    { label: "Avg Winning Day", value: formatCurrency(avgWinningDay), icon: TrendingUp, color: "text-emerald-400" },
-    { label: "Avg Losing Day", value: formatCurrency(avgLosingDay), icon: TrendingDown, color: "text-red-400" },
-    { label: "Winning Days", value: employee.winningDays.toString(), icon: Percent, color: "text-emerald-400" },
-    { label: "Losing Days", value: employee.losingDays.toString(), icon: Percent, color: "text-red-400" },
+    { label: "Total PnL", value: formatCurrency(employee.totalPnl), icon: DollarSign, color: employee.totalPnl >= 0 ? "text-emerald-600" : "text-red-600" },
+    { label: "Today PnL", value: formatCurrency(employee.todayPnl), icon: TrendingUp, color: employee.todayPnl >= 0 ? "text-emerald-600" : "text-red-600" },
+    { label: "Win Rate", value: `${employee.winRate.toFixed(1)}%`, icon: Target, color: employee.winRate >= 50 ? "text-emerald-600" : "text-orange-600" },
+    { label: "Trading Days", value: employee.tradingDays.toString(), icon: Calendar, color: "text-blue-600" },
+    { label: "Avg Daily PnL", value: formatCurrency(employee.avgDailyPnl), icon: Activity, color: employee.avgDailyPnl >= 0 ? "text-emerald-600" : "text-red-600" },
+    { label: "Max Profit (Day)", value: formatCurrency(employee.maxProfit), icon: TrendingUp, color: "text-emerald-600" },
+    { label: "Max Loss (Day)", value: formatCurrency(employee.maxLoss), icon: TrendingDown, color: "text-red-600" },
+    { label: "Avg Winning Day", value: formatCurrency(avgWinningDay), icon: TrendingUp, color: "text-emerald-600" },
+    { label: "Avg Losing Day", value: formatCurrency(avgLosingDay), icon: TrendingDown, color: "text-red-600" },
+    { label: "Winning Days", value: employee.winningDays.toString(), icon: Percent, color: "text-emerald-600" },
+    { label: "Losing Days", value: employee.losingDays.toString(), icon: Percent, color: "text-red-600" },
   ];
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -82,10 +71,9 @@ const EmployeeDetailView = ({ employee, dailyPnL, onClose }: EmployeeDetailViewP
             />
             <span className="text-muted-foreground">{entry.name}:</span>
             <span className={`font-medium ${
-              entry.name === "Drawdown" ? "text-red-400" :
-              entry.value >= 0 ? "text-emerald-400" : "text-red-400"
+              entry.value >= 0 ? "text-emerald-600" : "text-red-600"
             }`}>
-              {entry.name === "Drawdown" ? `${entry.value.toFixed(2)}%` : formatCurrency(entry.value)}
+              {formatCurrency(entry.value)}
             </span>
           </div>
         ))}
@@ -94,7 +82,7 @@ const EmployeeDetailView = ({ employee, dailyPnL, onClose }: EmployeeDetailViewP
   };
 
   return (
-    <Card className="bg-card/50 border-border/50">
+    <Card className="border-border/50">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div>
@@ -103,7 +91,7 @@ const EmployeeDetailView = ({ employee, dailyPnL, onClose }: EmployeeDetailViewP
               <Badge 
                 variant={employee.status === "Active" ? "default" : "secondary"}
                 className={employee.status === "Active" 
-                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                  ? "bg-emerald-500/20 text-emerald-600 border-emerald-500/30" 
                   : "bg-muted text-muted-foreground"
                 }
               >
@@ -205,7 +193,7 @@ const EmployeeDetailView = ({ employee, dailyPnL, onClose }: EmployeeDetailViewP
           </div>
 
           {/* Cumulative PnL */}
-          <div>
+          <div className="lg:col-span-2">
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Cumulative PnL</h3>
             <div className="h-[240px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -237,45 +225,6 @@ const EmployeeDetailView = ({ employee, dailyPnL, onClose }: EmployeeDetailViewP
                     fill="url(#cumulativeGradient)"
                     strokeWidth={2}
                     name="Cumulative PnL"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Drawdown */}
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">Drawdown</h3>
-            <div className="h-[240px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={drawdownData}>
-                  <defs>
-                    <linearGradient id="drawdownDetailGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis 
-                    dataKey="date" 
-                    tickFormatter={formatXAxis}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                    axisLine={{ stroke: "hsl(var(--border))" }}
-                  />
-                  <YAxis 
-                    tickFormatter={(v) => `${v.toFixed(0)}%`}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                    axisLine={{ stroke: "hsl(var(--border))" }}
-                    reversed
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="drawdown" 
-                    stroke="#ef4444"
-                    fill="url(#drawdownDetailGradient)"
-                    strokeWidth={2}
-                    name="Drawdown"
                   />
                 </AreaChart>
               </ResponsiveContainer>

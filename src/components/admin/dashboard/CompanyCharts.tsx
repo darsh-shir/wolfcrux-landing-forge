@@ -53,16 +53,6 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
       });
   })();
 
-  // Calculate drawdown data
-  const drawdownData = (() => {
-    let maxEquity = 0;
-    return aggregatedData.map((d) => {
-      maxEquity = Math.max(maxEquity, d.equity);
-      const drawdown = ((maxEquity - d.equity) / maxEquity) * 100;
-      return { ...d, drawdown };
-    });
-  })();
-
   const formatXAxis = (value: string) => {
     if (granularity === "monthly") {
       return format(parseISO(value + "-01"), "MMM yy");
@@ -95,10 +85,9 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
             />
             <span className="text-muted-foreground">{entry.name}:</span>
             <span className={`font-medium ${
-              entry.name === "Drawdown" ? "text-red-400" :
-              entry.value >= 0 ? "text-emerald-400" : "text-red-400"
+              entry.value >= 0 ? "text-emerald-600" : "text-red-600"
             }`}>
-              {entry.name === "Drawdown" ? `${entry.value.toFixed(2)}%` : formatCurrency(entry.value)}
+              {formatCurrency(entry.value)}
             </span>
           </div>
         ))}
@@ -121,7 +110,7 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Daily PnL Chart */}
-        <Card className="bg-card/50 border-border/50">
+        <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium">Daily PnL</CardTitle>
           </CardHeader>
@@ -164,7 +153,7 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
         </Card>
 
         {/* Equity Curve */}
-        <Card className="bg-card/50 border-border/50">
+        <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium">Equity Curve</CardTitle>
           </CardHeader>
@@ -200,7 +189,7 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
         </Card>
 
         {/* Profit vs Loss Bar Chart */}
-        <Card className="bg-card/50 border-border/50">
+        <Card className="border-border/50 lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium">Profit vs Loss</CardTitle>
           </CardHeader>
@@ -236,49 +225,6 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
                     ))}
                   </Bar>
                 </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Drawdown Curve */}
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Drawdown Curve</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={drawdownData}>
-                  <defs>
-                    <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis 
-                    dataKey="date" 
-                    tickFormatter={formatXAxis}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                    axisLine={{ stroke: "hsl(var(--border))" }}
-                  />
-                  <YAxis 
-                    tickFormatter={(v) => `${v.toFixed(0)}%`}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                    axisLine={{ stroke: "hsl(var(--border))" }}
-                    reversed
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="drawdown" 
-                    stroke="#ef4444"
-                    fill="url(#drawdownGradient)"
-                    strokeWidth={2}
-                    name="Drawdown"
-                  />
-                </AreaChart>
               </ResponsiveContainer>
             </div>
           </CardContent>

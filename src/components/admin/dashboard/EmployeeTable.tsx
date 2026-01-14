@@ -107,7 +107,7 @@ const EmployeeTable = ({ employees, onSelectEmployee }: EmployeeTableProps) => {
   );
 
   return (
-    <Card className="bg-card/50 border-border/50">
+    <Card className="border-border/50">
       <CardHeader className="pb-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <CardTitle className="text-lg font-semibold">Employee Performance</CardTitle>
@@ -118,11 +118,11 @@ const EmployeeTable = ({ employees, onSelectEmployee }: EmployeeTableProps) => {
                 placeholder="Search employees..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 w-48 bg-background/50"
+                className="pl-9 w-48"
               />
             </div>
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-              <SelectTrigger className="w-32 bg-background/50">
+              <SelectTrigger className="w-32">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -132,7 +132,7 @@ const EmployeeTable = ({ employees, onSelectEmployee }: EmployeeTableProps) => {
               </SelectContent>
             </Select>
             <Select value={performanceFilter} onValueChange={(v) => setPerformanceFilter(v as typeof performanceFilter)}>
-              <SelectTrigger className="w-36 bg-background/50">
+              <SelectTrigger className="w-36">
                 <SelectValue placeholder="Performance" />
               </SelectTrigger>
               <SelectContent>
@@ -157,15 +157,13 @@ const EmployeeTable = ({ employees, onSelectEmployee }: EmployeeTableProps) => {
                 <SortableHeader field="maxLoss">Max Loss</SortableHeader>
                 <SortableHeader field="winRate">Win Rate</SortableHeader>
                 <SortableHeader field="avgDailyPnl">Avg Daily</SortableHeader>
-                <SortableHeader field="maxDrawdown">Max DD</SortableHeader>
-                <SortableHeader field="currentEquity">Equity</SortableHeader>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredAndSortedEmployees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     No employees found
                   </TableCell>
                 </TableRow>
@@ -186,38 +184,32 @@ const EmployeeTable = ({ employees, onSelectEmployee }: EmployeeTableProps) => {
                       <Badge 
                         variant={employee.status === "Active" ? "default" : "secondary"}
                         className={employee.status === "Active" 
-                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                          ? "bg-emerald-500/20 text-emerald-600 border-emerald-500/30" 
                           : "bg-muted text-muted-foreground"
                         }
                       >
                         {employee.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className={`font-semibold ${employee.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    <TableCell className={`font-semibold ${employee.totalPnl >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                       {formatCurrency(employee.totalPnl)}
                     </TableCell>
-                    <TableCell className={employee.todayPnl >= 0 ? "text-emerald-400" : "text-red-400"}>
+                    <TableCell className={employee.todayPnl >= 0 ? "text-emerald-600" : "text-red-600"}>
                       {formatCurrency(employee.todayPnl)}
                     </TableCell>
-                    <TableCell className="text-emerald-400">
+                    <TableCell className="text-emerald-600">
                       {formatCurrency(employee.maxProfit)}
                     </TableCell>
-                    <TableCell className="text-red-400">
+                    <TableCell className="text-red-600">
                       {formatCurrency(employee.maxLoss)}
                     </TableCell>
                     <TableCell>
-                      <span className={employee.winRate >= 50 ? "text-emerald-400" : "text-orange-400"}>
+                      <span className={employee.winRate >= 50 ? "text-emerald-600" : "text-orange-600"}>
                         {employee.winRate.toFixed(1)}%
                       </span>
                     </TableCell>
-                    <TableCell className={employee.avgDailyPnl >= 0 ? "text-emerald-400" : "text-red-400"}>
+                    <TableCell className={employee.avgDailyPnl >= 0 ? "text-emerald-600" : "text-red-600"}>
                       {formatCurrency(employee.avgDailyPnl)}
-                    </TableCell>
-                    <TableCell className="text-orange-400">
-                      {formatCurrency(employee.maxDrawdown)}
-                    </TableCell>
-                    <TableCell className="text-foreground font-medium">
-                      {formatCurrency(employee.currentEquity)}
                     </TableCell>
                     <TableCell>
                       <Button 

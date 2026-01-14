@@ -19,9 +19,6 @@ export interface EmployeeStats {
   maxLoss: number;
   winRate: number;
   avgDailyPnl: number;
-  maxDrawdown: number;
-  capitalAllocated: number;
-  currentEquity: number;
   tradingDays: number;
   winningDays: number;
   losingDays: number;
@@ -40,11 +37,8 @@ export interface CompanyStats {
   weekPnl: number;
   monthPnl: number;
   totalActiveEmployees: number;
-  totalCapitalDeployed: number;
   totalRealizedProfit: number;
   totalRealizedLoss: number;
-  netCompanyEquity: number;
-  maxDrawdown: number;
   bestDayPnl: number;
   worstDayPnl: number;
   bestDayDate: string;

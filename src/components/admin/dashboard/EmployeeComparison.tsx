@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/select";
 import { 
   LineChart, Line, AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { X } from "lucide-react";
 import { EmployeeStats, DailyPnL } from "./types";
@@ -70,23 +70,6 @@ const EmployeeComparison = ({ employees, getEmployeeDailyPnL }: EmployeeComparis
     });
   }, [selectedEmployees, getEmployeeDailyPnL]);
 
-  // Calculate drawdown data
-  const drawdownData = useMemo(() => {
-    return comparisonData.map((point) => {
-      const newPoint: Record<string, any> = { date: point.date };
-      selectedEmployees.forEach((userId) => {
-        const equity = point[`${userId}_equity`];
-        if (equity !== null) {
-          // Simple drawdown calculation based on equity
-          const maxEquity = 25000 + Math.max(0, point[`${userId}_cumulative`] || 0);
-          const drawdown = ((maxEquity - equity) / maxEquity) * 100;
-          newPoint[`${userId}_drawdown`] = Math.max(0, drawdown);
-        }
-      });
-      return newPoint;
-    });
-  }, [comparisonData, selectedEmployees]);
-
   const formatXAxis = (value: string) => {
     return format(parseISO(value), "MMM d");
   };
@@ -117,9 +100,7 @@ const EmployeeComparison = ({ employees, getEmployeeDailyPnL }: EmployeeComparis
               />
               <span className="text-muted-foreground">{name}:</span>
               <span className="font-medium" style={{ color: entry.color }}>
-                {entry.dataKey.includes("drawdown") 
-                  ? `${entry.value?.toFixed(2)}%` 
-                  : formatCurrency(entry.value || 0)}
+                {formatCurrency(entry.value || 0)}
               </span>
             </div>
           );
@@ -129,13 +110,13 @@ const EmployeeComparison = ({ employees, getEmployeeDailyPnL }: EmployeeComparis
   };
 
   return (
-    <Card className="bg-card/50 border-border/50">
+    <Card className="border-border/50">
       <CardHeader className="pb-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <CardTitle className="text-lg font-semibold">Employee Comparison</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <Select onValueChange={addEmployee}>
-              <SelectTrigger className="w-48 bg-background/50">
+              <SelectTrigger className="w-48">
                 <SelectValue placeholder="Add employee..." />
               </SelectTrigger>
               <SelectContent>
@@ -254,43 +235,6 @@ const EmployeeComparison = ({ employees, getEmployeeDailyPnL }: EmployeeComparis
                         stroke={COLORS[idx % COLORS.length]}
                         fill={COLORS[idx % COLORS.length]}
                         fillOpacity={0.1}
-                        strokeWidth={2}
-                        name={getEmployeeName(userId)}
-                      />
-                    ))}
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Drawdown Comparison */}
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">Drawdown</h3>
-              <div className="h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={drawdownData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                    <XAxis 
-                      dataKey="date" 
-                      tickFormatter={formatXAxis}
-                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                    />
-                    <YAxis 
-                      tickFormatter={(v) => `${v.toFixed(0)}%`}
-                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                      reversed
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    {selectedEmployees.map((userId, idx) => (
-                      <Area
-                        key={userId}
-                        type="monotone"
-                        dataKey={`${userId}_drawdown`}
-                        stroke={COLORS[idx % COLORS.length]}
-                        fill={COLORS[idx % COLORS.length]}
-                        fillOpacity={0.2}
                         strokeWidth={2}
                         name={getEmployeeName(userId)}
                       />
