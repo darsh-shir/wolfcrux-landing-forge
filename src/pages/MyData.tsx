@@ -9,9 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, TrendingDown, Calendar, BarChart3, Key, DollarSign } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar, BarChart3, Key, DollarSign, LineChart } from "lucide-react";
 import ChangePassword from "@/components/user/ChangePassword";
 import LeaveApplication from "@/components/user/LeaveApplication";
+import TradingAnalytics from "@/components/user/TradingAnalytics";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, parseISO } from "date-fns";
 
 interface TradingAccount {
@@ -194,8 +195,12 @@ const MyData = () => {
             </p>
           </div>
 
-          <Tabs defaultValue="trading" className="space-y-6">
+          <Tabs defaultValue="analytics" className="space-y-6">
             <TabsList>
+              <TabsTrigger value="analytics" className="gap-2">
+                <LineChart className="h-4 w-4" />
+                Analytics
+              </TabsTrigger>
               <TabsTrigger value="trading" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
                 Trading Data
@@ -209,6 +214,79 @@ const MyData = () => {
                 Settings
               </TabsTrigger>
             </TabsList>
+
+            {/* ANALYTICS TAB */}
+            <TabsContent value="analytics">
+              {/* Filters */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {timeFilter === "monthly" && (
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {format(parseISO(`${m}-01`), "MMM yyyy")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {timeFilter === "quarterly" && (
+                  <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {quarters.map((q) => (
+                        <SelectItem key={q} value={q}>{q}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {timeFilter === "yearly" && (
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map((y) => (
+                        <SelectItem key={y} value={y}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {dataLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />
+                  ))}
+                </div>
+              ) : (
+                <TradingAnalytics 
+                  dailySummary={dailySummary}
+                  totalPnl={totalPnl}
+                  netAfterBrokerage={netAfterBrokerage}
+                  tradingDays={tradingDays}
+                />
+              )}
+            </TabsContent>
 
             {/* TRADING DATA TAB */}
             <TabsContent value="trading">
