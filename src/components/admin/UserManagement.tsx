@@ -17,6 +17,9 @@ interface Profile {
   user_id: string;
   full_name: string;
   email: string;
+  trader_number?: string | null;
+  joining_date?: string | null;
+  birthdate?: string | null;
 }
 
 interface UserRole {
@@ -41,24 +44,26 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const { toast } = useToast();
   const [roles, setRoles] = useState<UserRole[]>([]);
   
-  // Create user form
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newFullName, setNewFullName] = useState("");
   const [newRole, setNewRole] = useState<"admin" | "user">("user");
+  const [newTraderNumber, setNewTraderNumber] = useState("");
+  const [newJoiningDate, setNewJoiningDate] = useState("");
+  const [newBirthdate, setNewBirthdate] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  // Edit user form
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editFullName, setEditFullName] = useState("");
+  const [editTraderNumber, setEditTraderNumber] = useState("");
+  const [editJoiningDate, setEditJoiningDate] = useState("");
+  const [editBirthdate, setEditBirthdate] = useState("");
 
-  // Reset password
   const [resetPasswordUser, setResetPasswordUser] = useState<Profile | null>(null);
   const [newPasswordValue, setNewPasswordValue] = useState("");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
-  // Delete confirmation
   const [deleteUser, setDeleteUser] = useState<Profile | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -99,12 +104,19 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
       if (response.error) throw new Error(response.error.message);
       if (response.data?.error) throw new Error(response.data.error);
 
+      // Update profile with extra fields
+      if (response.data?.user?.id) {
+        await supabase.from("profiles").update({
+          trader_number: newTraderNumber || null,
+          joining_date: newJoiningDate || null,
+          birthdate: newBirthdate || null,
+        }).eq("user_id", response.data.user.id);
+      }
+
       toast({ title: "Success", description: "User created successfully" });
       setShowCreateDialog(false);
-      setNewEmail("");
-      setNewPassword("");
-      setNewFullName("");
-      setNewRole("user");
+      setNewEmail(""); setNewPassword(""); setNewFullName(""); setNewRole("user");
+      setNewTraderNumber(""); setNewJoiningDate(""); setNewBirthdate("");
       onRefresh();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -118,7 +130,12 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     if (!editingUser) return;
 
     try {
-      await supabase.from("profiles").update({ full_name: editFullName }).eq("user_id", editingUser.user_id);
+      await supabase.from("profiles").update({
+        full_name: editFullName,
+        trader_number: editTraderNumber || null,
+        joining_date: editJoiningDate || null,
+        birthdate: editBirthdate || null,
+      }).eq("user_id", editingUser.user_id);
       toast({ title: "Success", description: "User updated successfully" });
       setEditingUser(null);
       onRefresh();
@@ -139,8 +156,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     setIsResettingPassword(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
       const response = await supabase.functions.invoke("admin-operations", {
         body: {
           action: "reset_password",
@@ -191,6 +206,9 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const openEditDialog = (user: Profile) => {
     setEditingUser(user);
     setEditFullName(user.full_name);
+    setEditTraderNumber(user.trader_number || "");
+    setEditJoiningDate(user.joining_date || "");
+    setEditBirthdate(user.birthdate || "");
   };
 
   return (
@@ -211,36 +229,34 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div className="space-y-2">
                 <Label>Full Name *</Label>
-                <Input
-                  value={newFullName}
-                  onChange={(e) => setNewFullName(e.target.value)}
-                  placeholder="John Doe"
-                />
+                <Input value={newFullName} onChange={(e) => setNewFullName(e.target.value)} placeholder="John Doe" />
+              </div>
+              <div className="space-y-2">
+                <Label>Trader Number</Label>
+                <Input value={newTraderNumber} onChange={(e) => setNewTraderNumber(e.target.value)} placeholder="T001" />
               </div>
               <div className="space-y-2">
                 <Label>Email *</Label>
-                <Input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="john@example.com"
-                />
+                <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="john@example.com" />
               </div>
               <div className="space-y-2">
                 <Label>Password *</Label>
-                <Input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
+                <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Joining Date</Label>
+                  <Input type="date" value={newJoiningDate} onChange={(e) => setNewJoiningDate(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Birthdate</Label>
+                  <Input type="date" value={newBirthdate} onChange={(e) => setNewBirthdate(e.target.value)} />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Role</Label>
                 <Select value={newRole} onValueChange={(v) => setNewRole(v as "admin" | "user")}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">Trader</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
@@ -260,42 +276,50 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           <CardTitle>All Traders</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.full_name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={getUserRole(user.user_id) === "admin" ? "default" : "secondary"}>
-                      {getUserRole(user.user_id) === "admin" ? "Admin" : "Trader"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setResetPasswordUser(user)}>
-                        <Key className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setDeleteUser(user)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Joining Date</TableHead>
+                  <TableHead>Birthdate</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-mono text-sm">{user.trader_number || "—"}</TableCell>
+                    <TableCell className="font-medium">{user.full_name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.joining_date || "—"}</TableCell>
+                    <TableCell>{user.birthdate || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={getUserRole(user.user_id) === "admin" ? "default" : "secondary"}>
+                        {getUserRole(user.user_id) === "admin" ? "Admin" : "Trader"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setResetPasswordUser(user)}>
+                          <Key className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setDeleteUser(user)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -338,10 +362,21 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           <form onSubmit={handleEditUser} className="space-y-4">
             <div className="space-y-2">
               <Label>Full Name</Label>
-              <Input
-                value={editFullName}
-                onChange={(e) => setEditFullName(e.target.value)}
-              />
+              <Input value={editFullName} onChange={(e) => setEditFullName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Trader Number</Label>
+              <Input value={editTraderNumber} onChange={(e) => setEditTraderNumber(e.target.value)} placeholder="T001" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Joining Date</Label>
+                <Input type="date" value={editJoiningDate} onChange={(e) => setEditJoiningDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Birthdate</Label>
+                <Input type="date" value={editBirthdate} onChange={(e) => setEditBirthdate(e.target.value)} />
+              </div>
             </div>
             <Button type="submit" className="w-full">Save Changes</Button>
           </form>
@@ -357,24 +392,11 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div className="space-y-2">
               <Label>New Password</Label>
-              <Input
-                type="password"
-                value={newPasswordValue}
-                onChange={(e) => setNewPasswordValue(e.target.value)}
-                placeholder="••••••••"
-                minLength={6}
-              />
+              <Input type="password" value={newPasswordValue} onChange={(e) => setNewPasswordValue(e.target.value)} placeholder="••••••••" minLength={6} />
               <p className="text-sm text-muted-foreground">Minimum 6 characters</p>
             </div>
             <Button type="submit" className="w-full" disabled={isResettingPassword}>
-              {isResettingPassword ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Resetting...
-                </>
-              ) : (
-                "Reset Password"
-              )}
+              {isResettingPassword ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Resetting...</>) : "Reset Password"}
             </Button>
           </form>
         </DialogContent>
@@ -391,19 +413,8 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteUser} 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
+            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isDeleting}>
+              {isDeleting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Deleting...</>) : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -429,7 +440,6 @@ const AccountDialog = ({ accounts, onRefresh }: { accounts: TradingAccount[]; on
 
     setIsCreating(true);
 
-    // For non-dedicated accounts, user_id is null
     const { error } = await supabase.from("trading_accounts").insert({
       account_name: accountName,
       account_number: accountNumber || null,
@@ -463,19 +473,11 @@ const AccountDialog = ({ accounts, onRefresh }: { accounts: TradingAccount[]; on
         <form onSubmit={handleCreate} className="space-y-4">
           <div className="space-y-2">
             <Label>Account Name *</Label>
-            <Input
-              value={accountName}
-              onChange={(e) => setAccountName(e.target.value)}
-              placeholder="e.g., Account A"
-            />
+            <Input value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="e.g., Account A" />
           </div>
           <div className="space-y-2">
             <Label>Account Number</Label>
-            <Input
-              value={accountNumber}
-              onChange={(e) => setAccountNumber(e.target.value)}
-              placeholder="e.g., 12345678"
-            />
+            <Input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="e.g., 12345678" />
           </div>
           <Button type="submit" className="w-full" disabled={isCreating}>
             {isCreating ? "Creating..." : "Create Account"}
@@ -531,7 +533,6 @@ const AccountActions = ({ account, onRefresh }: { account: TradingAccount; onRef
         </Button>
       </div>
 
-      {/* Edit Dialog */}
       <Dialog open={showEdit} onOpenChange={setShowEdit}>
         <DialogContent>
           <DialogHeader>
@@ -540,24 +541,17 @@ const AccountActions = ({ account, onRefresh }: { account: TradingAccount; onRef
           <form onSubmit={handleEdit} className="space-y-4">
             <div className="space-y-2">
               <Label>Account Name</Label>
-              <Input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Account Number</Label>
-              <Input
-                value={editNumber}
-                onChange={(e) => setEditNumber(e.target.value)}
-              />
+              <Input value={editNumber} onChange={(e) => setEditNumber(e.target.value)} />
             </div>
             <Button type="submit" className="w-full">Save Changes</Button>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
