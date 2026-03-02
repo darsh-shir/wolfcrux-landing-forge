@@ -55,7 +55,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     setLoading(true);
 
     const monthStart = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
-    const monthEnd = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-31`;
+    const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+    const monthEnd = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
     const [configRes, tradesRes, leaveRes, existingRes] = await Promise.all([
       supabase.from("trader_config").select("*").eq("user_id", selectedTrader).maybeSingle(),
