@@ -238,6 +238,14 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
           <CardContent className="space-y-6">
             {loading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            ) : !traderConfig ? (
+              <div className="text-center py-8 text-destructive font-medium">
+                No Trader Config found for {traderName}. Please set up their payout percentage, software cost, and seat type in the <strong>Trader Config</strong> tab first.
+              </div>
+            ) : tradingData.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No trading data found for {MONTHS[selectedMonth - 1]} {selectedYear}.
+              </div>
             ) : (
               <>
                 {/* P&L Breakdown */}
