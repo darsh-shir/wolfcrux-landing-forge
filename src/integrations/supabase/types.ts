@@ -47,6 +47,36 @@ export type Database = {
         }
         Relationships: []
       }
+      desk_costs: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          total_desk_cost: number
+          total_paid: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          total_desk_cost?: number
+          total_paid?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          total_desk_cost?: number
+          total_paid?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       holidays: {
         Row: {
           created_at: string
@@ -113,6 +143,51 @@ export type Database = {
         }
         Relationships: []
       }
+      payout_records: {
+        Row: {
+          advance_bank: number
+          advance_cash: number
+          bank_transfer: number
+          cash_component: number
+          created_at: string
+          id: string
+          month: number
+          notes: string | null
+          salary: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          advance_bank?: number
+          advance_cash?: number
+          bank_transfer?: number
+          cash_component?: number
+          created_at?: string
+          id?: string
+          month: number
+          notes?: string | null
+          salary?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          advance_bank?: number
+          advance_cash?: number
+          bank_transfer?: number
+          cash_component?: number
+          created_at?: string
+          id?: string
+          month?: number
+          notes?: string | null
+          salary?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -137,6 +212,42 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      salary_backups: {
+        Row: {
+          backup_amount: number
+          base_salary: number
+          created_at: string
+          id: string
+          month: number
+          notes: string | null
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          backup_amount?: number
+          base_salary?: number
+          created_at?: string
+          id?: string
+          month: number
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          backup_amount?: number
+          base_salary?: number
+          created_at?: string
+          id?: string
+          month?: number
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          year?: number
         }
         Relationships: []
       }
