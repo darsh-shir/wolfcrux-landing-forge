@@ -283,6 +283,42 @@ export type Database = {
           },
         ]
       }
+      trader_config: {
+        Row: {
+          created_at: string
+          id: string
+          partner_id: string | null
+          partner_percentage: number
+          payout_percentage: number
+          seat_type: string
+          software_cost: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          partner_id?: string | null
+          partner_percentage?: number
+          payout_percentage?: number
+          seat_type?: string
+          software_cost?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          partner_id?: string | null
+          partner_percentage?: number
+          payout_percentage?: number
+          seat_type?: string
+          software_cost?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trading_accounts: {
         Row: {
           account_name: string
@@ -318,6 +354,9 @@ export type Database = {
           notes: string | null
           shares_traded: number
           trade_date: string
+          trader1_attendance: string
+          trader2_attendance: string
+          trader2_id: string | null
           updated_at: string
           user_id: string
         }
@@ -331,6 +370,9 @@ export type Database = {
           notes?: string | null
           shares_traded?: number
           trade_date: string
+          trader1_attendance?: string
+          trader2_attendance?: string
+          trader2_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -344,6 +386,9 @@ export type Database = {
           notes?: string | null
           shares_traded?: number
           trade_date?: string
+          trader1_attendance?: string
+          trader2_attendance?: string
+          trader2_id?: string | null
           updated_at?: string
           user_id?: string
         }
