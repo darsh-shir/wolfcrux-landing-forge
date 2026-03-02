@@ -6,12 +6,15 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2 } from "lucide-react";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
 import TradingDataView from "@/components/admin/TradingDataView";
 import LeavesManagement from "@/components/admin/LeavesManagement";
 import AdminDashboard from "@/components/admin/dashboard/AdminDashboard";
+import PayoutTracker from "@/components/admin/PayoutTracker";
+import SalaryBackup from "@/components/admin/SalaryBackup";
+import DeskCost from "@/components/admin/DeskCost";
 
 interface Profile {
   id: string;
@@ -115,6 +118,18 @@ const Admin = () => {
                 <Calendar className="h-4 w-4" />
                 Leaves
               </TabsTrigger>
+              <TabsTrigger value="payouts" className="gap-2 data-[state=active]:bg-background">
+                <DollarSign className="h-4 w-4" />
+                Payouts
+              </TabsTrigger>
+              <TabsTrigger value="salary-backup" className="gap-2 data-[state=active]:bg-background">
+                <Wallet className="h-4 w-4" />
+                Salary Backup
+              </TabsTrigger>
+              <TabsTrigger value="desk-cost" className="gap-2 data-[state=active]:bg-background">
+                <Building2 className="h-4 w-4" />
+                Desk Cost
+              </TabsTrigger>
             </TabsList>
 
             {/* DASHBOARD TAB */}
@@ -159,6 +174,21 @@ const Admin = () => {
             {/* LEAVES TAB */}
             <TabsContent value="leaves">
               <LeavesManagement users={users} />
+            </TabsContent>
+
+            {/* PAYOUTS TAB */}
+            <TabsContent value="payouts">
+              <PayoutTracker users={users} />
+            </TabsContent>
+
+            {/* SALARY BACKUP TAB */}
+            <TabsContent value="salary-backup">
+              <SalaryBackup users={users} />
+            </TabsContent>
+
+            {/* DESK COST TAB */}
+            <TabsContent value="desk-cost">
+              <DeskCost users={users} />
             </TabsContent>
           </Tabs>
         </div>
