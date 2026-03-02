@@ -6,15 +6,17 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2 } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings } from "lucide-react";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
 import TradingDataView from "@/components/admin/TradingDataView";
 import LeavesManagement from "@/components/admin/LeavesManagement";
 import AdminDashboard from "@/components/admin/dashboard/AdminDashboard";
 import PayoutTracker from "@/components/admin/PayoutTracker";
+import PayoutSheet from "@/components/admin/PayoutSheet";
 import SalaryBackup from "@/components/admin/SalaryBackup";
 import DeskCost from "@/components/admin/DeskCost";
+import TraderConfig from "@/components/admin/TraderConfig";
 
 interface Profile {
   id: string;
@@ -119,8 +121,12 @@ const Admin = () => {
                 Leaves
               </TabsTrigger>
               <TabsTrigger value="payouts" className="gap-2 data-[state=active]:bg-background">
+                <FileText className="h-4 w-4" />
+                Payout Sheet
+              </TabsTrigger>
+              <TabsTrigger value="payout-tracker" className="gap-2 data-[state=active]:bg-background">
                 <DollarSign className="h-4 w-4" />
-                Payouts
+                Payout Tracker
               </TabsTrigger>
               <TabsTrigger value="salary-backup" className="gap-2 data-[state=active]:bg-background">
                 <Wallet className="h-4 w-4" />
@@ -129,6 +135,10 @@ const Admin = () => {
               <TabsTrigger value="desk-cost" className="gap-2 data-[state=active]:bg-background">
                 <Building2 className="h-4 w-4" />
                 Desk Cost
+              </TabsTrigger>
+              <TabsTrigger value="trader-config" className="gap-2 data-[state=active]:bg-background">
+                <Settings className="h-4 w-4" />
+                Trader Config
               </TabsTrigger>
             </TabsList>
 
@@ -176,8 +186,13 @@ const Admin = () => {
               <LeavesManagement users={users} />
             </TabsContent>
 
-            {/* PAYOUTS TAB */}
+            {/* PAYOUT SHEET TAB */}
             <TabsContent value="payouts">
+              <PayoutSheet users={users} />
+            </TabsContent>
+
+            {/* PAYOUT TRACKER TAB */}
+            <TabsContent value="payout-tracker">
               <PayoutTracker users={users} />
             </TabsContent>
 
@@ -189,6 +204,11 @@ const Admin = () => {
             {/* DESK COST TAB */}
             <TabsContent value="desk-cost">
               <DeskCost users={users} />
+            </TabsContent>
+
+            {/* TRADER CONFIG TAB */}
+            <TabsContent value="trader-config">
+              <TraderConfig users={users} />
             </TabsContent>
           </Tabs>
         </div>
