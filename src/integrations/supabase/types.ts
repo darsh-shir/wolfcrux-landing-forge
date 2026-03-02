@@ -153,6 +153,8 @@ export type Database = {
           id: string
           month: number
           notes: string | null
+          paid_cash: boolean
+          paid_online: boolean
           salary: number
           updated_at: string
           user_id: string
@@ -167,6 +169,8 @@ export type Database = {
           id?: string
           month: number
           notes?: string | null
+          paid_cash?: boolean
+          paid_online?: boolean
           salary?: number
           updated_at?: string
           user_id: string
@@ -181,6 +185,8 @@ export type Database = {
           id?: string
           month?: number
           notes?: string | null
+          paid_cash?: boolean
+          paid_online?: boolean
           salary?: number
           updated_at?: string
           user_id?: string
@@ -190,26 +196,35 @@ export type Database = {
       }
       profiles: {
         Row: {
+          birthdate: string | null
           created_at: string
           email: string
           full_name: string
           id: string
+          joining_date: string | null
+          trader_number: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          birthdate?: string | null
           created_at?: string
           email: string
           full_name: string
           id?: string
+          joining_date?: string | null
+          trader_number?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          birthdate?: string | null
           created_at?: string
           email?: string
           full_name?: string
           id?: string
+          joining_date?: string | null
+          trader_number?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -232,7 +247,7 @@ export type Database = {
           base_salary?: number
           created_at?: string
           id?: string
-          month: number
+          month?: number
           notes?: string | null
           updated_at?: string
           user_id: string

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
 
@@ -41,27 +40,60 @@ const ATTENDANCE_OPTIONS = [
 const TradingDataEntry = ({ users, accounts, onRefresh }: TradingDataEntryProps) => {
   const { toast } = useToast();
 
+  const today = new Date().toISOString().split("T")[0];
+
   const [trader1, setTrader1] = useState("");
   const [trader2, setTrader2] = useState("");
-  const [tradeDate, setTradeDate] = useState("");
-  const [isHoliday, setIsHoliday] = useState(false);
+  const [tradeDate, setTradeDate] = useState(today);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Trader 1 attendance
   const [trader1Attendance, setTrader1Attendance] = useState("present");
-  // Trader 2 attendance
   const [trader2Attendance, setTrader2Attendance] = useState("present");
 
-  // Account 1 data
   const [account1, setAccount1] = useState("");
   const [netPnl1, setNetPnl1] = useState("");
   const [sharesTraded1, setSharesTraded1] = useState("");
 
-  // Account 2 data
   const [account2, setAccount2] = useState("");
   const [netPnl2, setNetPnl2] = useState("");
   const [sharesTraded2, setSharesTraded2] = useState("");
+
+  // Fetch last used account for trader1
+  useEffect(() => {
+    if (!trader1) return;
+    const fetchLastAccount = async () => {
+      const { data } = await supabase
+        .from("trading_data")
+        .select("account_id")
+        .eq("user_id", trader1)
+        .order("trade_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data?.account_id) {
+        setAccount1(data.account_id);
+      }
+    };
+    fetchLastAccount();
+  }, [trader1]);
+
+  // Fetch last used account for trader2 (as account2)
+  useEffect(() => {
+    if (!trader2 || trader2 === "none") return;
+    const fetchLastAccount = async () => {
+      const { data } = await supabase
+        .from("trading_data")
+        .select("account_id")
+        .eq("user_id", trader2)
+        .order("trade_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data?.account_id && data.account_id !== account1) {
+        setAccount2(data.account_id);
+      }
+    };
+    fetchLastAccount();
+  }, [trader2]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,14 +126,14 @@ const TradingDataEntry = ({ users, accounts, onRefresh }: TradingDataEntryProps)
       if (account1) {
         entries.push({
           user_id: trader1,
-          trader2_id: trader2 || null,
+          trader2_id: trader2 && trader2 !== "none" ? trader2 : null,
           account_id: account1,
           trade_date: tradeDate,
           net_pnl: parseFloat(netPnl1) || 0,
           shares_traded: parseInt(sharesTraded1) || 0,
-          is_holiday: isHoliday,
-          trader1_attendance: isHoliday ? "holiday" : trader1Attendance,
-          trader2_attendance: isHoliday ? "holiday" : trader2Attendance,
+          is_holiday: trader1Attendance === "holiday",
+          trader1_attendance: trader1Attendance,
+          trader2_attendance: trader2 && trader2 !== "none" ? trader2Attendance : "present",
           notes: notes || null,
         });
       }
@@ -109,14 +141,14 @@ const TradingDataEntry = ({ users, accounts, onRefresh }: TradingDataEntryProps)
       if (account2) {
         entries.push({
           user_id: trader1,
-          trader2_id: trader2 || null,
+          trader2_id: trader2 && trader2 !== "none" ? trader2 : null,
           account_id: account2,
           trade_date: tradeDate,
           net_pnl: parseFloat(netPnl2) || 0,
           shares_traded: parseInt(sharesTraded2) || 0,
-          is_holiday: isHoliday,
-          trader1_attendance: isHoliday ? "holiday" : trader1Attendance,
-          trader2_attendance: isHoliday ? "holiday" : trader2Attendance,
+          is_holiday: trader1Attendance === "holiday",
+          trader1_attendance: trader1Attendance,
+          trader2_attendance: trader2 && trader2 !== "none" ? trader2Attendance : "present",
           notes: notes || null,
         });
       }
@@ -126,10 +158,9 @@ const TradingDataEntry = ({ users, accounts, onRefresh }: TradingDataEntryProps)
 
       toast({ title: "Success", description: `Trading data added for ${entries.length} account(s)` });
 
-      // Reset form
-      setAccount1(""); setNetPnl1(""); setSharesTraded1("");
-      setAccount2(""); setNetPnl2(""); setSharesTraded2("");
-      setTradeDate(""); setIsHoliday(false); setNotes("");
+      setNetPnl1(""); setSharesTraded1("");
+      setNetPnl2(""); setSharesTraded2("");
+      setNotes("");
       setTrader1Attendance("present"); setTrader2Attendance("present");
       onRefresh();
     } catch (error: any) {
@@ -163,6 +194,12 @@ const TradingDataEntry = ({ users, accounts, onRefresh }: TradingDataEntryProps)
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Trade Date - default to today */}
+          <div className="space-y-2">
+            <Label>Trade Date</Label>
+            <Input type="date" value={tradeDate} onChange={(e) => setTradeDate(e.target.value)} />
+          </div>
+
           {/* Trader 1 Selection */}
           <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
             <Label className="text-base font-semibold">Trader 1 (Primary)</Label>
@@ -178,7 +215,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh }: TradingDataEntryProps)
             </Select>
             <div className="space-y-1">
               <Label className="text-sm">Attendance</Label>
-              <Select value={trader1Attendance} onValueChange={setTrader1Attendance} disabled={isHoliday}>
+              <Select value={trader1Attendance} onValueChange={setTrader1Attendance}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ATTENDANCE_OPTIONS.map(o => (
@@ -206,7 +243,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh }: TradingDataEntryProps)
             {trader2 && trader2 !== "none" && (
               <div className="space-y-1">
                 <Label className="text-sm">Attendance</Label>
-                <Select value={trader2Attendance} onValueChange={setTrader2Attendance} disabled={isHoliday}>
+                <Select value={trader2Attendance} onValueChange={setTrader2Attendance}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ATTENDANCE_OPTIONS.map(o => (
@@ -216,18 +253,6 @@ const TradingDataEntry = ({ users, accounts, onRefresh }: TradingDataEntryProps)
                 </Select>
               </div>
             )}
-          </div>
-
-          {/* Trade Date */}
-          <div className="space-y-2">
-            <Label>Trade Date</Label>
-            <Input type="date" value={tradeDate} onChange={(e) => setTradeDate(e.target.value)} />
-          </div>
-
-          {/* Holiday Toggle */}
-          <div className="flex items-center gap-2">
-            <Switch checked={isHoliday} onCheckedChange={setIsHoliday} />
-            <Label>Holiday (no trading)</Label>
           </div>
 
           {/* Account 1 Entry */}
@@ -257,7 +282,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh }: TradingDataEntryProps)
 
           {/* Account 2 Entry */}
           <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
-            <Label className="text-base font-semibold">Account 2</Label>
+            <Label className="text-base font-semibold">Account 2 (Optional)</Label>
             <Select value={account2} onValueChange={setAccount2}>
               <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
               <SelectContent>

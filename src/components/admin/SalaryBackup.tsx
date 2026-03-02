@@ -25,11 +25,6 @@ interface SalaryBackupRecord {
   notes: string | null;
 }
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
-
 interface SalaryBackupProps {
   users: Profile[];
 }
@@ -37,39 +32,34 @@ interface SalaryBackupProps {
 const SalaryBackup = ({ users }: SalaryBackupProps) => {
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
 
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [records, setRecords] = useState<SalaryBackupRecord[]>([]);
-  const [allRecords, setAllRecords] = useState<SalaryBackupRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingRow, setEditingRow] = useState<Record<string, SalaryBackupRecord>>({});
 
   useEffect(() => {
     fetchRecords();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedYear]);
 
   const fetchRecords = async () => {
     setLoading(true);
-    const [currentRes, allRes] = await Promise.all([
-      supabase.from("salary_backups").select("*").eq("month", selectedMonth).eq("year", selectedYear),
-      supabase.from("salary_backups").select("*").order("year", { ascending: false }).order("month", { ascending: false }),
-    ]);
-    if (currentRes.data) setRecords(currentRes.data);
-    if (allRes.data) setAllRecords(allRes.data);
+    const { data } = await supabase
+      .from("salary_backups")
+      .select("*")
+      .eq("year", selectedYear)
+      .eq("month", 0);
+    if (data) setRecords(data);
     setLoading(false);
   };
 
   const initEditRow = (userId: string): SalaryBackupRecord => {
     const existing = records.find(r => r.user_id === userId);
     if (existing) return existing;
-    // Get latest base salary for this user
-    const latestRecord = allRecords.find(r => r.user_id === userId);
     return {
       user_id: userId,
-      base_salary: latestRecord?.base_salary || 0,
-      month: selectedMonth,
+      base_salary: 0,
+      month: 0,
       year: selectedYear,
       backup_amount: 0,
       notes: null,
@@ -104,7 +94,7 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
     } else {
       const { error } = await supabase.from("salary_backups").insert({
         user_id: userId,
-        month: selectedMonth,
+        month: 0,
         year: selectedYear,
         base_salary: row.base_salary,
         backup_amount: row.backup_amount,
@@ -112,13 +102,9 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
       });
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     }
-    toast({ title: "Saved", description: `Salary backup saved for ${MONTHS[selectedMonth - 1]} ${selectedYear}` });
+    toast({ title: "Saved", description: `Salary backup saved for ${selectedYear}` });
     setEditingRow(prev => { const n = { ...prev }; delete n[userId]; return n; });
     fetchRecords();
-  };
-
-  const getTotalBackup = (userId: string) => {
-    return allRecords.filter(r => r.user_id === userId).reduce((sum, r) => sum + Number(r.backup_amount), 0);
   };
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
@@ -130,17 +116,9 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <Wallet className="h-5 w-5 text-primary" />
-              Salary Backup
+              Salary Backup (Yearly)
             </CardTitle>
             <div className="flex items-center gap-3">
-              <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
-                <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {MONTHS.map((m, i) => (
-                    <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Select value={String(selectedYear)} onValueChange={v => setSelectedYear(Number(v))}>
                 <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -159,8 +137,7 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
                 <TableRow>
                   <TableHead>Trader</TableHead>
                   <TableHead>Base Salary</TableHead>
-                  <TableHead>Backup This Month</TableHead>
-                  <TableHead>Total Backup (All Time)</TableHead>
+                  <TableHead>Total Backup</TableHead>
                   <TableHead>Notes</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
@@ -178,9 +155,6 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
                       <TableCell>
                         <Input type="number" className="w-28" value={row.backup_amount || ""}
                           onChange={e => handleFieldChange(user.user_id, "backup_amount", Number(e.target.value))} />
-                      </TableCell>
-                      <TableCell className="font-semibold text-primary">
-                        ₹{getTotalBackup(user.user_id).toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <Input className="w-28" value={row.notes || ""}

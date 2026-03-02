@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Save } from "lucide-react";
 
@@ -35,12 +36,14 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [traderConfig, setTraderConfig] = useState<any>(null);
   const [tradingData, setTradingData] = useState<any[]>([]);
-  const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [leaveSummary, setLeaveSummary] = useState<any>(null);
   const [extraDeduction, setExtraDeduction] = useState(0);
   const [inrRate, setInrRate] = useState(84);
   const [payoutNotes, setPayoutNotes] = useState("");
+  const [paidCash, setPaidCash] = useState(false);
+  const [paidOnline, setPaidOnline] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [existingRecord, setExistingRecord] = useState<any>(null);
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
@@ -54,17 +57,18 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const monthStart = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
     const monthEnd = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-31`;
 
-    const [configRes, tradesRes, attendRes, leaveRes] = await Promise.all([
+    const [configRes, tradesRes, leaveRes, existingRes] = await Promise.all([
       supabase.from("trader_config").select("*").eq("user_id", selectedTrader).maybeSingle(),
       supabase.from("trading_data").select("*")
         .eq("user_id", selectedTrader)
         .gte("trade_date", monthStart)
         .lte("trade_date", monthEnd),
-      supabase.from("attendance_records").select("*")
-        .eq("user_id", selectedTrader)
-        .gte("record_date", monthStart)
-        .lte("record_date", monthEnd),
       supabase.from("monthly_leave_summary").select("*")
+        .eq("user_id", selectedTrader)
+        .eq("month", selectedMonth)
+        .eq("year", selectedYear)
+        .maybeSingle(),
+      supabase.from("payout_records").select("*")
         .eq("user_id", selectedTrader)
         .eq("month", selectedMonth)
         .eq("year", selectedYear)
@@ -73,8 +77,18 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
     setTraderConfig(configRes.data);
     setTradingData(tradesRes.data || []);
-    setAttendanceData(attendRes.data || []);
     setLeaveSummary(leaveRes.data);
+    if (existingRes.data) {
+      setExistingRecord(existingRes.data);
+      setPaidCash(existingRes.data.paid_cash || false);
+      setPaidOnline(existingRes.data.paid_online || false);
+      setPayoutNotes(existingRes.data.notes || "");
+    } else {
+      setExistingRecord(null);
+      setPaidCash(false);
+      setPaidOnline(false);
+      setPayoutNotes("");
+    }
     setLoading(false);
   };
 
@@ -99,7 +113,6 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const tradersShare = grossAmount * payoutPct;
     const tradingDays = tradingData.filter(t => !t.is_holiday).length;
 
-    // Attendance deduction from leave summary
     let attendanceDeductionPct = 0;
     if (leaveSummary) {
       const usedFull = Number(leaveSummary.used_full_days) || 0;
@@ -107,25 +120,18 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       const lateCount = Number(leaveSummary.late_count) || 0;
       const allowedFull = Number(leaveSummary.allowed_full_days) || 1;
       const allowedHalf = Number(leaveSummary.allowed_half_days) || 1;
-
-      // Convert lates to half days (3 lates = 1 half day)
       const lateHalfDays = Math.floor(lateCount / 3);
       const totalHalfDaysUsed = usedHalf + lateHalfDays;
-
-      // Deductible days (exceeding allowance)
       const excessFull = Math.max(0, usedFull - allowedFull);
       const excessHalf = Math.max(0, totalHalfDaysUsed - allowedHalf);
-
       attendanceDeductionPct = (excessFull * 4) + (excessHalf * 2);
     } else {
-      // Fallback: compute from trading_data attendance fields
       const lates = tradingData.filter(t => t.trader1_attendance === "late").length;
       const halfDays = tradingData.filter(t => t.trader1_attendance === "half_day").length;
       const absents = tradingData.filter(t => t.trader1_attendance === "absent").length;
       const lateHalfDays = Math.floor(lates / 3);
       const totalLeaves = absents + halfDays + lateHalfDays;
       const excessLeaves = Math.max(0, totalLeaves - 1.5);
-      // Simplified: treat excess as half days
       attendanceDeductionPct = excessLeaves * 2;
     }
 
@@ -133,7 +139,6 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const totalDeductions = attendanceDeduction + extraDeduction;
     const netPayout = tradersShare - totalDeductions;
 
-    // Partner split
     const partnerPct = Number(traderConfig.partner_percentage) / 100;
     const partnerGets = netPayout * partnerPct;
     const traderKeeps = netPayout - partnerGets;
@@ -154,13 +159,6 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const handleSavePayout = async () => {
     if (!selectedTrader) return;
 
-    const existing = await supabase.from("payout_records")
-      .select("id")
-      .eq("user_id", selectedTrader)
-      .eq("month", selectedMonth)
-      .eq("year", selectedYear)
-      .maybeSingle();
-
     const payload = {
       user_id: selectedTrader,
       month: selectedMonth,
@@ -171,20 +169,22 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       advance_cash: 0,
       advance_bank: 0,
       notes: payoutNotes || null,
+      paid_cash: paidCash,
+      paid_online: paidOnline,
     };
 
-    if (existing.data?.id) {
-      await supabase.from("payout_records").update(payload).eq("id", existing.data.id);
+    if (existingRecord?.id) {
+      await supabase.from("payout_records").update(payload).eq("id", existingRecord.id);
     } else {
       await supabase.from("payout_records").insert(payload);
     }
 
     toast({ title: "Saved", description: "Payout record saved" });
+    fetchPayoutData();
   };
 
   return (
     <div className="space-y-6">
-      {/* Selection */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -227,7 +227,6 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         </CardContent>
       </Card>
 
-      {/* Payout Breakdown */}
       {selectedTrader && (
         <Card>
           <CardHeader>
@@ -310,7 +309,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                   </div>
                 )}
 
-                {/* INR + Notes + Save */}
+                {/* INR + Notes */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>INR Conversion Rate</Label>
@@ -329,6 +328,24 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>Trading Days: {calculations.tradingDays}</span>
+                </div>
+
+                {/* Payment Status Checkboxes */}
+                <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                  <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Payment Status</h3>
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox checked={paidCash} onCheckedChange={(v) => setPaidCash(!!v)} />
+                      <span className="text-sm font-medium">Cash Salary Paid</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox checked={paidOnline} onCheckedChange={(v) => setPaidOnline(!!v)} />
+                      <span className="text-sm font-medium">Online Transfer Paid</span>
+                    </label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {paidCash || paidOnline ? "✅ Marked as paid" : "⏳ Unpaid — check when payment is completed"}
+                  </p>
                 </div>
 
                 <Button onClick={handleSavePayout} className="w-full gap-2">
