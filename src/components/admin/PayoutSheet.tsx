@@ -42,6 +42,9 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [payoutNotes, setPayoutNotes] = useState("");
   const [paidCash, setPaidCash] = useState(false);
   const [paidOnline, setPaidOnline] = useState(false);
+  const [monthlySalaryInput, setMonthlySalaryInput] = useState(0);
+  const [cashPaidInput, setCashPaidInput] = useState(0);
+  const [bankPaidInput, setBankPaidInput] = useState(0);
   const [loading, setLoading] = useState(false);
   const [existingRecord, setExistingRecord] = useState<any>(null);
 
@@ -84,11 +87,17 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       setPaidCash(existingRes.data.paid_cash || false);
       setPaidOnline(existingRes.data.paid_online || false);
       setPayoutNotes(existingRes.data.notes || "");
+      setMonthlySalaryInput(existingRes.data.salary || 0);
+      setCashPaidInput(existingRes.data.advance_cash || 0);
+      setBankPaidInput(existingRes.data.bank_transfer || 0);
     } else {
       setExistingRecord(null);
       setPaidCash(false);
       setPaidOnline(false);
       setPayoutNotes("");
+      setMonthlySalaryInput(0);
+      setCashPaidInput(0);
+      setBankPaidInput(0);
     }
     setLoading(false);
   };
@@ -160,14 +169,17 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const handleSavePayout = async () => {
     if (!selectedTrader) return;
 
+    const finalUsd = calculations.partnerName ? calculations.traderKeeps : calculations.netPayout;
+    const totalInr = finalUsd * inrRate;
+
     const payload = {
       user_id: selectedTrader,
       month: selectedMonth,
       year: selectedYear,
-      salary: calculations.traderKeeps,
-      cash_component: calculations.traderKeeps * inrRate,
-      bank_transfer: 0,
-      advance_cash: 0,
+      salary: monthlySalaryInput,
+      cash_component: totalInr,
+      bank_transfer: bankPaidInput,
+      advance_cash: cashPaidInput,
       advance_bank: 0,
       notes: payoutNotes || null,
       paid_cash: paidCash,
@@ -318,22 +330,63 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                   </div>
                 )}
 
-                {/* INR + Notes */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>INR Conversion Rate</Label>
-                    <Input type="number" step="0.01" value={inrRate}
-                      onChange={e => setInrRate(Number(e.target.value))} />
-                    <p className="text-sm text-muted-foreground">
-                      ₹{((calculations.partnerName ? calculations.traderKeeps : calculations.netPayout) * inrRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Notes</Label>
-                    <Textarea value={payoutNotes} onChange={e => setPayoutNotes(e.target.value)}
-                      placeholder="Payout notes..." rows={3} />
-                  </div>
-                </div>
+                {/* INR Conversion & Settlement */}
+                {(() => {
+                  const finalUsd = calculations.partnerName ? calculations.traderKeeps : calculations.netPayout;
+                  const totalInr = finalUsd * inrRate;
+                  const monthlySalary = Number(traderConfig?.software_cost) || 0;
+                  const cashPaid = existingRecord?.advance_cash || 0;
+                  const bankPaid = existingRecord?.bank_transfer || 0;
+                  const outstanding = totalInr - monthlySalary - cashPaid - bankPaid;
+                  return (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>INR Conversion Rate</Label>
+                          <Input type="number" step="0.01" value={inrRate}
+                            onChange={e => setInrRate(Number(e.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Notes</Label>
+                          <Textarea value={payoutNotes} onChange={e => setPayoutNotes(e.target.value)}
+                            placeholder="Payout notes..." rows={3} />
+                        </div>
+                      </div>
+
+                      <div className="border rounded-lg p-5 bg-primary/5 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground font-medium">Total Payout (INR)</span>
+                          <span className={`text-2xl font-bold ${totalInr >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            ₹{totalInr.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-y-2 text-sm border-t pt-3">
+                          <span className="text-muted-foreground">(-) Monthly Salary</span>
+                          <span className="font-medium text-right text-orange-600">
+                            <Input type="number" className="w-28 inline text-right" value={monthlySalaryInput || ""}
+                              onChange={e => setMonthlySalaryInput(Number(e.target.value))} placeholder="0" />
+                          </span>
+                          <span className="text-muted-foreground">(-) Cash Paid</span>
+                          <span className="text-right">
+                            <Input type="number" className="w-28 inline text-right" value={cashPaidInput || ""}
+                              onChange={e => setCashPaidInput(Number(e.target.value))} placeholder="0" />
+                          </span>
+                          <span className="text-muted-foreground">(-) Bank Transfer</span>
+                          <span className="text-right">
+                            <Input type="number" className="w-28 inline text-right" value={bankPaidInput || ""}
+                              onChange={e => setBankPaidInput(Number(e.target.value))} placeholder="0" />
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center border-t pt-3">
+                          <span className="font-bold text-base">Outstanding Amount</span>
+                          <span className={`text-xl font-bold ${(totalInr - monthlySalaryInput - cashPaidInput - bankPaidInput) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            ₹{(totalInr - monthlySalaryInput - cashPaidInput - bankPaidInput).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>Trading Days: {calculations.tradingDays}</span>
