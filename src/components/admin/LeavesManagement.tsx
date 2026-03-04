@@ -73,7 +73,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false);
   const [attendanceTrader, setAttendanceTrader] = useState("");
   const [attendanceDate, setAttendanceDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [attendanceStatus, setAttendanceStatus] = useState<"present" | "absent" | "half_day" | "late">("present");
+  const [attendanceStatus, setAttendanceStatus] = useState<"absent" | "half_day" | "late">("absent");
   const [attendanceNotes, setAttendanceNotes] = useState("");
   const [editingAttendance, setEditingAttendance] = useState<AttendanceRecord | null>(null);
 
@@ -293,7 +293,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     setShowAttendanceDialog(false);
     setAttendanceTrader("");
     setAttendanceDate(format(new Date(), "yyyy-MM-dd"));
-    setAttendanceStatus("present");
+    setAttendanceStatus("absent");
     setAttendanceNotes("");
     setEditingAttendance(null);
   };
@@ -302,7 +302,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     setEditingAttendance(record);
     setAttendanceTrader(record.user_id);
     setAttendanceDate(record.record_date);
-    setAttendanceStatus(record.status);
+    setAttendanceStatus(record.status === "present" ? "absent" : record.status as "absent" | "half_day" | "late");
     setAttendanceNotes(record.notes || "");
     setShowAttendanceDialog(true);
   };
@@ -401,7 +401,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="present">Present</SelectItem>
+                          
                           <SelectItem value="absent">Absent (Full Day)</SelectItem>
                           <SelectItem value="half_day">Half Day</SelectItem>
                           <SelectItem value="late">Late</SelectItem>
