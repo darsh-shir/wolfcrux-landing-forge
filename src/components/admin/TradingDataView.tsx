@@ -40,12 +40,13 @@ interface TradingDataViewProps {
   accounts: TradingAccount[];
   tradingData: TradingData[];
   onRefresh: () => void;
+  filterByTrader?: string;
 }
 
 type TimeFilter = "monthly" | "quarterly" | "yearly";
 type ViewMode = "person" | "account";
 
-const TradingDataView = ({ users, accounts, tradingData, onRefresh }: TradingDataViewProps) => {
+const TradingDataView = ({ users, accounts, tradingData, onRefresh, filterByTrader }: TradingDataViewProps) => {
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<ViewMode>("person");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("monthly");
@@ -85,13 +86,15 @@ const TradingDataView = ({ users, accounts, tradingData, onRefresh }: TradingDat
     }
   }, [timeFilter, selectedMonth, selectedQuarter, selectedYear]);
 
-  // Filter data by date range
+  // Filter data by date range and selected trader
   const filteredData = useMemo(() => {
     return tradingData.filter((t) => {
       const tradeDate = parseISO(t.trade_date);
-      return tradeDate >= dateRange.start && tradeDate <= dateRange.end;
+      const inRange = tradeDate >= dateRange.start && tradeDate <= dateRange.end;
+      const matchesTrader = filterByTrader ? t.user_id === filterByTrader : true;
+      return inRange && matchesTrader;
     });
-  }, [tradingData, dateRange]);
+  }, [tradingData, dateRange, filterByTrader]);
 
   // Group data by person or account
   const groupedData = useMemo(() => {
