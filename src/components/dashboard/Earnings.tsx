@@ -144,7 +144,7 @@ const Earnings = () => {
     return arr.sort(
       (a, b) =>
         sessionRank[a.session] - sessionRank[b.session] ||
-        a.time.localeCompare(b.time)
+        (b.marketCap || 0) - (a.marketCap || 0)
     );
   }, [selectedDay, sortMode]);
 
