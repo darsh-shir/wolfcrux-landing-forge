@@ -53,6 +53,7 @@ const Admin = () => {
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [tradingData, setTradingData] = useState<TradingData[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [selectedTrader, setSelectedTrader] = useState("");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -167,7 +168,8 @@ const Admin = () => {
                   <TradingDataEntry 
                     users={users} 
                     accounts={accounts} 
-                    onRefresh={fetchAllData} 
+                    onRefresh={fetchAllData}
+                    onTraderChange={setSelectedTrader}
                   />
                 </div>
                 <div className="lg:col-span-2">
@@ -175,7 +177,8 @@ const Admin = () => {
                     users={users} 
                     accounts={accounts} 
                     tradingData={tradingData} 
-                    onRefresh={fetchAllData} 
+                    onRefresh={fetchAllData}
+                    filterByTrader={selectedTrader}
                   />
                 </div>
               </div>

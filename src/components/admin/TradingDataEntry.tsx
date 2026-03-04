@@ -27,6 +27,7 @@ interface TradingDataEntryProps {
   users: Profile[];
   accounts: TradingAccount[];
   onRefresh: () => void;
+  onTraderChange?: (traderId: string) => void;
 }
 
 const ATTENDANCE_OPTIONS = [
@@ -37,12 +38,16 @@ const ATTENDANCE_OPTIONS = [
   { value: "absent", label: "Absent" },
 ];
 
-const TradingDataEntry = ({ users, accounts, onRefresh }: TradingDataEntryProps) => {
+const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: TradingDataEntryProps) => {
   const { toast } = useToast();
 
   const today = new Date().toISOString().split("T")[0];
 
-  const [trader1, setTrader1] = useState("");
+  const [trader1, setTrader1Raw] = useState("");
+  const setTrader1 = (value: string) => {
+    setTrader1Raw(value);
+    onTraderChange?.(value);
+  };
   const [trader2, setTrader2] = useState("");
   const [tradeDate, setTradeDate] = useState(today);
   const [notes, setNotes] = useState("");
