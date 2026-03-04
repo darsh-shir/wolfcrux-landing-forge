@@ -56,6 +56,7 @@ export type Database = {
           total_paid: number
           updated_at: string
           user_id: string
+          year: number
         }
         Insert: {
           created_at?: string
@@ -65,6 +66,7 @@ export type Database = {
           total_paid?: number
           updated_at?: string
           user_id: string
+          year?: number
         }
         Update: {
           created_at?: string
@@ -74,6 +76,7 @@ export type Database = {
           total_paid?: number
           updated_at?: string
           user_id?: string
+          year?: number
         }
         Relationships: []
       }
