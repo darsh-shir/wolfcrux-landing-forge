@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Building2 } from "lucide-react";
@@ -17,6 +18,7 @@ interface Profile {
 interface DeskCostRecord {
   id?: string;
   user_id: string;
+  year: number;
   total_desk_cost: number;
   total_paid: number;
   notes: string | null;
@@ -26,26 +28,34 @@ interface DeskCostProps {
   users: Profile[];
 }
 
+const currentYear = new Date().getFullYear();
+const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+
 const DeskCost = ({ users }: DeskCostProps) => {
   const { toast } = useToast();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [records, setRecords] = useState<DeskCostRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingRow, setEditingRow] = useState<Record<string, DeskCostRecord>>({});
 
   useEffect(() => {
     fetchRecords();
-  }, []);
+  }, [selectedYear]);
 
   const fetchRecords = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("desk_costs").select("*");
+    setEditingRow({});
+    const { data } = await supabase
+      .from("desk_costs")
+      .select("*")
+      .eq("year", selectedYear);
     if (data) setRecords(data);
     setLoading(false);
   };
 
   const initEditRow = (userId: string): DeskCostRecord => {
     const existing = records.find(r => r.user_id === userId);
-    return existing || { user_id: userId, total_desk_cost: 0, total_paid: 0, notes: null };
+    return existing || { user_id: userId, year: selectedYear, total_desk_cost: 0, total_paid: 0, notes: null };
   };
 
   const handleFieldChange = (userId: string, field: keyof DeskCostRecord, value: number | string) => {
@@ -76,6 +86,7 @@ const DeskCost = ({ users }: DeskCostProps) => {
     } else {
       const { error } = await supabase.from("desk_costs").insert({
         user_id: userId,
+        year: selectedYear,
         total_desk_cost: row.total_desk_cost,
         total_paid: row.total_paid,
         notes: row.notes,
@@ -93,10 +104,22 @@ const DeskCost = ({ users }: DeskCostProps) => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            Desk Cost Management
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              Desk Cost Management
+            </CardTitle>
+            <Select value={String(selectedYear)} onValueChange={v => setSelectedYear(Number(v))}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map(y => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-x-auto">
