@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -38,6 +41,66 @@ const ATTENDANCE_OPTIONS = [
   { value: "absent", label: "Absent" },
 ];
 
+// Searchable trader combobox component
+const TraderCombobox = ({
+  users,
+  value,
+  onValueChange,
+  disabledUserId,
+  placeholder,
+}: {
+  users: Profile[];
+  value: string;
+  onValueChange: (val: string) => void;
+  disabledUserId?: string;
+  placeholder: string;
+}) => {
+  const [open, setOpen] = useState(false);
+  const selectedUser = users.find((u) => u.user_id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+        >
+          {selectedUser ? selectedUser.full_name : placeholder}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-full p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search trader..." />
+          <CommandList>
+            <CommandEmpty>No trader found.</CommandEmpty>
+            <CommandGroup>
+              {users.map((u) => (
+                <CommandItem
+                  key={u.user_id}
+                  value={u.full_name}
+                  disabled={u.user_id === disabledUserId}
+                  onSelect={() => {
+                    onValueChange(u.user_id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn("mr-2 h-4 w-4", value === u.user_id ? "opacity-100" : "opacity-0")}
+                  />
+                  {u.full_name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: TradingDataEntryProps) => {
   const { toast } = useToast();
 
@@ -64,41 +127,40 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
   const [netPnl2, setNetPnl2] = useState("");
   const [sharesTraded2, setSharesTraded2] = useState("");
 
-  // Fetch last used account for trader1
+  // When trader1 is selected, auto-fill trader2 and both accounts from last entry
   useEffect(() => {
     if (!trader1) return;
-    const fetchLastAccount = async () => {
+    const fetchLastEntry = async () => {
+      // Get last entries for this trader (could be 2 rows for 2 accounts on same date)
       const { data } = await supabase
         .from("trading_data")
-        .select("account_id")
+        .select("account_id, trader2_id, trade_date")
         .eq("user_id", trader1)
         .order("trade_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (data?.account_id) {
-        setAccount1(data.account_id);
-      }
-    };
-    fetchLastAccount();
-  }, [trader1]);
+        .order("created_at", { ascending: false })
+        .limit(2);
 
-  // Fetch last used account for trader2 (as account2)
-  useEffect(() => {
-    if (!trader2 || trader2 === "none") return;
-    const fetchLastAccount = async () => {
-      const { data } = await supabase
-        .from("trading_data")
-        .select("account_id")
-        .eq("user_id", trader2)
-        .order("trade_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (data?.account_id && data.account_id !== account1) {
-        setAccount2(data.account_id);
+      if (data && data.length > 0) {
+        // Auto-fill trader2 from last entry
+        const lastTrader2 = data[0].trader2_id;
+        if (lastTrader2) {
+          setTrader2(lastTrader2);
+        }
+
+        // Auto-fill accounts - get distinct account_ids from the last trade_date
+        const lastDate = data[0].trade_date;
+        const lastDateEntries = data.filter((d) => d.trade_date === lastDate);
+        
+        if (lastDateEntries.length >= 1) {
+          setAccount1(lastDateEntries[0].account_id);
+        }
+        if (lastDateEntries.length >= 2) {
+          setAccount2(lastDateEntries[1].account_id);
+        }
       }
     };
-    fetchLastAccount();
-  }, [trader2]);
+    fetchLastEntry();
+  }, [trader1]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +180,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
       return;
     }
 
-    if (trader1 && trader2 && trader1 === trader2) {
+    if (trader1 && trader2 && trader2 !== "none" && trader1 === trader2) {
       toast({ title: "Error", description: "Please select two different traders", variant: "destructive" });
       return;
     }
@@ -199,25 +261,22 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Trade Date - default to today */}
+          {/* Trade Date */}
           <div className="space-y-2">
             <Label>Trade Date</Label>
             <Input type="date" value={tradeDate} onChange={(e) => setTradeDate(e.target.value)} />
           </div>
 
-          {/* Trader 1 Selection */}
+          {/* Trader 1 Selection - Searchable */}
           <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
             <Label className="text-base font-semibold">Trader 1 (Primary)</Label>
-            <Select value={trader1} onValueChange={setTrader1}>
-              <SelectTrigger><SelectValue placeholder="Select Trader 1" /></SelectTrigger>
-              <SelectContent>
-                {users.map((u) => (
-                  <SelectItem key={u.user_id} value={u.user_id} disabled={u.user_id === trader2}>
-                    {u.full_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <TraderCombobox
+              users={users}
+              value={trader1}
+              onValueChange={setTrader1}
+              disabledUserId={trader2 !== "none" ? trader2 : undefined}
+              placeholder="Select Trader 1"
+            />
             <div className="space-y-1">
               <Label className="text-sm">Attendance</Label>
               <Select value={trader1Attendance} onValueChange={setTrader1Attendance}>
@@ -231,20 +290,31 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             </div>
           </div>
 
-          {/* Trader 2 Selection */}
+          {/* Trader 2 Selection - Searchable */}
           <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
             <Label className="text-base font-semibold">Trader 2 (Optional)</Label>
-            <Select value={trader2} onValueChange={setTrader2}>
-              <SelectTrigger><SelectValue placeholder="Select Trader 2" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">-- No Trader 2 --</SelectItem>
-                {users.map((u) => (
-                  <SelectItem key={u.user_id} value={u.user_id} disabled={u.user_id === trader1}>
-                    {u.full_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <TraderCombobox
+                  users={users}
+                  value={trader2 === "none" ? "" : trader2}
+                  onValueChange={setTrader2}
+                  disabledUserId={trader1}
+                  placeholder="Select Trader 2"
+                />
+              </div>
+              {trader2 && trader2 !== "none" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTrader2("none")}
+                  className="shrink-0"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
             {trader2 && trader2 !== "none" && (
               <div className="space-y-1">
                 <Label className="text-sm">Attendance</Label>
