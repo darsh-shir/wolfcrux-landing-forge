@@ -72,7 +72,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
   // Attendance form
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false);
   const [attendanceTrader, setAttendanceTrader] = useState("");
-  const [attendanceDate, setAttendanceDate] = useState("");
+  const [attendanceDate, setAttendanceDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [attendanceStatus, setAttendanceStatus] = useState<"present" | "absent" | "half_day" | "late">("present");
   const [attendanceNotes, setAttendanceNotes] = useState("");
   const [editingAttendance, setEditingAttendance] = useState<AttendanceRecord | null>(null);
@@ -292,7 +292,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
   const resetAttendanceForm = () => {
     setShowAttendanceDialog(false);
     setAttendanceTrader("");
-    setAttendanceDate("");
+    setAttendanceDate(format(new Date(), "yyyy-MM-dd"));
     setAttendanceStatus("present");
     setAttendanceNotes("");
     setEditingAttendance(null);
