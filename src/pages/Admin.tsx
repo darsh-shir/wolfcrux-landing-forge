@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark } from "lucide-react";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
 import TradingDataView from "@/components/admin/TradingDataView";
@@ -17,6 +17,7 @@ import PayoutSheet from "@/components/admin/PayoutSheet";
 import SalaryBackup from "@/components/admin/SalaryBackup";
 import DeskCost from "@/components/admin/DeskCost";
 import TraderConfig from "@/components/admin/TraderConfig";
+import PoolView from "@/components/admin/PoolView";
 
 interface Profile {
   id: string;
@@ -141,6 +142,10 @@ const Admin = () => {
                 <Settings className="h-4 w-4" />
                 Trader Config
               </TabsTrigger>
+              <TabsTrigger value="pool" className="gap-2 data-[state=active]:bg-background">
+                <Landmark className="h-4 w-4" />
+                Pool
+              </TabsTrigger>
             </TabsList>
 
             {/* DASHBOARD TAB */}
@@ -212,6 +217,11 @@ const Admin = () => {
             {/* TRADER CONFIG TAB */}
             <TabsContent value="trader-config">
               <TraderConfig users={users} />
+            </TabsContent>
+
+            {/* POOL TAB */}
+            <TabsContent value="pool">
+              <PoolView users={users} />
             </TabsContent>
           </Tabs>
         </div>
