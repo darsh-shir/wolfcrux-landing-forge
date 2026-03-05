@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Calendar, Trash2, Edit, UserCheck, Clock, CalendarDays } from "lucide-react";
+import { Plus, Calendar, Trash2, Edit, UserCheck, Clock, CalendarDays, Save } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 
 interface Profile {
@@ -53,11 +53,20 @@ interface LeavesManagementProps {
   users: Profile[];
 }
 
+interface CarryForward {
+  id?: string;
+  user_id: string;
+  year: number;
+  carry_forward_days: number;
+}
+
 const LeavesManagement = ({ users }: LeavesManagementProps) => {
   const { toast } = useToast();
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [monthlySummaries, setMonthlySummaries] = useState<MonthlySummary[]>([]);
+  const [carryForwards, setCarryForwards] = useState<CarryForward[]>([]);
+  const [editingCarry, setEditingCarry] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -81,9 +90,15 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<{ type: "holiday" | "attendance"; id: string } | null>(null);
 
+  const summaryYear = Number(selectedMonth.split("-")[0]);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    fetchCarryForwards();
+  }, [summaryYear]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -97,6 +112,40 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     if (attendanceRes.data) setAttendanceRecords(attendanceRes.data as AttendanceRecord[]);
     if (summariesRes.data) setMonthlySummaries(summariesRes.data as MonthlySummary[]);
     setLoading(false);
+  };
+
+  const fetchCarryForwards = async () => {
+    const { data } = await supabase
+      .from("leave_carry_forward")
+      .select("*")
+      .eq("year", summaryYear);
+    if (data) setCarryForwards(data as CarryForward[]);
+    setEditingCarry({});
+  };
+
+  const getCarryForward = (userId: string): number => {
+    if (editingCarry[userId] !== undefined) return editingCarry[userId];
+    const cf = carryForwards.find(c => c.user_id === userId);
+    return cf?.carry_forward_days ?? 0;
+  };
+
+  const saveCarryForward = async (userId: string) => {
+    const days = getCarryForward(userId);
+    const existing = carryForwards.find(c => c.user_id === userId);
+
+    if (existing?.id) {
+      const { error } = await supabase.from("leave_carry_forward")
+        .update({ carry_forward_days: days })
+        .eq("id", existing.id);
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    } else {
+      const { error } = await supabase.from("leave_carry_forward")
+        .insert({ user_id: userId, year: summaryYear, carry_forward_days: days });
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    }
+    toast({ title: "Saved", description: "Carry forward updated" });
+    setEditingCarry(prev => { const n = { ...prev }; delete n[userId]; return n; });
+    fetchCarryForwards();
   };
 
   const getUserName = (userId: string) => {
@@ -681,6 +730,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Trader</TableHead>
+                    <TableHead className="text-center">Last Year Carry</TableHead>
                     <TableHead className="text-center">Allowed</TableHead>
                     <TableHead className="text-center">Full Days Used</TableHead>
                     <TableHead className="text-center">Half Days Used</TableHead>
@@ -694,10 +744,27 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                     const stats = traderMonthlyStats[user.user_id] || {
                       fullDays: 0, halfDays: 0, lateCount: 0, pending: 1.5, totalThisYear: 0,
                     };
+                    const carry = getCarryForward(user.user_id);
 
                     return (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.full_name}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Input
+                              type="number"
+                              step="0.5"
+                              className="w-16 text-center h-8"
+                              value={editingCarry[user.user_id] !== undefined ? editingCarry[user.user_id] : carry}
+                              onChange={(e) => setEditingCarry(prev => ({ ...prev, [user.user_id]: Number(e.target.value) }))}
+                            />
+                            {editingCarry[user.user_id] !== undefined && (
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => saveCarryForward(user.user_id)}>
+                                <Save className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-center">
                           <span className="text-sm text-muted-foreground">1 Full + 1 Half</span>
                         </TableCell>

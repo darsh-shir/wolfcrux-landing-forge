@@ -101,6 +101,33 @@ export type Database = {
         }
         Relationships: []
       }
+      leave_carry_forward: {
+        Row: {
+          carry_forward_days: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          carry_forward_days?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          carry_forward_days?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       monthly_leave_summary: {
         Row: {
           allowed_full_days: number
