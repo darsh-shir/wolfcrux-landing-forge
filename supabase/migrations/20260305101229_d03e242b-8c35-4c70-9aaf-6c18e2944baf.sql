@@ -1,0 +1,1 @@
+ALTER TABLE public.salary_backups DROP CONSTRAINT salary_backups_month_check;
