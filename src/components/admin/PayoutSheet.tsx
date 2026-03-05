@@ -38,7 +38,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [tradingData, setTradingData] = useState<any[]>([]);
   const [trader2TradingData, setTrader2TradingData] = useState<any[]>([]);
   const [partnerOfConfigs, setPartnerOfConfigs] = useState<any[]>([]);
-  const [leaveSummary, setLeaveSummary] = useState<any>(null);
+  const [allAttendanceRecords, setAllAttendanceRecords] = useState<any[]>([]);
+  const [carryForwardDays, setCarryForwardDays] = useState(0);
   const [extraDeduction, setExtraDeduction] = useState(0);
   const [inrRate, setInrRate] = useState(84);
   const [payoutNotes, setPayoutNotes] = useState("");
@@ -63,7 +64,10 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
     const monthEnd = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
-    const [configRes, tradesRes, tradesAsTrader2Res, allConfigsRes, leaveRes, existingRes] = await Promise.all([
+    // Fetch all attendance records for the year (for cumulative calculation)
+    const yearStart = `${selectedYear}-01-01`;
+
+    const [configRes, tradesRes, tradesAsTrader2Res, allConfigsRes, attendanceRes, carryRes, existingRes] = await Promise.all([
       supabase.from("trader_config").select("*")
         .eq("user_id", selectedTrader)
         .eq("month", selectedMonth)
@@ -73,19 +77,20 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         .eq("user_id", selectedTrader)
         .gte("trade_date", monthStart)
         .lte("trade_date", monthEnd),
-      // Also fetch trades where this trader is trader2
       supabase.from("trading_data").select("*")
         .eq("trader2_id", selectedTrader)
         .gte("trade_date", monthStart)
         .lte("trade_date", monthEnd),
-      // Fetch all configs to find who has this trader as partner
       supabase.from("trader_config").select("*")
         .eq("partner_id", selectedTrader)
         .eq("month", selectedMonth)
         .eq("year", selectedYear),
-      supabase.from("monthly_leave_summary").select("*")
+      supabase.from("attendance_records").select("*")
         .eq("user_id", selectedTrader)
-        .eq("month", selectedMonth)
+        .gte("record_date", yearStart)
+        .lte("record_date", monthEnd),
+      supabase.from("leave_carry_forward").select("*")
+        .eq("user_id", selectedTrader)
         .eq("year", selectedYear)
         .maybeSingle(),
       supabase.from("payout_records").select("*")
@@ -111,7 +116,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     setTradingData(tradesRes.data || []);
     setTrader2TradingData(tradesAsTrader2Res.data || []);
     setPartnerOfConfigs(allConfigsRes.data || []);
-    setLeaveSummary(leaveRes.data);
+    setAllAttendanceRecords(attendanceRes.data || []);
+    setCarryForwardDays(carryRes.data?.carry_forward_days ?? 0);
     if (existingRes.data) {
       setExistingRecord(existingRes.data);
       setPaidCash(existingRes.data.paid_cash || false);
@@ -163,26 +169,30 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       const tradersShare = grossAmount * payoutPct;
       const tradingDays = tradingData.filter(t => !t.is_holiday).length;
 
+      // Cumulative leave balance calculation
       let attendanceDeductionPct = 0;
-      if (leaveSummary) {
-        const usedFull = Number(leaveSummary.used_full_days) || 0;
-        const usedHalf = Number(leaveSummary.used_half_days) || 0;
-        const lateCount = Number(leaveSummary.late_count) || 0;
-        const allowedFull = Number(leaveSummary.allowed_full_days) || 1;
-        const allowedHalf = Number(leaveSummary.allowed_half_days) || 1;
-        const lateHalfDays = Math.floor(lateCount / 3);
-        const totalHalfDaysUsed = usedHalf + lateHalfDays;
-        const excessFull = Math.max(0, usedFull - allowedFull);
-        const excessHalf = Math.max(0, totalHalfDaysUsed - allowedHalf);
-        attendanceDeductionPct = (excessFull * 4) + (excessHalf * 2);
-      } else {
-        const lates = tradingData.filter(t => t.trader1_attendance === "late").length;
-        const halfDays = tradingData.filter(t => t.trader1_attendance === "half_day").length;
-        const absents = tradingData.filter(t => t.trader1_attendance === "absent").length;
-        const lateHalfDays = Math.floor(lates / 3);
-        const totalLeaves = absents + halfDays + lateHalfDays;
-        const excessLeaves = Math.max(0, totalLeaves - 1.5);
-        attendanceDeductionPct = excessLeaves * 2;
+      {
+        let runningBalance = carryForwardDays;
+        for (let m = 1; m <= selectedMonth; m++) {
+          runningBalance += 1.5;
+          const monthRecords = allAttendanceRecords.filter((r: any) => {
+            const d = new Date(r.record_date);
+            return d.getFullYear() === selectedYear && d.getMonth() + 1 === m;
+          });
+          const fullDays = monthRecords.filter((r: any) => r.status === "absent").length;
+          const halfDays = monthRecords.filter((r: any) => r.status === "half_day").length;
+          const lateCount = monthRecords.filter((r: any) => r.status === "late").length;
+          const lateConverted = Math.floor(lateCount / 3) * 0.5;
+          const totalUsed = fullDays + halfDays * 0.5 + lateConverted;
+
+          if (m < selectedMonth) {
+            runningBalance = Math.max(0, runningBalance - totalUsed);
+          } else {
+            // Current month
+            const excess = Math.max(0, totalUsed - runningBalance);
+            attendanceDeductionPct = excess * 4; // full day excess=4%, half day(0.5)=2%
+          }
+        }
       }
 
       const attendanceDeduction = tradersShare * (attendanceDeductionPct / 100);
@@ -247,7 +257,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     empty.combinedNetPayout = primaryNetPayout + trader2Total;
 
     return empty;
-  }, [traderConfig, tradingData, trader2TradingData, partnerOfConfigs, leaveSummary, extraDeduction, users]);
+  }, [traderConfig, tradingData, trader2TradingData, partnerOfConfigs, allAttendanceRecords, carryForwardDays, selectedMonth, selectedYear, extraDeduction, users]);
 
   const traderName = users.find(u => u.user_id === selectedTrader)?.full_name || "";
 

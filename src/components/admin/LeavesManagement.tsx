@@ -177,52 +177,88 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     return holidays.find((h) => h.holiday_date === selectedDate);
   }, [holidays, selectedDate]);
 
-  // Calculate monthly stats per trader
+  // Calculate cumulative leave balance per trader for selected month
+  // Starting from Jan 2026, each month adds 1.5 leaves
+  // Unused leaves carry forward, every 3 lates = 0.5 day used
   const traderMonthlyStats = useMemo(() => {
-    const [year, month] = selectedMonth.split("-").map(Number);
-    const currentYear = new Date().getFullYear();
-    
+    const [selectedYear, selectedMon] = selectedMonth.split("-").map(Number);
+    const START_YEAR = 2026;
+    const START_MONTH = 1;
+
     const stats: Record<string, {
       fullDays: number;
       halfDays: number;
       lateCount: number;
-      pending: number;
-      totalThisYear: number;
+      lateConverted: number;
+      totalUsed: number;
+      carryIn: number;
+      monthlyAllowance: number;
+      totalAvailable: number;
+      balance: number;
+      excess: number;
+      deductionPct: number;
     }> = {};
 
     users.forEach((u) => {
-      const userRecords = attendanceRecords.filter((r) => {
-        const recordDate = parseISO(r.record_date);
-        return r.user_id === u.user_id &&
-          recordDate.getFullYear() === year &&
-          recordDate.getMonth() + 1 === month;
-      });
+      const preJanCarry = carryForwards.find(c => c.user_id === u.user_id && c.year === selectedYear)?.carry_forward_days ?? 0;
 
-      const yearlyRecords = attendanceRecords.filter((r) => {
-        const recordDate = parseISO(r.record_date);
-        return r.user_id === u.user_id &&
-          recordDate.getFullYear() === currentYear &&
-          (r.status === "absent" || r.status === "half_day");
-      });
+      // Calculate cumulative balance from Jan to selected month
+      let runningBalance = preJanCarry;
 
-      const fullDays = userRecords.filter((r) => r.status === "absent").length;
-      const halfDays = userRecords.filter((r) => r.status === "half_day").length;
-      const lateCount = userRecords.filter((r) => r.status === "late").length;
-      
-      const usedInLimit = Math.min(fullDays, 1) + Math.min(halfDays, 1) * 0.5;
-      const pending = Math.max(0, 1.5 - usedInLimit);
+      for (let m = START_MONTH; m <= selectedMon; m++) {
+        if (selectedYear < START_YEAR || (selectedYear === START_YEAR && m < START_MONTH)) continue;
+        
+        runningBalance += 1.5; // monthly allowance
 
-      const totalThisYear = yearlyRecords.reduce((sum, r) => {
-        if (r.status === "absent") return sum + 1;
-        if (r.status === "half_day") return sum + 0.5;
-        return sum;
-      }, 0);
+        const monthRecords = attendanceRecords.filter((r) => {
+          const d = parseISO(r.record_date);
+          return r.user_id === u.user_id && d.getFullYear() === selectedYear && d.getMonth() + 1 === m;
+        });
 
-      stats[u.user_id] = { fullDays, halfDays, lateCount, pending, totalThisYear };
+        const fullDays = monthRecords.filter((r) => r.status === "absent").length;
+        const halfDays = monthRecords.filter((r) => r.status === "half_day").length;
+        const lateCount = monthRecords.filter((r) => r.status === "late").length;
+        const lateConverted = Math.floor(lateCount / 3) * 0.5;
+        const totalUsed = fullDays + halfDays * 0.5 + lateConverted;
+
+        if (m < selectedMon) {
+          // For prior months, just deduct used from balance
+          runningBalance = Math.max(0, runningBalance - totalUsed);
+        } else {
+          // Current selected month - show details
+          const totalAvailable = runningBalance;
+          const balance = Math.max(0, totalAvailable - totalUsed);
+          const excess = Math.max(0, totalUsed - totalAvailable);
+          const deductionPct = excess * 4; // 1 full day excess = 4%, 0.5 half day excess = 2%
+
+          stats[u.user_id] = {
+            fullDays,
+            halfDays,
+            lateCount,
+            lateConverted,
+            totalUsed,
+            carryIn: totalAvailable - 1.5, // carry from previous months
+            monthlyAllowance: 1.5,
+            totalAvailable,
+            balance,
+            excess,
+            deductionPct,
+          };
+        }
+      }
+
+      // If month is before start, show empty
+      if (!stats[u.user_id]) {
+        stats[u.user_id] = {
+          fullDays: 0, halfDays: 0, lateCount: 0, lateConverted: 0,
+          totalUsed: 0, carryIn: 0, monthlyAllowance: 1.5,
+          totalAvailable: 1.5, balance: 1.5, excess: 0, deductionPct: 0,
+        };
+      }
     });
 
     return stats;
-  }, [users, attendanceRecords, selectedMonth]);
+  }, [users, attendanceRecords, selectedMonth, carryForwards]);
 
   const handleAddHoliday = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -730,19 +766,25 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Trader</TableHead>
-                    <TableHead className="text-center">Last Year Carry</TableHead>
-                    <TableHead className="text-center">Allowed</TableHead>
-                    <TableHead className="text-center">Full Days Used</TableHead>
-                    <TableHead className="text-center">Half Days Used</TableHead>
-                    <TableHead className="text-center">Late Count</TableHead>
-                    <TableHead className="text-center">Pending</TableHead>
-                    <TableHead className="text-center">Total (This Year)</TableHead>
+                    <TableHead className="text-center">Pre-Jan Carry</TableHead>
+                    <TableHead className="text-center">Carry In</TableHead>
+                    <TableHead className="text-center">Monthly</TableHead>
+                    <TableHead className="text-center">Available</TableHead>
+                    <TableHead className="text-center">Full Days</TableHead>
+                    <TableHead className="text-center">Half Days</TableHead>
+                    <TableHead className="text-center">Lates (→ Half)</TableHead>
+                    <TableHead className="text-center">Total Used</TableHead>
+                    <TableHead className="text-center">Balance</TableHead>
+                    <TableHead className="text-center">Excess</TableHead>
+                    <TableHead className="text-center">Deduction %</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => {
                     const stats = traderMonthlyStats[user.user_id] || {
-                      fullDays: 0, halfDays: 0, lateCount: 0, pending: 1.5, totalThisYear: 0,
+                      fullDays: 0, halfDays: 0, lateCount: 0, lateConverted: 0,
+                      totalUsed: 0, carryIn: 0, monthlyAllowance: 1.5,
+                      totalAvailable: 1.5, balance: 1.5, excess: 0, deductionPct: 0,
                     };
                     const carry = getCarryForward(user.user_id);
 
@@ -766,22 +808,45 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="text-sm text-muted-foreground">1 Full + 1 Half</span>
+                          <Badge variant="secondary">{Math.max(0, stats.carryIn).toFixed(1)}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant={stats.fullDays > 1 ? "destructive" : "secondary"}>{stats.fullDays}</Badge>
+                          <Badge variant="outline">1.5</Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant={stats.halfDays > 1 ? "destructive" : "secondary"}>{stats.halfDays}</Badge>
+                          <Badge variant="default" className="bg-primary">{stats.totalAvailable.toFixed(1)}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant={stats.lateCount > 0 ? "outline" : "secondary"}>{stats.lateCount}</Badge>
+                          <Badge variant={stats.fullDays > 0 ? "destructive" : "secondary"}>{stats.fullDays}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="default" className="bg-primary">{stats.pending.toFixed(1)}</Badge>
+                          <Badge variant={stats.halfDays > 0 ? "destructive" : "secondary"}>{stats.halfDays}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary">{stats.totalThisYear}</Badge>
+                          <span className="text-sm">{stats.lateCount}</span>
+                          {stats.lateConverted > 0 && (
+                            <span className="text-xs text-muted-foreground ml-1">(→{stats.lateConverted}d)</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={stats.totalUsed > 0 ? "destructive" : "secondary"}>{stats.totalUsed.toFixed(1)}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="default" className="bg-green-600">{stats.balance.toFixed(1)}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {stats.excess > 0 ? (
+                            <Badge variant="destructive">{stats.excess.toFixed(1)}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">0</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {stats.deductionPct > 0 ? (
+                            <Badge variant="destructive">{stats.deductionPct.toFixed(1)}%</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">0%</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
