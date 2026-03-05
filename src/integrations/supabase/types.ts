@@ -305,6 +305,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          month: number
           partner_id: string | null
           partner_percentage: number
           payout_percentage: number
@@ -312,10 +313,12 @@ export type Database = {
           software_cost: number
           updated_at: string
           user_id: string
+          year: number
         }
         Insert: {
           created_at?: string
           id?: string
+          month?: number
           partner_id?: string | null
           partner_percentage?: number
           payout_percentage?: number
@@ -323,10 +326,12 @@ export type Database = {
           software_cost?: number
           updated_at?: string
           user_id: string
+          year?: number
         }
         Update: {
           created_at?: string
           id?: string
+          month?: number
           partner_id?: string | null
           partner_percentage?: number
           payout_percentage?: number
@@ -334,6 +339,7 @@ export type Database = {
           software_cost?: number
           updated_at?: string
           user_id?: string
+          year?: number
         }
         Relationships: []
       }

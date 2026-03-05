@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Calendar, Trash2, Edit, UserCheck, Clock } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, getDaysInMonth } from "date-fns";
+import { Plus, Calendar, Trash2, Edit, UserCheck, Clock, CalendarDays } from "lucide-react";
+import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 
 interface Profile {
   id: string;
@@ -63,6 +63,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
   // Filters
   const [selectedTrader, setSelectedTrader] = useState<string>("all");
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
+  const [selectedDate, setSelectedDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
 
   // Holiday form
   const [showHolidayDialog, setShowHolidayDialog] = useState(false);
@@ -117,6 +118,16 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     });
   }, [attendanceRecords, selectedMonth, selectedTrader]);
 
+  // Filter records by selected date
+  const dailyRecords = useMemo(() => {
+    return attendanceRecords.filter((r) => r.record_date === selectedDate);
+  }, [attendanceRecords, selectedDate]);
+
+  // Check if selected date is a holiday
+  const selectedDateHoliday = useMemo(() => {
+    return holidays.find((h) => h.holiday_date === selectedDate);
+  }, [holidays, selectedDate]);
+
   // Calculate monthly stats per trader
   const traderMonthlyStats = useMemo(() => {
     const [year, month] = selectedMonth.split("-").map(Number);
@@ -131,7 +142,6 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     }> = {};
 
     users.forEach((u) => {
-      // Monthly records
       const userRecords = attendanceRecords.filter((r) => {
         const recordDate = parseISO(r.record_date);
         return r.user_id === u.user_id &&
@@ -139,7 +149,6 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
           recordDate.getMonth() + 1 === month;
       });
 
-      // Yearly records
       const yearlyRecords = attendanceRecords.filter((r) => {
         const recordDate = parseISO(r.record_date);
         return r.user_id === u.user_id &&
@@ -151,24 +160,16 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
       const halfDays = userRecords.filter((r) => r.status === "half_day").length;
       const lateCount = userRecords.filter((r) => r.status === "late").length;
       
-      // Pending = 1.5 - used (max 1 full + 0.5 half)
       const usedInLimit = Math.min(fullDays, 1) + Math.min(halfDays, 1) * 0.5;
       const pending = Math.max(0, 1.5 - usedInLimit);
 
-      // Total leaves this year (full days + half days as 0.5)
       const totalThisYear = yearlyRecords.reduce((sum, r) => {
         if (r.status === "absent") return sum + 1;
         if (r.status === "half_day") return sum + 0.5;
         return sum;
       }, 0);
 
-      stats[u.user_id] = {
-        fullDays,
-        halfDays,
-        lateCount,
-        pending,
-        totalThisYear,
-      };
+      stats[u.user_id] = { fullDays, halfDays, lateCount, pending, totalThisYear };
     });
 
     return stats;
@@ -228,7 +229,6 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
       return;
     }
 
-    // Check if exceeds monthly limit
     const [year, month] = attendanceDate.split("-").map(Number);
     const existingRecords = attendanceRecords.filter((r) => {
       const recordDate = parseISO(r.record_date);
@@ -322,7 +322,6 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     );
   };
 
-  // Generate months for dropdown
   const months = useMemo(() => {
     const result = [];
     for (let i = 0; i < 12; i++) {
@@ -335,11 +334,15 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="attendance" className="space-y-4">
+      <Tabs defaultValue="daily" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="daily">
+            <CalendarDays className="h-4 w-4 mr-2" />
+            Daily View
+          </TabsTrigger>
           <TabsTrigger value="attendance">
             <UserCheck className="h-4 w-4 mr-2" />
-            Attendance
+            Monthly Records
           </TabsTrigger>
           <TabsTrigger value="summary">
             <Clock className="h-4 w-4 mr-2" />
@@ -351,11 +354,11 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
           </TabsTrigger>
         </TabsList>
 
-        {/* ATTENDANCE TAB */}
-        <TabsContent value="attendance">
+        {/* DAILY VIEW TAB */}
+        <TabsContent value="daily">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Attendance Management</CardTitle>
+              <CardTitle>Daily Attendance - {format(parseISO(selectedDate), "EEEE, MMM d, yyyy")}</CardTitle>
               <Dialog open={showAttendanceDialog} onOpenChange={(open) => {
                 if (!open) resetAttendanceForm();
                 else setShowAttendanceDialog(true);
@@ -401,7 +404,6 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          
                           <SelectItem value="absent">Absent (Full Day)</SelectItem>
                           <SelectItem value="half_day">Half Day</SelectItem>
                           <SelectItem value="late">Late</SelectItem>
@@ -426,7 +428,160 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
               </Dialog>
             </CardHeader>
             <CardContent>
-              {/* Filters */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-48"
+                />
+              </div>
+
+              {selectedDateHoliday && (
+                <div className="mb-4 p-3 rounded-md bg-accent/50 border border-accent">
+                  <span className="font-medium">🎉 Holiday: {selectedDateHoliday.name}</span>
+                </div>
+              )}
+
+              {/* Summary cards for the day */}
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <Card className="p-3">
+                  <div className="text-sm text-muted-foreground">Absent</div>
+                  <div className="text-2xl font-bold text-destructive">
+                    {dailyRecords.filter(r => r.status === "absent").length}
+                  </div>
+                </Card>
+                <Card className="p-3">
+                  <div className="text-sm text-muted-foreground">Half Day</div>
+                  <div className="text-2xl font-bold text-secondary-foreground">
+                    {dailyRecords.filter(r => r.status === "half_day").length}
+                  </div>
+                </Card>
+                <Card className="p-3">
+                  <div className="text-sm text-muted-foreground">Late</div>
+                  <div className="text-2xl font-bold text-foreground">
+                    {dailyRecords.filter(r => r.status === "late").length}
+                  </div>
+                </Card>
+              </div>
+
+              {dailyRecords.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No leaves or lates recorded for {format(parseISO(selectedDate), "MMM d, yyyy")}
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Trader</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {dailyRecords.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell className="font-medium">{getUserName(record.user_id)}</TableCell>
+                        <TableCell>{getStatusBadge(record.status)}</TableCell>
+                        <TableCell className="text-muted-foreground">{record.notes || "—"}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => openEditAttendance(record)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteTarget({ type: "attendance", id: record.id })}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* MONTHLY RECORDS TAB */}
+        <TabsContent value="attendance">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Attendance Records</CardTitle>
+              <Dialog open={showAttendanceDialog} onOpenChange={(open) => {
+                if (!open) resetAttendanceForm();
+                else setShowAttendanceDialog(true);
+              }}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="gap-1">
+                    <Plus className="h-4 w-4" />
+                    Mark Attendance
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{editingAttendance ? "Edit Attendance" : "Mark Attendance"}</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSaveAttendance} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Trader</Label>
+                      <Select value={attendanceTrader} onValueChange={setAttendanceTrader}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select trader" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map((u) => (
+                            <SelectItem key={u.user_id} value={u.user_id}>
+                              {u.full_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Date</Label>
+                      <Input
+                        type="date"
+                        value={attendanceDate}
+                        onChange={(e) => setAttendanceDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select value={attendanceStatus} onValueChange={(v) => setAttendanceStatus(v as typeof attendanceStatus)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="absent">Absent (Full Day)</SelectItem>
+                          <SelectItem value="half_day">Half Day</SelectItem>
+                          <SelectItem value="late">Late</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Notes (optional)</Label>
+                      <Input
+                        value={attendanceNotes}
+                        onChange={(e) => setAttendanceNotes(e.target.value)}
+                        placeholder="Any remarks..."
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" className="w-full">
+                        {editingAttendance ? "Update" : "Save"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent>
               <div className="flex flex-wrap gap-2 mb-4">
                 <Select value={selectedTrader} onValueChange={setSelectedTrader}>
                   <SelectTrigger className="w-48">
@@ -537,45 +692,29 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                 <TableBody>
                   {users.map((user) => {
                     const stats = traderMonthlyStats[user.user_id] || {
-                      fullDays: 0,
-                      halfDays: 0,
-                      lateCount: 0,
-                      pending: 1.5,
-                      totalThisYear: 0,
+                      fullDays: 0, halfDays: 0, lateCount: 0, pending: 1.5, totalThisYear: 0,
                     };
 
                     return (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.full_name}</TableCell>
                         <TableCell className="text-center">
-                          <span className="text-sm text-muted-foreground">
-                            1 Full + 1 Half
-                          </span>
+                          <span className="text-sm text-muted-foreground">1 Full + 1 Half</span>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant={stats.fullDays > 1 ? "destructive" : "secondary"}>
-                            {stats.fullDays}
-                          </Badge>
+                          <Badge variant={stats.fullDays > 1 ? "destructive" : "secondary"}>{stats.fullDays}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant={stats.halfDays > 1 ? "destructive" : "secondary"}>
-                            {stats.halfDays}
-                          </Badge>
+                          <Badge variant={stats.halfDays > 1 ? "destructive" : "secondary"}>{stats.halfDays}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant={stats.lateCount > 0 ? "outline" : "secondary"}>
-                            {stats.lateCount}
-                          </Badge>
+                          <Badge variant={stats.lateCount > 0 ? "outline" : "secondary"}>{stats.lateCount}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="default" className="bg-primary">
-                            {stats.pending.toFixed(1)}
-                          </Badge>
+                          <Badge variant="default" className="bg-primary">{stats.pending.toFixed(1)}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary">
-                            {stats.totalThisYear}
-                          </Badge>
+                          <Badge variant="secondary">{stats.totalThisYear}</Badge>
                         </TableCell>
                       </TableRow>
                     );
