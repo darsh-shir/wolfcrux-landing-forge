@@ -36,6 +36,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [traderConfig, setTraderConfig] = useState<any>(null);
   const [tradingData, setTradingData] = useState<any[]>([]);
+  const [trader2TradingData, setTrader2TradingData] = useState<any[]>([]);
+  const [partnerOfConfigs, setPartnerOfConfigs] = useState<any[]>([]);
   const [leaveSummary, setLeaveSummary] = useState<any>(null);
   const [extraDeduction, setExtraDeduction] = useState(0);
   const [inrRate, setInrRate] = useState(84);
@@ -61,12 +63,26 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
     const monthEnd = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
-    const [configRes, tradesRes, leaveRes, existingRes] = await Promise.all([
-      supabase.from("trader_config").select("*").eq("user_id", selectedTrader).maybeSingle(),
+    const [configRes, tradesRes, tradesAsTrader2Res, allConfigsRes, leaveRes, existingRes] = await Promise.all([
+      supabase.from("trader_config").select("*")
+        .eq("user_id", selectedTrader)
+        .eq("month", selectedMonth)
+        .eq("year", selectedYear)
+        .maybeSingle(),
       supabase.from("trading_data").select("*")
         .eq("user_id", selectedTrader)
         .gte("trade_date", monthStart)
         .lte("trade_date", monthEnd),
+      // Also fetch trades where this trader is trader2
+      supabase.from("trading_data").select("*")
+        .eq("trader2_id", selectedTrader)
+        .gte("trade_date", monthStart)
+        .lte("trade_date", monthEnd),
+      // Fetch all configs to find who has this trader as partner
+      supabase.from("trader_config").select("*")
+        .eq("partner_id", selectedTrader)
+        .eq("month", selectedMonth)
+        .eq("year", selectedYear),
       supabase.from("monthly_leave_summary").select("*")
         .eq("user_id", selectedTrader)
         .eq("month", selectedMonth)
@@ -79,8 +95,22 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         .maybeSingle(),
     ]);
 
-    setTraderConfig(configRes.data);
+    // Fallback: if no month-specific config, try without month/year filter
+    let config = configRes.data;
+    if (!config) {
+      const fallback = await supabase.from("trader_config").select("*")
+        .eq("user_id", selectedTrader)
+        .order("year", { ascending: false })
+        .order("month", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      config = fallback.data;
+    }
+
+    setTraderConfig(config);
     setTradingData(tradesRes.data || []);
+    setTrader2TradingData(tradesAsTrader2Res.data || []);
+    setPartnerOfConfigs(allConfigsRes.data || []);
     setLeaveSummary(leaveRes.data);
     if (existingRes.data) {
       setExistingRecord(existingRes.data);
@@ -103,73 +133,128 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   };
 
   const calculations = useMemo(() => {
-    if (!traderConfig) {
-      return {
-        totalPnl: 0, totalShares: 0, shareCharge: 0, softwareCost: 0,
-        grossAmount: 0, payoutPct: 0, tradersShare: 0,
-        attendanceDeductionPct: 0, attendanceDeduction: 0,
-        totalDeductions: 0, netPayout: 0,
-        partnerName: "", partnerPct: 0, partnerGets: 0, traderKeeps: 0,
-        tradingDays: 0,
-      };
-    }
-
-    const totalPnl = tradingData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
-    const totalShares = tradingData.reduce((sum, t) => sum + Number(t.shares_traded), 0);
-    const shareCharge = (totalShares / 1000) * 14;
-    const softwareCost = Number(traderConfig.software_cost) || 0;
-    const grossAmount = totalPnl - shareCharge - softwareCost;
-    const payoutPct = Number(traderConfig.payout_percentage) / 100;
-    const tradersShare = grossAmount * payoutPct;
-    const tradingDays = tradingData.filter(t => !t.is_holiday).length;
-
-    let attendanceDeductionPct = 0;
-    if (leaveSummary) {
-      const usedFull = Number(leaveSummary.used_full_days) || 0;
-      const usedHalf = Number(leaveSummary.used_half_days) || 0;
-      const lateCount = Number(leaveSummary.late_count) || 0;
-      const allowedFull = Number(leaveSummary.allowed_full_days) || 1;
-      const allowedHalf = Number(leaveSummary.allowed_half_days) || 1;
-      const lateHalfDays = Math.floor(lateCount / 3);
-      const totalHalfDaysUsed = usedHalf + lateHalfDays;
-      const excessFull = Math.max(0, usedFull - allowedFull);
-      const excessHalf = Math.max(0, totalHalfDaysUsed - allowedHalf);
-      attendanceDeductionPct = (excessFull * 4) + (excessHalf * 2);
-    } else {
-      const lates = tradingData.filter(t => t.trader1_attendance === "late").length;
-      const halfDays = tradingData.filter(t => t.trader1_attendance === "half_day").length;
-      const absents = tradingData.filter(t => t.trader1_attendance === "absent").length;
-      const lateHalfDays = Math.floor(lates / 3);
-      const totalLeaves = absents + halfDays + lateHalfDays;
-      const excessLeaves = Math.max(0, totalLeaves - 1.5);
-      attendanceDeductionPct = excessLeaves * 2;
-    }
-
-    const attendanceDeduction = tradersShare * (attendanceDeductionPct / 100);
-    const totalDeductions = attendanceDeduction + extraDeduction;
-    const netPayout = tradersShare - totalDeductions;
-
-    const partnerPct = Number(traderConfig.partner_percentage) / 100;
-    const partnerGets = netPayout * partnerPct;
-    const traderKeeps = netPayout - partnerGets;
-    const partnerUser = users.find(u => u.user_id === traderConfig.partner_id);
-    const partnerName = partnerUser?.full_name || "";
-
-    return {
-      totalPnl, totalShares, shareCharge, softwareCost, grossAmount,
-      payoutPct: traderConfig.payout_percentage, tradersShare,
-      attendanceDeductionPct, attendanceDeduction, totalDeductions,
-      netPayout, partnerName, partnerPct: traderConfig.partner_percentage,
-      partnerGets, traderKeeps, tradingDays,
+    const empty = {
+      totalPnl: 0, totalShares: 0, shareCharge: 0, softwareCost: 0,
+      grossAmount: 0, payoutPct: 0, tradersShare: 0,
+      attendanceDeductionPct: 0, attendanceDeduction: 0,
+      totalDeductions: 0, netPayout: 0,
+      partnerName: "", partnerPct: 0, partnerGets: 0, traderKeeps: 0,
+      tradingDays: 0,
+      // Trader2 earnings from other accounts
+      trader2Earnings: [] as { primaryTraderName: string; pnl: number; partnerPct: number; earnings: number }[],
+      trader2Total: 0,
+      combinedNetPayout: 0,
     };
-  }, [traderConfig, tradingData, leaveSummary, extraDeduction, users]);
+
+    // Calculate primary account payout (where this trader is trader1)
+    const hasPrimaryData = tradingData.length > 0 && traderConfig;
+    let primaryNetPayout = 0;
+    let partnerGets = 0;
+    let traderKeeps = 0;
+    let partnerName = "";
+
+    if (hasPrimaryData) {
+      const totalPnl = tradingData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
+      const totalShares = tradingData.reduce((sum, t) => sum + Number(t.shares_traded), 0);
+      const shareCharge = (totalShares / 1000) * 14;
+      const softwareCost = Number(traderConfig.software_cost) || 0;
+      const grossAmount = totalPnl - shareCharge - softwareCost;
+      const payoutPct = Number(traderConfig.payout_percentage) / 100;
+      const tradersShare = grossAmount * payoutPct;
+      const tradingDays = tradingData.filter(t => !t.is_holiday).length;
+
+      let attendanceDeductionPct = 0;
+      if (leaveSummary) {
+        const usedFull = Number(leaveSummary.used_full_days) || 0;
+        const usedHalf = Number(leaveSummary.used_half_days) || 0;
+        const lateCount = Number(leaveSummary.late_count) || 0;
+        const allowedFull = Number(leaveSummary.allowed_full_days) || 1;
+        const allowedHalf = Number(leaveSummary.allowed_half_days) || 1;
+        const lateHalfDays = Math.floor(lateCount / 3);
+        const totalHalfDaysUsed = usedHalf + lateHalfDays;
+        const excessFull = Math.max(0, usedFull - allowedFull);
+        const excessHalf = Math.max(0, totalHalfDaysUsed - allowedHalf);
+        attendanceDeductionPct = (excessFull * 4) + (excessHalf * 2);
+      } else {
+        const lates = tradingData.filter(t => t.trader1_attendance === "late").length;
+        const halfDays = tradingData.filter(t => t.trader1_attendance === "half_day").length;
+        const absents = tradingData.filter(t => t.trader1_attendance === "absent").length;
+        const lateHalfDays = Math.floor(lates / 3);
+        const totalLeaves = absents + halfDays + lateHalfDays;
+        const excessLeaves = Math.max(0, totalLeaves - 1.5);
+        attendanceDeductionPct = excessLeaves * 2;
+      }
+
+      const attendanceDeduction = tradersShare * (attendanceDeductionPct / 100);
+      const totalDeductions = attendanceDeduction + extraDeduction;
+      const netPayout = tradersShare - totalDeductions;
+
+      const partnerPctVal = Number(traderConfig.partner_percentage) / 100;
+      partnerGets = netPayout * partnerPctVal;
+      traderKeeps = netPayout - partnerGets;
+      const partnerUser = users.find(u => u.user_id === traderConfig.partner_id);
+      partnerName = partnerUser?.full_name || "";
+
+      primaryNetPayout = partnerName ? traderKeeps : netPayout;
+
+      Object.assign(empty, {
+        totalPnl, totalShares, shareCharge, softwareCost, grossAmount,
+        payoutPct: traderConfig.payout_percentage, tradersShare,
+        attendanceDeductionPct, attendanceDeduction, totalDeductions,
+        netPayout, partnerName, partnerPct: traderConfig.partner_percentage,
+        partnerGets, traderKeeps, tradingDays,
+      });
+    }
+
+    // Calculate earnings as trader2 (partner/trainee on other accounts)
+    const trader2Earnings: { primaryTraderName: string; pnl: number; partnerPct: number; earnings: number }[] = [];
+    
+    if (trader2TradingData.length > 0 && partnerOfConfigs.length > 0) {
+      // Group trader2 data by primary trader (user_id)
+      const byPrimary: Record<string, any[]> = {};
+      trader2TradingData.forEach(t => {
+        if (!byPrimary[t.user_id]) byPrimary[t.user_id] = [];
+        byPrimary[t.user_id].push(t);
+      });
+
+      for (const [primaryUserId, trades] of Object.entries(byPrimary)) {
+        const primaryConfig = partnerOfConfigs.find(c => c.user_id === primaryUserId);
+        if (!primaryConfig) continue;
+
+        const totalPnl = trades.reduce((sum, t) => sum + Number(t.net_pnl), 0);
+        const totalShares = trades.reduce((sum, t) => sum + Number(t.shares_traded), 0);
+        const shareCharge = (totalShares / 1000) * 14;
+        const softwareCost = Number(primaryConfig.software_cost) || 0;
+        const grossAmount = totalPnl - shareCharge - softwareCost;
+        const primaryPayoutPct = Number(primaryConfig.payout_percentage) / 100;
+        const primaryShare = grossAmount * primaryPayoutPct;
+        const partnerPct = Number(primaryConfig.partner_percentage) / 100;
+        const earnings = primaryShare * partnerPct;
+
+        const primaryUser = users.find(u => u.user_id === primaryUserId);
+        trader2Earnings.push({
+          primaryTraderName: primaryUser?.full_name || "Unknown",
+          pnl: totalPnl,
+          partnerPct: primaryConfig.partner_percentage,
+          earnings,
+        });
+      }
+    }
+
+    const trader2Total = trader2Earnings.reduce((sum, e) => sum + e.earnings, 0);
+    empty.trader2Earnings = trader2Earnings;
+    empty.trader2Total = trader2Total;
+    empty.combinedNetPayout = primaryNetPayout + trader2Total;
+
+    return empty;
+  }, [traderConfig, tradingData, trader2TradingData, partnerOfConfigs, leaveSummary, extraDeduction, users]);
 
   const traderName = users.find(u => u.user_id === selectedTrader)?.full_name || "";
 
   const handleSavePayout = async () => {
     if (!selectedTrader) return;
 
-    const finalUsd = calculations.partnerName ? calculations.traderKeeps : calculations.netPayout;
+    const finalUsd = calculations.combinedNetPayout;
     const totalInr = finalUsd * inrRate;
 
     const payload = {
@@ -250,94 +335,142 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
           <CardContent className="space-y-6">
             {loading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
-            ) : !traderConfig ? (
+            ) : !traderConfig && trader2TradingData.length === 0 ? (
               <div className="text-center py-8 text-destructive font-medium">
                 No Trader Config found for {traderName}. Please set up their payout percentage, software cost, and seat type in the <strong>Trader Config</strong> tab first.
               </div>
-            ) : tradingData.length === 0 ? (
+            ) : tradingData.length === 0 && trader2TradingData.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No trading data found for {MONTHS[selectedMonth - 1]} {selectedYear}.
               </div>
             ) : (
               <>
-                {/* P&L Breakdown */}
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">P&L Breakdown</h3>
-                  <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
-                    <span className="text-muted-foreground">Total P&L</span>
-                    <span className={`font-medium text-right ${calculations.totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      ${calculations.totalPnl.toFixed(2)}
-                    </span>
-                    <span className="text-muted-foreground">Share Charge ({calculations.totalShares.toLocaleString()} shares)</span>
-                    <span className="font-medium text-right text-orange-600">-${calculations.shareCharge.toFixed(2)}</span>
-                    <span className="text-muted-foreground">Software Cost</span>
-                    <span className="font-medium text-right text-orange-600">-${calculations.softwareCost.toFixed(2)}</span>
-                    <span className="text-muted-foreground font-semibold border-t pt-2">Gross Amount (Company)</span>
-                    <span className={`font-bold text-right border-t pt-2 ${calculations.grossAmount >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      ${calculations.grossAmount.toFixed(2)}
-                    </span>
-                    <span className="text-muted-foreground">Trader Payout %</span>
-                    <span className="font-medium text-right">{calculations.payoutPct}%</span>
-                    <span className="text-muted-foreground font-semibold">Trader's Share</span>
-                    <span className={`font-bold text-right ${calculations.tradersShare >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      ${calculations.tradersShare.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
+                {/* P&L Breakdown - only show if trader has primary trading data */}
+                {tradingData.length > 0 && traderConfig && (
+                  <>
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">P&L Breakdown (Primary Account)</h3>
+                      <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
+                        <span className="text-muted-foreground">Total P&L</span>
+                        <span className={`font-medium text-right ${calculations.totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          ${calculations.totalPnl.toFixed(2)}
+                        </span>
+                        <span className="text-muted-foreground">Share Charge ({calculations.totalShares.toLocaleString()} shares)</span>
+                        <span className="font-medium text-right text-orange-600">-${calculations.shareCharge.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Software Cost</span>
+                        <span className="font-medium text-right text-orange-600">-${calculations.softwareCost.toFixed(2)}</span>
+                        <span className="text-muted-foreground font-semibold border-t pt-2">Gross Amount (Company)</span>
+                        <span className={`font-bold text-right border-t pt-2 ${calculations.grossAmount >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          ${calculations.grossAmount.toFixed(2)}
+                        </span>
+                        <span className="text-muted-foreground">Trader Payout %</span>
+                        <span className="font-medium text-right">{calculations.payoutPct}%</span>
+                        <span className="text-muted-foreground font-semibold">Trader's Share</span>
+                        <span className={`font-bold text-right ${calculations.tradersShare >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          ${calculations.tradersShare.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
 
-                {/* Deductions */}
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Deductions</h3>
-                  <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
-                    <span className="text-muted-foreground">Attendance Deduction %</span>
-                    <span className="font-medium text-right text-red-600">{calculations.attendanceDeductionPct.toFixed(2)}%</span>
-                    <span className="text-muted-foreground">Attendance Deduction $</span>
-                    <span className="font-medium text-right text-red-600">-${calculations.attendanceDeduction.toFixed(2)}</span>
-                    <span className="text-muted-foreground">Extra Deduction</span>
-                    <span className="text-right">
-                      <Input type="number" className="w-24 inline text-right" value={extraDeduction || ""}
-                        onChange={e => setExtraDeduction(Number(e.target.value))} placeholder="0" />
-                    </span>
-                    <span className="text-muted-foreground font-semibold border-t pt-2">Total Deductions</span>
-                    <span className="font-bold text-right text-red-600 border-t pt-2">-${calculations.totalDeductions.toFixed(2)}</span>
-                  </div>
-                </div>
+                    {/* Deductions */}
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Deductions</h3>
+                      <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
+                        <span className="text-muted-foreground">Attendance Deduction %</span>
+                        <span className="font-medium text-right text-red-600">{calculations.attendanceDeductionPct.toFixed(2)}%</span>
+                        <span className="text-muted-foreground">Attendance Deduction $</span>
+                        <span className="font-medium text-right text-red-600">-${calculations.attendanceDeduction.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Extra Deduction</span>
+                        <span className="text-right">
+                          <Input type="number" className="w-24 inline text-right" value={extraDeduction || ""}
+                            onChange={e => setExtraDeduction(Number(e.target.value))} placeholder="0" />
+                        </span>
+                        <span className="text-muted-foreground font-semibold border-t pt-2">Total Deductions</span>
+                        <span className="font-bold text-right text-red-600 border-t pt-2">-${calculations.totalDeductions.toFixed(2)}</span>
+                      </div>
+                    </div>
 
-                {/* Net Payout */}
-                <div className="border rounded-lg p-4 bg-primary/5">
-                  <div className="grid grid-cols-2 gap-y-2 text-sm">
-                    <span className="font-bold text-base">NET PAYOUT (Trader's Final)</span>
-                    <span className={`font-bold text-right text-lg ${calculations.netPayout >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      ${calculations.netPayout.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
+                    {/* Net Payout from primary */}
+                    <div className="border rounded-lg p-4 bg-primary/5">
+                      <div className="grid grid-cols-2 gap-y-2 text-sm">
+                        <span className="font-bold text-base">NET PAYOUT (Primary Account)</span>
+                        <span className={`font-bold text-right text-lg ${calculations.netPayout >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          ${calculations.netPayout.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
 
-                {/* Partner Split */}
-                {calculations.partnerName && (
+                    {/* Partner Split */}
+                    {calculations.partnerName && (
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Partner Split</h3>
+                        <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
+                          <span className="text-muted-foreground">Partner Name</span>
+                          <span className="font-medium text-right">{calculations.partnerName}</span>
+                          <span className="text-muted-foreground">Partner %</span>
+                          <span className="font-medium text-right">{calculations.partnerPct}%</span>
+                          <span className="text-muted-foreground">Partner Gets</span>
+                          <span className="font-medium text-right">${calculations.partnerGets.toFixed(2)}</span>
+                          <span className="text-muted-foreground font-semibold border-t pt-2">Trader Keeps ($)</span>
+                          <span className="font-bold text-right border-t pt-2 text-green-600">${calculations.traderKeeps.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Trader2/Trainee Earnings from other accounts */}
+                {calculations.trader2Earnings.length > 0 && (
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Partner Split</h3>
-                    <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
-                      <span className="text-muted-foreground">Partner Name</span>
-                      <span className="font-medium text-right">{calculations.partnerName}</span>
-                      <span className="text-muted-foreground">Partner %</span>
-                      <span className="font-medium text-right">{calculations.partnerPct}%</span>
-                      <span className="text-muted-foreground">Partner Gets</span>
-                      <span className="font-medium text-right">${calculations.partnerGets.toFixed(2)}</span>
-                      <span className="text-muted-foreground font-semibold border-t pt-2">Trader Keeps ($)</span>
-                      <span className="font-bold text-right border-t pt-2 text-green-600">${calculations.traderKeeps.toFixed(2)}</span>
+                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+                      Earnings as Partner/Trainee
+                    </h3>
+                    <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                      {calculations.trader2Earnings.map((earning, idx) => (
+                        <div key={idx} className="grid grid-cols-2 gap-y-1 text-sm">
+                          <span className="text-muted-foreground">From Account of</span>
+                          <span className="font-medium text-right">{earning.primaryTraderName}</span>
+                          <span className="text-muted-foreground">Account P&L</span>
+                          <span className={`font-medium text-right ${earning.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            ${earning.pnl.toFixed(2)}
+                          </span>
+                          <span className="text-muted-foreground">Partner/Trainee %</span>
+                          <span className="font-medium text-right">{earning.partnerPct}%</span>
+                          <span className="text-muted-foreground font-semibold border-t pt-1">Earnings</span>
+                          <span className={`font-bold text-right border-t pt-1 ${earning.earnings >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            ${earning.earnings.toFixed(2)}
+                          </span>
+                          {idx < calculations.trader2Earnings.length - 1 && <div className="col-span-2 border-b my-1" />}
+                        </div>
+                      ))}
+                      {calculations.trader2Earnings.length > 0 && (
+                        <div className="flex justify-between items-center border-t pt-2">
+                          <span className="font-bold">Total Partner/Trainee Earnings</span>
+                          <span className={`font-bold ${calculations.trader2Total >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            ${calculations.trader2Total.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Combined Net Payout */}
+                {(calculations.trader2Earnings.length > 0 || (tradingData.length > 0 && traderConfig)) && (
+                  <div className="border-2 border-primary rounded-lg p-4 bg-primary/10">
+                    <div className="grid grid-cols-2 gap-y-2 text-sm">
+                      <span className="font-bold text-base">COMBINED NET PAYOUT</span>
+                      <span className={`font-bold text-right text-xl ${calculations.combinedNetPayout >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        ${calculations.combinedNetPayout.toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 )}
 
                 {/* INR Conversion & Settlement */}
                 {(() => {
-                  const finalUsd = calculations.partnerName ? calculations.traderKeeps : calculations.netPayout;
+                  const finalUsd = calculations.combinedNetPayout;
                   const totalInr = finalUsd * inrRate;
-                  const monthlySalary = Number(traderConfig?.software_cost) || 0;
-                  const cashPaid = existingRecord?.advance_cash || 0;
-                  const bankPaid = existingRecord?.bank_transfer || 0;
-                  const outstanding = totalInr - monthlySalary - cashPaid - bankPaid;
                   return (
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
