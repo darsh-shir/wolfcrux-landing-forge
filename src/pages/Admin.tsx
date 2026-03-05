@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck } from "lucide-react";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
 import TradingDataView from "@/components/admin/TradingDataView";
@@ -18,6 +18,7 @@ import SalaryBackup from "@/components/admin/SalaryBackup";
 import DeskCost from "@/components/admin/DeskCost";
 import TraderConfig from "@/components/admin/TraderConfig";
 import PoolView from "@/components/admin/PoolView";
+import SingleDayPnL from "@/components/admin/SingleDayPnL";
 
 interface Profile {
   id: string;
@@ -146,6 +147,10 @@ const Admin = () => {
                 <Landmark className="h-4 w-4" />
                 Pool
               </TabsTrigger>
+              <TabsTrigger value="single-day" className="gap-2 data-[state=active]:bg-background">
+                <ClipboardCheck className="h-4 w-4" />
+                Single Day P&L
+              </TabsTrigger>
             </TabsList>
 
             {/* DASHBOARD TAB */}
@@ -222,6 +227,16 @@ const Admin = () => {
             {/* POOL TAB */}
             <TabsContent value="pool">
               <PoolView users={users} />
+            </TabsContent>
+
+            {/* SINGLE DAY P&L TAB */}
+            <TabsContent value="single-day">
+              <SingleDayPnL
+                users={users}
+                accounts={accounts}
+                tradingData={tradingData}
+                onRefresh={fetchAllData}
+              />
             </TabsContent>
           </Tabs>
         </div>
