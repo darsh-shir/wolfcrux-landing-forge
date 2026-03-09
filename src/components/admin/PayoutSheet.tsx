@@ -67,7 +67,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     // Fetch all attendance records for the year (for cumulative calculation)
     const yearStart = `${selectedYear}-01-01`;
 
-    const [configRes, tradesRes, tradesAsTrader2Res, allConfigsRes, attendanceRes, carryRes, existingRes] = await Promise.all([
+    const [configRes, tradesRes, tradesAsTrader2Res, allTrader2ConfigsRes, attendanceRes, carryRes, existingRes] = await Promise.all([
       supabase.from("trader_config").select("*")
         .eq("user_id", selectedTrader)
         .eq("month", selectedMonth)
@@ -81,8 +81,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         .eq("trader2_id", selectedTrader)
         .gte("trade_date", monthStart)
         .lte("trade_date", monthEnd),
+      // Fetch configs for all primary traders whose accounts this trader worked on as trader2
       supabase.from("trader_config").select("*")
-        .eq("partner_id", selectedTrader)
         .eq("month", selectedMonth)
         .eq("year", selectedYear),
       supabase.from("attendance_records").select("*")
@@ -115,7 +115,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     setTraderConfig(config);
     setTradingData(tradesRes.data || []);
     setTrader2TradingData(tradesAsTrader2Res.data || []);
-    setPartnerOfConfigs(allConfigsRes.data || []);
+    setPartnerOfConfigs(allTrader2ConfigsRes.data || []);
     setAllAttendanceRecords(attendanceRes.data || []);
     setCarryForwardDays(carryRes.data?.carry_forward_days ?? 0);
     if (existingRes.data) {
