@@ -101,6 +101,13 @@ const TraderCombobox = ({
   );
 };
 
+interface TraderConfigData {
+  seat_type: string;
+  partner_id: string | null;
+  partner_percentage: number;
+  payout_percentage: number;
+}
+
 const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: TradingDataEntryProps) => {
   const { toast } = useToast();
 
@@ -127,27 +134,56 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
   const [netPnl2, setNetPnl2] = useState("");
   const [sharesTraded2, setSharesTraded2] = useState("");
 
-  // When trader1 is selected, auto-fill trader2 and both accounts from last entry
-  useEffect(() => {
-    if (!trader1) return;
-    const fetchLastEntry = async () => {
-      // Get last entries for this trader (could be 2 rows for 2 accounts on same date)
-      const { data } = await supabase
-        .from("trading_data")
-        .select("account_id, trader2_id, trade_date")
-        .eq("user_id", trader1)
-        .order("trade_date", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(2);
+  const [traderConfig, setTraderConfig] = useState<TraderConfigData | null>(null);
 
-      if (data && data.length > 0) {
-        // Auto-fill trader2 from last entry
-        const lastTrader2 = data[0].trader2_id;
-        if (lastTrader2) {
-          setTrader2(lastTrader2);
+  // When trader1 is selected, auto-fill trader2, accounts, and fetch config
+  useEffect(() => {
+    if (!trader1) {
+      setTraderConfig(null);
+      return;
+    }
+    const fetchData = async () => {
+      // Fetch last entries and config in parallel
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear();
+
+      const [entriesRes, configRes] = await Promise.all([
+        supabase
+          .from("trading_data")
+          .select("account_id, trader2_id, trade_date")
+          .eq("user_id", trader1)
+          .order("trade_date", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(2),
+        supabase
+          .from("trader_config")
+          .select("seat_type, partner_id, partner_percentage, payout_percentage")
+          .eq("user_id", trader1)
+          .eq("month", currentMonth)
+          .eq("year", currentYear)
+          .maybeSingle(),
+      ]);
+
+      // Set config
+      if (configRes.data) {
+        setTraderConfig(configRes.data);
+        // Auto-fill trader2 from config partner_id
+        if (configRes.data.partner_id) {
+          setTrader2(configRes.data.partner_id);
+        }
+      } else {
+        setTraderConfig(null);
+      }
+
+      // Auto-fill accounts from last entry
+      if (entriesRes.data && entriesRes.data.length > 0) {
+        const data = entriesRes.data;
+        // If no config partner, use last entry's trader2
+        if (!configRes.data?.partner_id && data[0].trader2_id) {
+          setTrader2(data[0].trader2_id);
         }
 
-        // Auto-fill accounts - get distinct account_ids from the last trade_date
         const lastDate = data[0].trade_date;
         const lastDateEntries = data.filter((d) => d.trade_date === lastDate);
         
@@ -159,8 +195,22 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
         }
       }
     };
-    fetchLastEntry();
+    fetchData();
   }, [trader1]);
+
+  const getSeatLabel = () => {
+    if (!traderConfig) return null;
+    const { seat_type, payout_percentage, partner_percentage } = traderConfig;
+    if (seat_type === "With Trainee") {
+      return { label: "With Trainee", color: "text-blue-600 bg-blue-50", detail: `Trader gets ${payout_percentage}% | Trainee gets ${partner_percentage}% (25% of payout)` };
+    }
+    if (seat_type === "With Partner") {
+      return { label: "With Partner", color: "text-purple-600 bg-purple-50", detail: `Trader gets ${payout_percentage}% | Partner gets ${partner_percentage}% (50% split)` };
+    }
+    return { label: "Alone", color: "text-muted-foreground bg-muted", detail: `Payout: ${payout_percentage}%` };
+  };
+
+  const seatInfo = getSeatLabel();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,7 +342,19 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
 
           {/* Trader 2 Selection - Searchable */}
           <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
-            <Label className="text-base font-semibold">Trader 2 (Optional)</Label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label className="text-base font-semibold">
+                Trader 2 {traderConfig?.seat_type === "With Trainee" ? "(Trainee)" : traderConfig?.seat_type === "With Partner" ? "(Partner)" : "(Optional)"}
+              </Label>
+              {seatInfo && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${seatInfo.color}`}>
+                  {seatInfo.label}
+                </span>
+              )}
+            </div>
+            {seatInfo && (
+              <p className="text-xs text-muted-foreground">{seatInfo.detail}</p>
+            )}
             <div className="flex gap-2">
               <div className="flex-1">
                 <TraderCombobox
@@ -300,7 +362,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
                   value={trader2 === "none" ? "" : trader2}
                   onValueChange={setTrader2}
                   disabledUserId={trader1}
-                  placeholder="Select Trader 2"
+                  placeholder={traderConfig?.seat_type === "With Trainee" ? "Select Trainee" : traderConfig?.seat_type === "With Partner" ? "Select Partner" : "Select Trader 2"}
                 />
               </div>
               {trader2 && trader2 !== "none" && (
