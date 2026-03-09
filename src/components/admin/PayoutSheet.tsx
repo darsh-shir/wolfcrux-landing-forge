@@ -230,8 +230,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         const splitPct = info.role === "Partner" ? 50 : 25;
         // Calculate this trader2's share of the net payout proportionally
         const dayRatio = info.days / tradingDays;
-        const proportionalPayout = netPayout * dayRatio;
-        const deductionAmount = proportionalPayout * (splitPct / 100);
+        const proportionalShare = tradersShare * dayRatio;
+        const deductionAmount = proportionalShare * (splitPct / 100);
 
         partnerDeductions.push({
           name: info.name,
