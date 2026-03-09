@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Settings, Copy } from "lucide-react";
-import { format } from "date-fns";
 
 interface Profile {
   id: string;
@@ -20,9 +19,6 @@ interface TraderConfigData {
   id?: string;
   user_id: string;
   payout_percentage: number;
-  seat_type: string;
-  partner_id: string | null;
-  partner_percentage: number;
   software_cost: number;
   month: number;
   year: number;
@@ -32,7 +28,6 @@ interface TraderConfigProps {
   users: Profile[];
 }
 
-const SEAT_TYPES = ["Alone", "With Trader", "With Trainee"];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const currentDate = new Date();
@@ -62,7 +57,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
     setLoading(false);
   };
 
-  // If no config for current month, try to copy from previous month
   const initFromPreviousMonth = async () => {
     let prevMonth = selectedMonth - 1;
     let prevYear = selectedYear;
@@ -78,9 +72,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
       const inserts = prevData.map((cfg: any) => ({
         user_id: cfg.user_id,
         payout_percentage: cfg.payout_percentage,
-        seat_type: cfg.seat_type,
-        partner_id: cfg.partner_id,
-        partner_percentage: cfg.partner_percentage,
         software_cost: cfg.software_cost,
         month: selectedMonth,
         year: selectedYear,
@@ -100,24 +91,13 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
 
   const getConfig = (userId: string): TraderConfigData => {
     return editing[userId] || configs.find(c => c.user_id === userId) || {
-      user_id: userId, payout_percentage: 0, seat_type: "Alone",
-      partner_id: null, partner_percentage: 0, software_cost: 0,
+      user_id: userId, payout_percentage: 0, software_cost: 0,
       month: selectedMonth, year: selectedYear,
     };
   };
 
   const handleChange = (userId: string, field: keyof TraderConfigData, value: any) => {
     const current = { ...(editing[userId] || getConfig(userId)), [field]: value };
-
-    // Auto-calculate trainee percentage when seat type changes to "With Trainee"
-    if (field === "seat_type" && value === "With Trainee") {
-      current.partner_percentage = Number((current.payout_percentage * 0.25).toFixed(2));
-    }
-    // Recalc trainee % when payout changes and seat type is "With Trainee"
-    if (field === "payout_percentage" && current.seat_type === "With Trainee") {
-      current.partner_percentage = Number((Number(value) * 0.25).toFixed(2));
-    }
-
     setEditing(prev => ({ ...prev, [userId]: current }));
   };
 
@@ -128,32 +108,26 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
     const payload = {
       user_id: userId,
       payout_percentage: cfg.payout_percentage,
-      seat_type: cfg.seat_type,
-      partner_id: cfg.partner_id || null,
-      partner_percentage: cfg.partner_percentage,
       software_cost: cfg.software_cost,
       month: selectedMonth,
       year: selectedYear,
     };
 
     if (existing?.id) {
-      const { error } = await supabase.from("trader_config").update(payload).eq("id", existing.id);
+      const { error } = await supabase.from("trader_config").update(payload).eq("id", (existing as any).id);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     } else {
       const { error } = await supabase.from("trader_config").insert(payload);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     }
 
-    // Propagate changes to future months
     await propagateToFutureMonths(userId, payload);
-
     toast({ title: "Saved", description: "Trader config saved & propagated to future months" });
     setEditing(prev => { const n = { ...prev }; delete n[userId]; return n; });
     fetchConfigs();
   };
 
   const propagateToFutureMonths = async (userId: string, payload: any) => {
-    // Find all future month configs for this user and update them
     const { data: futureConfigs } = await supabase
       .from("trader_config")
       .select("id, month, year")
@@ -164,9 +138,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
       for (const fc of futureConfigs) {
         await supabase.from("trader_config").update({
           payout_percentage: payload.payout_percentage,
-          seat_type: payload.seat_type,
-          partner_id: payload.partner_id,
-          partner_percentage: payload.partner_percentage,
           software_cost: payload.software_cost,
         }).eq("id", fc.id);
       }
@@ -212,6 +183,10 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
             )}
           </div>
         </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          Set each trader's payout % and software cost. Partner/Trainee role is assigned per-day in Trading Data entry.
+          Trainee = 25% of trader's payout, Partner = 50%.
+        </p>
       </CardHeader>
       <CardContent>
         <div className="rounded-md border overflow-x-auto">
@@ -220,9 +195,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
               <TableRow>
                 <TableHead>Trader</TableHead>
                 <TableHead>Payout %</TableHead>
-                <TableHead>Seat Type</TableHead>
-                <TableHead>Partner/Trainee</TableHead>
-                <TableHead>Partner/Trainee %</TableHead>
                 <TableHead>Software Cost ($)</TableHead>
                 <TableHead></TableHead>
               </TableRow>
@@ -230,7 +202,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
             <TableBody>
               {users.map(user => {
                 const cfg = getConfig(user.user_id);
-                const isTrainee = cfg.seat_type === "With Trainee";
                 return (
                   <TableRow key={user.user_id}>
                     <TableCell className="font-medium">{user.full_name}</TableCell>
@@ -238,38 +209,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
                       <Input type="number" className="w-20" step="1" value={cfg.payout_percentage || ""}
                         onChange={e => handleChange(user.user_id, "payout_percentage", Number(e.target.value))}
                         placeholder="0" />
-                    </TableCell>
-                    <TableCell>
-                      <Select value={cfg.seat_type} onValueChange={v => handleChange(user.user_id, "seat_type", v)}>
-                        <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {SEAT_TYPES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Select value={cfg.partner_id || "none"} onValueChange={v => handleChange(user.user_id, "partner_id", v === "none" ? null : v)}>
-                        <SelectTrigger className="w-[150px]"><SelectValue placeholder="None" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          {users.filter(u => u.user_id !== user.user_id).map(u => (
-                            <SelectItem key={u.user_id} value={u.user_id}>{u.full_name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Input type="number" className="w-20" step="0.01" value={cfg.partner_percentage || ""}
-                          onChange={e => handleChange(user.user_id, "partner_percentage", Number(e.target.value))}
-                          placeholder="0"
-                          disabled={isTrainee} />
-                        {isTrainee && (
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            (auto: {cfg.payout_percentage}×0.25)
-                          </span>
-                        )}
-                      </div>
                     </TableCell>
                     <TableCell>
                       <Input type="number" className="w-24" step="0.01" value={cfg.software_cost || ""}
