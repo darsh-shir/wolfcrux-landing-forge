@@ -500,8 +500,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                           <span className={`font-medium text-right ${earning.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                             ${earning.pnl.toFixed(2)}
                           </span>
-                          <span className="text-muted-foreground">Partner/Trainee %</span>
-                          <span className="font-medium text-right">{earning.partnerPct}%</span>
+                          <span className="text-muted-foreground">Role ({earning.role} — {earning.splitPct}%)</span>
+                          <span className="font-medium text-right">{earning.splitPct}%</span>
                           <span className="text-muted-foreground font-semibold border-t pt-1">Earnings</span>
                           <span className={`font-bold text-right border-t pt-1 ${earning.earnings >= 0 ? "text-green-600" : "text-red-600"}`}>
                             ${earning.earnings.toFixed(2)}
