@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Check, ChevronsUpDown, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Profile {
@@ -42,7 +42,6 @@ const ATTENDANCE_OPTIONS = [
   { value: "absent", label: "Absent" },
 ];
 
-// Searchable trader combobox component
 const TraderCombobox = ({
   users,
   value,
@@ -102,6 +101,33 @@ const TraderCombobox = ({
   );
 };
 
+interface ExistingEntry {
+  id: string;
+  account_id: string;
+  net_pnl: number;
+  shares_traded: number;
+  trader2_id: string | null;
+  trader2_role: string | null;
+  trader1_attendance: string;
+  trader2_attendance: string;
+  notes: string | null;
+  is_holiday: boolean;
+}
+
+interface OriginalFormState {
+  account1: string;
+  netPnl1: string;
+  sharesTraded1: string;
+  account2: string;
+  netPnl2: string;
+  sharesTraded2: string;
+  trader2: string;
+  trader2Role: string;
+  trader1Attendance: string;
+  trader2Attendance: string;
+  notes: string;
+}
+
 interface TraderConfigData {
   seat_type: string;
   partner_id: string | null;
@@ -127,7 +153,6 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
   const [trader1Attendance, setTrader1Attendance] = useState("present");
   const [trader2Attendance, setTrader2Attendance] = useState("present");
   const [trader2Role, setTrader2Role] = useState<"partner" | "trainee">("partner");
-  const [existingEntryWarning, setExistingEntryWarning] = useState("");
 
   const [account1, setAccount1] = useState("");
   const [netPnl1, setNetPnl1] = useState("");
@@ -137,16 +162,19 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
   const [netPnl2, setNetPnl2] = useState("");
   const [sharesTraded2, setSharesTraded2] = useState("");
 
+  const [existingEntries, setExistingEntries] = useState<ExistingEntry[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [originalState, setOriginalState] = useState<OriginalFormState | null>(null);
+
   const [traderConfig, setTraderConfig] = useState<TraderConfigData | null>(null);
 
-  // When trader1 is selected, auto-fill trader2, accounts, and fetch config
+  // When trader1 is selected, auto-fill from last entry (only for defaults)
   useEffect(() => {
     if (!trader1) {
       setTraderConfig(null);
       return;
     }
-    const fetchData = async () => {
-      // Fetch last entries and config in parallel
+    const fetchDefaults = async () => {
       const now = new Date();
       const currentMonth = now.getMonth() + 1;
       const currentYear = now.getFullYear();
@@ -154,7 +182,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
       const [entriesRes, configRes] = await Promise.all([
         supabase
           .from("trading_data")
-          .select("account_id, trader2_id, trade_date")
+          .select("account_id, trader2_id, trader2_role, trade_date")
           .eq("user_id", trader1)
           .order("trade_date", { ascending: false })
           .order("created_at", { ascending: false })
@@ -168,13 +196,11 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
           .maybeSingle(),
       ]);
 
-      // Set config
       if (configRes.data) {
         setTraderConfig(configRes.data);
         if (configRes.data.partner_id) {
           setTrader2(configRes.data.partner_id);
         }
-        // Auto-set role from config
         if (configRes.data.seat_type === "With Trainee") {
           setTrader2Role("trainee");
         } else if (configRes.data.seat_type === "With Partner") {
@@ -184,56 +210,117 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
         setTraderConfig(null);
       }
 
-      // Auto-fill accounts from last entry
       if (entriesRes.data && entriesRes.data.length > 0) {
         const data = entriesRes.data;
-        // If no config partner, use last entry's trader2
         if (!configRes.data?.partner_id && data[0].trader2_id) {
           setTrader2(data[0].trader2_id);
+        }
+        if (data[0].trader2_role) {
+          setTrader2Role(data[0].trader2_role as "partner" | "trainee");
         }
 
         const lastDate = data[0].trade_date;
         const lastDateEntries = data.filter((d) => d.trade_date === lastDate);
-        
-        if (lastDateEntries.length >= 1) {
-          setAccount1(lastDateEntries[0].account_id);
-        }
-        if (lastDateEntries.length >= 2) {
-          setAccount2(lastDateEntries[1].account_id);
-        }
+        if (lastDateEntries.length >= 1) setAccount1(lastDateEntries[0].account_id);
+        if (lastDateEntries.length >= 2) setAccount2(lastDateEntries[1].account_id);
       }
     };
-    fetchData();
+    fetchDefaults();
   }, [trader1]);
 
-  // Check for duplicate entries when trader1, trader2, or date changes
+  // When trader1 + date changes, check for existing entries and load them
   useEffect(() => {
-    setExistingEntryWarning("");
-    if (!trader1 || !tradeDate) return;
-    const checkDuplicates = async () => {
+    if (!trader1 || !tradeDate) {
+      setExistingEntries([]);
+      setIsEditMode(false);
+      setOriginalState(null);
+      return;
+    }
+
+    const loadExisting = async () => {
       const { data } = await supabase
         .from("trading_data")
-        .select("id, user_id, trader2_id")
+        .select("id, account_id, net_pnl, shares_traded, trader2_id, trader2_role, trader1_attendance, trader2_attendance, notes, is_holiday")
+        .eq("user_id", trader1)
         .eq("trade_date", tradeDate)
-        .eq("user_id", trader1);
+        .order("created_at", { ascending: true });
+
       if (data && data.length > 0) {
-        setExistingEntryWarning(`Trader 1 already has ${data.length} entry(ies) on this date.`);
-        return;
-      }
-      // Also check if trader2 is already used as trader1 or trader2 on this date
-      if (trader2 && trader2 !== "none") {
-        const { data: t2Data } = await supabase
-          .from("trading_data")
-          .select("id")
-          .eq("trade_date", tradeDate)
-          .or(`user_id.eq.${trader2},trader2_id.eq.${trader2}`);
-        if (t2Data && t2Data.length > 0) {
-          setExistingEntryWarning(`Trader 2 is already assigned to another entry on this date.`);
+        setExistingEntries(data);
+        setIsEditMode(true);
+
+        const e1 = data[0];
+        setAccount1(e1.account_id);
+        setNetPnl1(String(e1.net_pnl));
+        setSharesTraded1(String(e1.shares_traded));
+        setTrader1Attendance(e1.trader1_attendance || "present");
+        setTrader2Attendance(e1.trader2_attendance || "present");
+        setNotes(e1.notes || "");
+        if (e1.trader2_id) {
+          setTrader2(e1.trader2_id);
+          setTrader2Role((e1.trader2_role as "partner" | "trainee") || "partner");
+        } else {
+          setTrader2("");
         }
+
+        if (data.length >= 2) {
+          const e2 = data[1];
+          setAccount2(e2.account_id);
+          setNetPnl2(String(e2.net_pnl));
+          setSharesTraded2(String(e2.shares_traded));
+        } else {
+          setAccount2("");
+          setNetPnl2("");
+          setSharesTraded2("");
+        }
+
+        setOriginalState({
+          account1: e1.account_id,
+          netPnl1: String(e1.net_pnl),
+          sharesTraded1: String(e1.shares_traded),
+          account2: data.length >= 2 ? data[1].account_id : "",
+          netPnl2: data.length >= 2 ? String(data[1].net_pnl) : "",
+          sharesTraded2: data.length >= 2 ? String(data[1].shares_traded) : "",
+          trader2: e1.trader2_id || "",
+          trader2Role: (e1.trader2_role as string) || "partner",
+          trader1Attendance: e1.trader1_attendance || "present",
+          trader2Attendance: e1.trader2_attendance || "present",
+          notes: e1.notes || "",
+        });
+      } else {
+        setExistingEntries([]);
+        setIsEditMode(false);
+        setOriginalState(null);
+        setNetPnl1("");
+        setSharesTraded1("");
+        setNetPnl2("");
+        setSharesTraded2("");
+        setNotes("");
+        setTrader1Attendance("present");
+        setTrader2Attendance("present");
       }
     };
-    checkDuplicates();
-  }, [trader1, trader2, tradeDate]);
+    loadExisting();
+  }, [trader1, tradeDate]);
+
+  const hasChanges = useMemo(() => {
+    if (!isEditMode || !originalState) return true;
+
+    const currentTrader2 = trader2 === "none" ? "" : trader2;
+    return (
+      account1 !== originalState.account1 ||
+      netPnl1 !== originalState.netPnl1 ||
+      sharesTraded1 !== originalState.sharesTraded1 ||
+      account2 !== originalState.account2 ||
+      netPnl2 !== originalState.netPnl2 ||
+      sharesTraded2 !== originalState.sharesTraded2 ||
+      currentTrader2 !== originalState.trader2 ||
+      trader2Role !== originalState.trader2Role ||
+      trader1Attendance !== originalState.trader1Attendance ||
+      trader2Attendance !== originalState.trader2Attendance ||
+      notes !== originalState.notes
+    );
+  }, [isEditMode, originalState, account1, netPnl1, sharesTraded1, account2, netPnl2, sharesTraded2, trader2, trader2Role, trader1Attendance, trader2Attendance, notes]);
 
   const getSeatLabel = () => {
     if (!traderConfig) return null;
@@ -275,50 +362,134 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
     setIsSubmitting(true);
 
     try {
-      const entries: any[] = [];
+      const t2 = trader2 && trader2 !== "none" ? trader2 : null;
+      const t2role = t2 ? trader2Role : null;
+      const t2att = t2 ? trader2Attendance : "present";
 
-      if (account1) {
-        entries.push({
-          user_id: trader1,
-          trader2_id: trader2 && trader2 !== "none" ? trader2 : null,
-          trader2_role: trader2 && trader2 !== "none" ? trader2Role : null,
-          account_id: account1,
-          trade_date: tradeDate,
-          net_pnl: parseFloat(netPnl1) || 0,
-          shares_traded: parseInt(sharesTraded1) || 0,
-          is_holiday: trader1Attendance === "holiday",
-          trader1_attendance: trader1Attendance,
-          trader2_attendance: trader2 && trader2 !== "none" ? trader2Attendance : "present",
-          notes: notes || null,
-        });
+      if (isEditMode && existingEntries.length > 0) {
+        if (account1 && existingEntries[0]) {
+          const { error } = await supabase
+            .from("trading_data")
+            .update({
+              account_id: account1,
+              net_pnl: parseFloat(netPnl1) || 0,
+              shares_traded: parseInt(sharesTraded1) || 0,
+              trader2_id: t2,
+              trader2_role: t2role,
+              trader1_attendance: trader1Attendance,
+              trader2_attendance: t2att,
+              is_holiday: trader1Attendance === "holiday",
+              notes: notes || null,
+            })
+            .eq("id", existingEntries[0].id);
+          if (error) throw error;
+        }
+
+        if (account2 && existingEntries.length >= 2) {
+          const { error } = await supabase
+            .from("trading_data")
+            .update({
+              account_id: account2,
+              net_pnl: parseFloat(netPnl2) || 0,
+              shares_traded: parseInt(sharesTraded2) || 0,
+              trader2_id: t2,
+              trader2_role: t2role,
+              trader1_attendance: trader1Attendance,
+              trader2_attendance: t2att,
+              is_holiday: trader1Attendance === "holiday",
+              notes: notes || null,
+            })
+            .eq("id", existingEntries[1].id);
+          if (error) throw error;
+        } else if (account2 && existingEntries.length < 2) {
+          const { error } = await supabase.from("trading_data").insert({
+            user_id: trader1,
+            account_id: account2,
+            trade_date: tradeDate,
+            net_pnl: parseFloat(netPnl2) || 0,
+            shares_traded: parseInt(sharesTraded2) || 0,
+            trader2_id: t2,
+            trader2_role: t2role,
+            trader1_attendance: trader1Attendance,
+            trader2_attendance: t2att,
+            is_holiday: trader1Attendance === "holiday",
+            notes: notes || null,
+          });
+          if (error) throw error;
+        } else if (!account2 && existingEntries.length >= 2) {
+          const { error } = await supabase
+            .from("trading_data")
+            .delete()
+            .eq("id", existingEntries[1].id);
+          if (error) throw error;
+        }
+
+        toast({ title: "Updated", description: "Trading data updated successfully" });
+      } else {
+        const entries: any[] = [];
+        if (account1) {
+          entries.push({
+            user_id: trader1,
+            trader2_id: t2,
+            trader2_role: t2role,
+            account_id: account1,
+            trade_date: tradeDate,
+            net_pnl: parseFloat(netPnl1) || 0,
+            shares_traded: parseInt(sharesTraded1) || 0,
+            is_holiday: trader1Attendance === "holiday",
+            trader1_attendance: trader1Attendance,
+            trader2_attendance: t2att,
+            notes: notes || null,
+          });
+        }
+        if (account2) {
+          entries.push({
+            user_id: trader1,
+            trader2_id: t2,
+            trader2_role: t2role,
+            account_id: account2,
+            trade_date: tradeDate,
+            net_pnl: parseFloat(netPnl2) || 0,
+            shares_traded: parseInt(sharesTraded2) || 0,
+            is_holiday: trader1Attendance === "holiday",
+            trader1_attendance: trader1Attendance,
+            trader2_attendance: t2att,
+            notes: notes || null,
+          });
+        }
+
+        const { error } = await supabase.from("trading_data").insert(entries);
+        if (error) throw error;
+
+        toast({ title: "Success", description: `Trading data added for ${entries.length} account(s)` });
       }
 
-      if (account2) {
-        entries.push({
-          user_id: trader1,
-          trader2_id: trader2 && trader2 !== "none" ? trader2 : null,
-          trader2_role: trader2 && trader2 !== "none" ? trader2Role : null,
-          account_id: account2,
-          trade_date: tradeDate,
-          net_pnl: parseFloat(netPnl2) || 0,
-          shares_traded: parseInt(sharesTraded2) || 0,
-          is_holiday: trader1Attendance === "holiday",
-          trader1_attendance: trader1Attendance,
-          trader2_attendance: trader2 && trader2 !== "none" ? trader2Attendance : "present",
-          notes: notes || null,
-        });
-      }
-
-      const { error } = await supabase.from("trading_data").insert(entries);
-      if (error) throw error;
-
-      toast({ title: "Success", description: `Trading data added for ${entries.length} account(s)` });
-
-      setNetPnl1(""); setSharesTraded1("");
-      setNetPnl2(""); setSharesTraded2("");
-      setNotes("");
-      setTrader1Attendance("present"); setTrader2Attendance("present");
       onRefresh();
+      const { data: refreshed } = await supabase
+        .from("trading_data")
+        .select("id, account_id, net_pnl, shares_traded, trader2_id, trader2_role, trader1_attendance, trader2_attendance, notes, is_holiday")
+        .eq("user_id", trader1)
+        .eq("trade_date", tradeDate)
+        .order("created_at", { ascending: true });
+      
+      if (refreshed && refreshed.length > 0) {
+        setExistingEntries(refreshed);
+        setIsEditMode(true);
+        const e1 = refreshed[0];
+        setOriginalState({
+          account1: e1.account_id,
+          netPnl1: String(e1.net_pnl),
+          sharesTraded1: String(e1.shares_traded),
+          account2: refreshed.length >= 2 ? refreshed[1].account_id : "",
+          netPnl2: refreshed.length >= 2 ? String(refreshed[1].net_pnl) : "",
+          sharesTraded2: refreshed.length >= 2 ? String(refreshed[1].shares_traded) : "",
+          trader2: e1.trader2_id || "",
+          trader2Role: (e1.trader2_role as string) || "partner",
+          trader1Attendance: e1.trader1_attendance || "present",
+          trader2Attendance: e1.trader2_attendance || "present",
+          notes: e1.notes || "",
+        });
+      }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -340,23 +511,28 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
 
   const summary = calculateSummary();
 
+  const canSubmit = (account1 || account2) && hasChanges;
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Plus className="h-5 w-5" />
-          Add Trading Data
+          {isEditMode ? <Pencil className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+          {isEditMode ? "Edit Trading Data" : "Add Trading Data"}
         </CardTitle>
+        {isEditMode && (
+          <p className="text-sm text-muted-foreground">
+            Existing entry loaded. Make changes and click update.
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Trade Date */}
           <div className="space-y-2">
             <Label>Trade Date</Label>
             <Input type="date" value={tradeDate} onChange={(e) => setTradeDate(e.target.value)} />
           </div>
 
-          {/* Trader 1 Selection - Searchable */}
           <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
             <Label className="text-base font-semibold">Trader 1 (Primary)</Label>
             <TraderCombobox
@@ -379,7 +555,6 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             </div>
           </div>
 
-          {/* Trader 2 Selection - Searchable */}
           <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
               <Label className="text-base font-semibold">
@@ -446,7 +621,6 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             )}
           </div>
 
-          {/* Account 1 Entry */}
           <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
             <Label className="text-base font-semibold">Account 1</Label>
             <Select value={account1} onValueChange={setAccount1}>
@@ -471,7 +645,6 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             </div>
           </div>
 
-          {/* Account 2 Entry */}
           <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
             <Label className="text-base font-semibold">Account 2 (Optional)</Label>
             <Select value={account2} onValueChange={setAccount2}>
@@ -496,7 +669,6 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             </div>
           </div>
 
-          {/* Summary Box */}
           {(account1 || account2) && (
             <div className="p-4 border rounded-lg bg-primary/5 space-y-2">
               <Label className="text-base font-semibold">Summary</Label>
@@ -517,20 +689,29 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             </div>
           )}
 
-          {/* Notes */}
           <div className="space-y-2">
             <Label>Notes</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Additional notes..." rows={2} />
           </div>
 
-          {existingEntryWarning && (
-            <div className="p-3 border border-destructive/50 rounded-lg bg-destructive/10 text-destructive text-sm font-medium">
-              ⚠️ {existingEntryWarning}
+          {isEditMode && !hasChanges && (
+            <div className="p-3 border rounded-lg bg-muted text-muted-foreground text-sm text-center">
+              No changes detected. Modify a field to enable update.
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={isSubmitting || (!account1 && !account2) || !!existingEntryWarning}>
-            {isSubmitting ? "Adding..." : "Submit Trading Data"}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting || !canSubmit}
+            variant={canSubmit ? "default" : "secondary"}
+          >
+            {isSubmitting
+              ? (isEditMode ? "Updating..." : "Adding...")
+              : isEditMode
+                ? hasChanges ? "Update Trading Data" : "No Changes to Update"
+                : "Submit Trading Data"
+            }
           </Button>
         </form>
       </CardContent>
