@@ -461,11 +461,15 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                     {/* Partner/Trainee Deductions from Primary Account */}
                     {calculations.partnerDeductions.length > 0 && (
                       <div className="space-y-2">
-                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Partner/Trainee Deductions</h3>
+                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+                          {calculations.partnerDeductions.some(d => d.role === "Partner") ? "Partner Share" : "Trainee Share"} Deductions
+                        </h3>
                         <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
                           {calculations.partnerDeductions.map((d, idx) => (
                             <React.Fragment key={idx}>
-                              <span className="text-muted-foreground">{d.name} ({d.role} — {d.splitPct}%)</span>
+                              <span className="text-muted-foreground">
+                                {d.role === "Partner" ? `Partner Share 50%` : `Trainee Share 25%`} — {d.name}
+                              </span>
                               <span className="font-medium text-right text-orange-600">-${d.amount.toFixed(2)}</span>
                             </React.Fragment>
                           ))}
@@ -475,7 +479,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                           <span className="font-bold text-right text-green-600">${calculations.traderKeepsFromPrimary.toFixed(2)}</span>
                           {calculations.poolContribution > 0 && (
                             <>
-                              <span className="text-muted-foreground text-xs italic">→ Pool Contribution (Trainee)</span>
+                              <span className="text-muted-foreground text-xs italic">→ Trainee share added to Pool</span>
                               <span className="text-right text-xs italic text-blue-600">${calculations.poolContribution.toFixed(2)}</span>
                             </>
                           )}
