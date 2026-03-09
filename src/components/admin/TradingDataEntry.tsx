@@ -342,7 +342,19 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
 
           {/* Trader 2 Selection - Searchable */}
           <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
-            <Label className="text-base font-semibold">Trader 2 (Optional)</Label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label className="text-base font-semibold">
+                Trader 2 {traderConfig?.seat_type === "With Trainee" ? "(Trainee)" : traderConfig?.seat_type === "With Partner" ? "(Partner)" : "(Optional)"}
+              </Label>
+              {seatInfo && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${seatInfo.color}`}>
+                  {seatInfo.label}
+                </span>
+              )}
+            </div>
+            {seatInfo && (
+              <p className="text-xs text-muted-foreground">{seatInfo.detail}</p>
+            )}
             <div className="flex gap-2">
               <div className="flex-1">
                 <TraderCombobox
@@ -350,7 +362,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
                   value={trader2 === "none" ? "" : trader2}
                   onValueChange={setTrader2}
                   disabledUserId={trader1}
-                  placeholder="Select Trader 2"
+                  placeholder={traderConfig?.seat_type === "With Trainee" ? "Select Trainee" : traderConfig?.seat_type === "With Partner" ? "Select Partner" : "Select Trader 2"}
                 />
               </div>
               {trader2 && trader2 !== "none" && (
