@@ -417,16 +417,31 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
               )}
             </div>
             {trader2 && trader2 !== "none" && (
-              <div className="space-y-1">
-                <Label className="text-sm">Attendance</Label>
-                <Select value={trader2Attendance} onValueChange={setTrader2Attendance}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ATTENDANCE_OPTIONS.map(o => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-sm">Role</Label>
+                  <RadioGroup value={trader2Role} onValueChange={(v) => setTrader2Role(v as "partner" | "trainee")} className="flex gap-4">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="partner" id="role-partner" />
+                      <Label htmlFor="role-partner" className="text-sm font-normal cursor-pointer">Partner (50% split)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="trainee" id="role-trainee" />
+                      <Label htmlFor="role-trainee" className="text-sm font-normal cursor-pointer">Trainee (25% of payout)</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm">Attendance</Label>
+                  <Select value={trader2Attendance} onValueChange={setTrader2Attendance}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ATTENDANCE_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
           </div>
