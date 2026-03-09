@@ -458,19 +458,27 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                       </div>
                     </div>
 
-                    {/* Partner Split */}
-                    {calculations.partnerName && (
+                    {/* Partner/Trainee Deductions from Primary Account */}
+                    {calculations.partnerDeductions.length > 0 && (
                       <div className="space-y-2">
-                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Partner Split</h3>
+                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Partner/Trainee Deductions</h3>
                         <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
-                          <span className="text-muted-foreground">Partner Name</span>
-                          <span className="font-medium text-right">{calculations.partnerName}</span>
-                          <span className="text-muted-foreground">Partner %</span>
-                          <span className="font-medium text-right">{calculations.partnerPct}%</span>
-                          <span className="text-muted-foreground">Partner Gets</span>
-                          <span className="font-medium text-right">${calculations.partnerGets.toFixed(2)}</span>
-                          <span className="text-muted-foreground font-semibold border-t pt-2">Trader Keeps ($)</span>
-                          <span className="font-bold text-right border-t pt-2 text-green-600">${calculations.traderKeeps.toFixed(2)}</span>
+                          {calculations.partnerDeductions.map((d, idx) => (
+                            <React.Fragment key={idx}>
+                              <span className="text-muted-foreground">{d.name} ({d.role} — {d.splitPct}%)</span>
+                              <span className="font-medium text-right text-orange-600">-${d.amount.toFixed(2)}</span>
+                            </React.Fragment>
+                          ))}
+                          <span className="text-muted-foreground font-semibold border-t pt-2">Total Deducted</span>
+                          <span className="font-bold text-right text-orange-600 border-t pt-2">-${calculations.totalPartnerDeduction.toFixed(2)}</span>
+                          <span className="text-muted-foreground font-semibold">Trader Keeps</span>
+                          <span className="font-bold text-right text-green-600">${calculations.traderKeepsFromPrimary.toFixed(2)}</span>
+                          {calculations.poolContribution > 0 && (
+                            <>
+                              <span className="text-muted-foreground text-xs italic">→ Pool Contribution (Trainee)</span>
+                              <span className="text-right text-xs italic text-blue-600">${calculations.poolContribution.toFixed(2)}</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
