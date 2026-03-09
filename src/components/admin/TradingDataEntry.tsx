@@ -126,6 +126,8 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
 
   const [trader1Attendance, setTrader1Attendance] = useState("present");
   const [trader2Attendance, setTrader2Attendance] = useState("present");
+  const [trader2Role, setTrader2Role] = useState<"partner" | "trainee">("partner");
+  const [existingEntryWarning, setExistingEntryWarning] = useState("");
 
   const [account1, setAccount1] = useState("");
   const [netPnl1, setNetPnl1] = useState("");
