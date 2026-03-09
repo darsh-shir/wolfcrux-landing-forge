@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -125,6 +126,8 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
 
   const [trader1Attendance, setTrader1Attendance] = useState("present");
   const [trader2Attendance, setTrader2Attendance] = useState("present");
+  const [trader2Role, setTrader2Role] = useState<"partner" | "trainee">("partner");
+  const [existingEntryWarning, setExistingEntryWarning] = useState("");
 
   const [account1, setAccount1] = useState("");
   const [netPnl1, setNetPnl1] = useState("");
@@ -168,9 +171,14 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
       // Set config
       if (configRes.data) {
         setTraderConfig(configRes.data);
-        // Auto-fill trader2 from config partner_id
         if (configRes.data.partner_id) {
           setTrader2(configRes.data.partner_id);
+        }
+        // Auto-set role from config
+        if (configRes.data.seat_type === "With Trainee") {
+          setTrader2Role("trainee");
+        } else if (configRes.data.seat_type === "With Partner") {
+          setTrader2Role("partner");
         }
       } else {
         setTraderConfig(null);
@@ -197,6 +205,35 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
     };
     fetchData();
   }, [trader1]);
+
+  // Check for duplicate entries when trader1, trader2, or date changes
+  useEffect(() => {
+    setExistingEntryWarning("");
+    if (!trader1 || !tradeDate) return;
+    const checkDuplicates = async () => {
+      const { data } = await supabase
+        .from("trading_data")
+        .select("id, user_id, trader2_id")
+        .eq("trade_date", tradeDate)
+        .eq("user_id", trader1);
+      if (data && data.length > 0) {
+        setExistingEntryWarning(`Trader 1 already has ${data.length} entry(ies) on this date.`);
+        return;
+      }
+      // Also check if trader2 is already used as trader1 or trader2 on this date
+      if (trader2 && trader2 !== "none") {
+        const { data: t2Data } = await supabase
+          .from("trading_data")
+          .select("id")
+          .eq("trade_date", tradeDate)
+          .or(`user_id.eq.${trader2},trader2_id.eq.${trader2}`);
+        if (t2Data && t2Data.length > 0) {
+          setExistingEntryWarning(`Trader 2 is already assigned to another entry on this date.`);
+        }
+      }
+    };
+    checkDuplicates();
+  }, [trader1, trader2, tradeDate]);
 
   const getSeatLabel = () => {
     if (!traderConfig) return null;
@@ -244,6 +281,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
         entries.push({
           user_id: trader1,
           trader2_id: trader2 && trader2 !== "none" ? trader2 : null,
+          trader2_role: trader2 && trader2 !== "none" ? trader2Role : null,
           account_id: account1,
           trade_date: tradeDate,
           net_pnl: parseFloat(netPnl1) || 0,
@@ -259,6 +297,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
         entries.push({
           user_id: trader1,
           trader2_id: trader2 && trader2 !== "none" ? trader2 : null,
+          trader2_role: trader2 && trader2 !== "none" ? trader2Role : null,
           account_id: account2,
           trade_date: tradeDate,
           net_pnl: parseFloat(netPnl2) || 0,
@@ -378,16 +417,31 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
               )}
             </div>
             {trader2 && trader2 !== "none" && (
-              <div className="space-y-1">
-                <Label className="text-sm">Attendance</Label>
-                <Select value={trader2Attendance} onValueChange={setTrader2Attendance}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ATTENDANCE_OPTIONS.map(o => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-sm">Role</Label>
+                  <RadioGroup value={trader2Role} onValueChange={(v) => setTrader2Role(v as "partner" | "trainee")} className="flex gap-4">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="partner" id="role-partner" />
+                      <Label htmlFor="role-partner" className="text-sm font-normal cursor-pointer">Partner (50% split)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="trainee" id="role-trainee" />
+                      <Label htmlFor="role-trainee" className="text-sm font-normal cursor-pointer">Trainee (25% of payout)</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm">Attendance</Label>
+                  <Select value={trader2Attendance} onValueChange={setTrader2Attendance}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ATTENDANCE_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
           </div>
@@ -469,7 +523,13 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Additional notes..." rows={2} />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting || (!account1 && !account2)}>
+          {existingEntryWarning && (
+            <div className="p-3 border border-destructive/50 rounded-lg bg-destructive/10 text-destructive text-sm font-medium">
+              ⚠️ {existingEntryWarning}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" disabled={isSubmitting || (!account1 && !account2) || !!existingEntryWarning}>
             {isSubmitting ? "Adding..." : "Submit Trading Data"}
           </Button>
         </form>

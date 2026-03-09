@@ -1,0 +1,1 @@
+ALTER TABLE public.trading_data ADD COLUMN trader2_role text DEFAULT NULL;

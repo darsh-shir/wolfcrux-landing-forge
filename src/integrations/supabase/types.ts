@@ -408,6 +408,7 @@ export type Database = {
           trader1_attendance: string
           trader2_attendance: string
           trader2_id: string | null
+          trader2_role: string | null
           updated_at: string
           user_id: string
         }
@@ -424,6 +425,7 @@ export type Database = {
           trader1_attendance?: string
           trader2_attendance?: string
           trader2_id?: string | null
+          trader2_role?: string | null
           updated_at?: string
           user_id: string
         }
@@ -440,6 +442,7 @@ export type Database = {
           trader1_attendance?: string
           trader2_attendance?: string
           trader2_id?: string | null
+          trader2_role?: string | null
           updated_at?: string
           user_id?: string
         }
