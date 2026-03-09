@@ -206,6 +206,35 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
     fetchData();
   }, [trader1]);
 
+  // Check for duplicate entries when trader1, trader2, or date changes
+  useEffect(() => {
+    setExistingEntryWarning("");
+    if (!trader1 || !tradeDate) return;
+    const checkDuplicates = async () => {
+      const { data } = await supabase
+        .from("trading_data")
+        .select("id, user_id, trader2_id")
+        .eq("trade_date", tradeDate)
+        .eq("user_id", trader1);
+      if (data && data.length > 0) {
+        setExistingEntryWarning(`Trader 1 already has ${data.length} entry(ies) on this date.`);
+        return;
+      }
+      // Also check if trader2 is already used as trader1 or trader2 on this date
+      if (trader2 && trader2 !== "none") {
+        const { data: t2Data } = await supabase
+          .from("trading_data")
+          .select("id")
+          .eq("trade_date", tradeDate)
+          .or(`user_id.eq.${trader2},trader2_id.eq.${trader2}`);
+        if (t2Data && t2Data.length > 0) {
+          setExistingEntryWarning(`Trader 2 is already assigned to another entry on this date.`);
+        }
+      }
+    };
+    checkDuplicates();
+  }, [trader1, trader2, tradeDate]);
+
   const getSeatLabel = () => {
     if (!traderConfig) return null;
     const { seat_type, payout_percentage, partner_percentage } = traderConfig;
