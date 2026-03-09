@@ -523,7 +523,13 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Additional notes..." rows={2} />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting || (!account1 && !account2)}>
+          {existingEntryWarning && (
+            <div className="p-3 border border-destructive/50 rounded-lg bg-destructive/10 text-destructive text-sm font-medium">
+              ⚠️ {existingEntryWarning}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" disabled={isSubmitting || (!account1 && !account2) || !!existingEntryWarning}>
             {isSubmitting ? "Adding..." : "Submit Trading Data"}
           </Button>
         </form>
