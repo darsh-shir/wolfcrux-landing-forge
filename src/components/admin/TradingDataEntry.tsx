@@ -281,6 +281,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
         entries.push({
           user_id: trader1,
           trader2_id: trader2 && trader2 !== "none" ? trader2 : null,
+          trader2_role: trader2 && trader2 !== "none" ? trader2Role : null,
           account_id: account1,
           trade_date: tradeDate,
           net_pnl: parseFloat(netPnl1) || 0,
@@ -296,6 +297,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
         entries.push({
           user_id: trader1,
           trader2_id: trader2 && trader2 !== "none" ? trader2 : null,
+          trader2_role: trader2 && trader2 !== "none" ? trader2Role : null,
           account_id: account2,
           trade_date: tradeDate,
           net_pnl: parseFloat(netPnl2) || 0,
