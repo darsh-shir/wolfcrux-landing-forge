@@ -139,25 +139,26 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   };
 
   const calculations = useMemo(() => {
-    const empty = {
+    const result = {
       totalPnl: 0, totalShares: 0, shareCharge: 0, softwareCost: 0,
       grossAmount: 0, payoutPct: 0, tradersShare: 0,
       attendanceDeductionPct: 0, attendanceDeduction: 0,
       totalDeductions: 0, netPayout: 0,
-      partnerName: "", partnerPct: 0, partnerGets: 0, traderKeeps: 0,
+      // Partner/trainee deductions from primary account
+      partnerDeductions: [] as { name: string; role: string; splitPct: number; amount: number }[],
+      totalPartnerDeduction: 0,
+      traderKeepsFromPrimary: 0,
       tradingDays: 0,
-      // Trader2 earnings from other accounts
-      trader2Earnings: [] as { primaryTraderName: string; pnl: number; partnerPct: number; earnings: number }[],
+      // Trader2 earnings from other accounts (where this trader sits as partner/trainee)
+      trader2Earnings: [] as { primaryTraderName: string; pnl: number; role: string; splitPct: number; earnings: number }[],
       trader2Total: 0,
       combinedNetPayout: 0,
+      poolContribution: 0,
     };
 
-    // Calculate primary account payout (where this trader is trader1)
+    // === PRIMARY ACCOUNT CALCULATION ===
     const hasPrimaryData = tradingData.length > 0 && traderConfig;
     let primaryNetPayout = 0;
-    let partnerGets = 0;
-    let traderKeeps = 0;
-    let partnerName = "";
 
     if (hasPrimaryData) {
       const totalPnl = tradingData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
@@ -188,9 +189,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
           if (m < selectedMonth) {
             runningBalance = Math.max(0, runningBalance - totalUsed);
           } else {
-            // Current month
             const excess = Math.max(0, totalUsed - runningBalance);
-            attendanceDeductionPct = excess * 4; // full day excess=4%, half day(0.5)=2%
+            attendanceDeductionPct = excess * 4;
           }
         }
       }
@@ -199,28 +199,72 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       const totalDeductions = attendanceDeduction + extraDeduction;
       const netPayout = tradersShare - totalDeductions;
 
-      const partnerPctVal = Number(traderConfig.partner_percentage) / 100;
-      partnerGets = netPayout * partnerPctVal;
-      traderKeeps = netPayout - partnerGets;
-      const partnerUser = users.find(u => u.user_id === traderConfig.partner_id);
-      partnerName = partnerUser?.full_name || "";
+      // Calculate per-day partner/trainee deductions based on trader2_role
+      const partnerDeductionMap: Record<string, { name: string; role: string; totalPnl: number; totalShares: number; days: number }> = {};
+      let totalPoolContribution = 0;
 
-      primaryNetPayout = partnerName ? traderKeeps : netPayout;
+      tradingData.forEach(trade => {
+        if (trade.trader2_id && trade.trader2_role) {
+          const key = trade.trader2_id;
+          if (!partnerDeductionMap[key]) {
+            const trader2User = users.find(u => u.user_id === trade.trader2_id);
+            partnerDeductionMap[key] = {
+              name: trader2User?.full_name || "Unknown",
+              role: trade.trader2_role,
+              totalPnl: 0,
+              totalShares: 0,
+              days: 0,
+            };
+          }
+          partnerDeductionMap[key].totalPnl += Number(trade.net_pnl);
+          partnerDeductionMap[key].totalShares += Number(trade.shares_traded);
+          partnerDeductionMap[key].days += 1;
+        }
+      });
 
-      Object.assign(empty, {
+      const partnerDeductions: typeof result.partnerDeductions = [];
+      let totalPartnerDeduction = 0;
+
+      for (const [, info] of Object.entries(partnerDeductionMap)) {
+        // Partner gets 50% of trader's payout%, Trainee gets 25%
+        const splitPct = info.role === "Partner" ? 50 : 25;
+        // Calculate this trader2's share of the net payout proportionally
+        const dayRatio = info.days / tradingDays;
+        const proportionalPayout = netPayout * dayRatio;
+        const deductionAmount = proportionalPayout * (splitPct / 100);
+
+        partnerDeductions.push({
+          name: info.name,
+          role: info.role,
+          splitPct,
+          amount: deductionAmount,
+        });
+        totalPartnerDeduction += deductionAmount;
+
+        if (info.role === "Trainee") {
+          totalPoolContribution += deductionAmount;
+        }
+      }
+
+      const traderKeepsFromPrimary = netPayout - totalPartnerDeduction;
+
+      Object.assign(result, {
         totalPnl, totalShares, shareCharge, softwareCost, grossAmount,
         payoutPct: traderConfig.payout_percentage, tradersShare,
         attendanceDeductionPct, attendanceDeduction, totalDeductions,
-        netPayout, partnerName, partnerPct: traderConfig.partner_percentage,
-        partnerGets, traderKeeps, tradingDays,
+        netPayout, tradingDays,
+        partnerDeductions, totalPartnerDeduction, traderKeepsFromPrimary,
+        poolContribution: totalPoolContribution,
       });
+
+      primaryNetPayout = traderKeepsFromPrimary;
     }
 
-    // Calculate earnings as trader2 (partner/trainee on other accounts)
-    const trader2Earnings: { primaryTraderName: string; pnl: number; partnerPct: number; earnings: number }[] = [];
-    
-    if (trader2TradingData.length > 0 && partnerOfConfigs.length > 0) {
-      // Group trader2 data by primary trader (user_id)
+    // === TRADER2 EARNINGS (where this trader is trader2 on someone else's account) ===
+    const trader2Earnings: typeof result.trader2Earnings = [];
+
+    if (trader2TradingData.length > 0) {
+      // Group by primary trader
       const byPrimary: Record<string, any[]> = {};
       trader2TradingData.forEach(t => {
         if (!byPrimary[t.user_id]) byPrimary[t.user_id] = [];
@@ -228,35 +272,39 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       });
 
       for (const [primaryUserId, trades] of Object.entries(byPrimary)) {
-        const primaryConfig = partnerOfConfigs.find(c => c.user_id === primaryUserId);
+        const primaryConfig = partnerOfConfigs.find((c: any) => c.user_id === primaryUserId);
         if (!primaryConfig) continue;
 
-        const totalPnl = trades.reduce((sum, t) => sum + Number(t.net_pnl), 0);
-        const totalShares = trades.reduce((sum, t) => sum + Number(t.shares_traded), 0);
+        const totalPnl = trades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
+        const totalShares = trades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
         const shareCharge = (totalShares / 1000) * 14;
         const softwareCost = Number(primaryConfig.software_cost) || 0;
         const grossAmount = totalPnl - shareCharge - softwareCost;
         const primaryPayoutPct = Number(primaryConfig.payout_percentage) / 100;
         const primaryShare = grossAmount * primaryPayoutPct;
-        const partnerPct = Number(primaryConfig.partner_percentage) / 100;
-        const earnings = primaryShare * partnerPct;
+
+        // Determine role from the trading data entries
+        const role = trades[0]?.trader2_role || "Partner";
+        const splitPct = role === "Partner" ? 50 : 25;
+        const earnings = primaryShare * (splitPct / 100);
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
         trader2Earnings.push({
           primaryTraderName: primaryUser?.full_name || "Unknown",
           pnl: totalPnl,
-          partnerPct: primaryConfig.partner_percentage,
+          role,
+          splitPct,
           earnings,
         });
       }
     }
 
     const trader2Total = trader2Earnings.reduce((sum, e) => sum + e.earnings, 0);
-    empty.trader2Earnings = trader2Earnings;
-    empty.trader2Total = trader2Total;
-    empty.combinedNetPayout = primaryNetPayout + trader2Total;
+    result.trader2Earnings = trader2Earnings;
+    result.trader2Total = trader2Total;
+    result.combinedNetPayout = primaryNetPayout + trader2Total;
 
-    return empty;
+    return result;
   }, [traderConfig, tradingData, trader2TradingData, partnerOfConfigs, allAttendanceRecords, carryForwardDays, selectedMonth, selectedYear, extraDeduction, users]);
 
   const traderName = users.find(u => u.user_id === selectedTrader)?.full_name || "";
