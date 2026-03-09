@@ -171,9 +171,14 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
       // Set config
       if (configRes.data) {
         setTraderConfig(configRes.data);
-        // Auto-fill trader2 from config partner_id
         if (configRes.data.partner_id) {
           setTrader2(configRes.data.partner_id);
+        }
+        // Auto-set role from config
+        if (configRes.data.seat_type === "With Trainee") {
+          setTrader2Role("trainee");
+        } else if (configRes.data.seat_type === "With Partner") {
+          setTrader2Role("partner");
         }
       } else {
         setTraderConfig(null);
