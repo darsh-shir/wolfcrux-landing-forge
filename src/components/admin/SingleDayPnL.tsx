@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO, subDays, addDays } from "date-fns";
+import { format, subDays, addDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from "lucide-react";
+import { CalendarIcon, Save, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Profile {
@@ -49,6 +49,7 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [editingRows, setEditingRows] = useState<Record<string, { net_pnl: string; shares_traded: string }>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [expandedTraders, setExpandedTraders] = useState<Set<string>>(new Set());
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
 
@@ -62,19 +63,33 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
     return a ? { name: a.account_name, number: a.account_number } : { name: "Unknown", number: null };
   };
 
-  // Filter entries for selected date
   const dayEntries = useMemo(() => {
     return tradingData
       .filter((t) => t.trade_date === dateStr)
       .sort((a, b) => getUserName(a.user_id).localeCompare(getUserName(b.user_id)));
   }, [tradingData, dateStr, users]);
 
-  // Company total P&L for the day
   const companyPnl = useMemo(() => {
     return dayEntries.reduce((sum, t) => sum + Number(t.net_pnl), 0);
   }, [dayEntries]);
 
-  // Account-wise P&L breakdown
+  // Group entries by trader
+  const traderGroups = useMemo(() => {
+    const map: Record<string, { entries: TradingData[]; totalPnl: number; totalShares: number }> = {};
+    dayEntries.forEach((t) => {
+      if (!map[t.user_id]) {
+        map[t.user_id] = { entries: [], totalPnl: 0, totalShares: 0 };
+      }
+      map[t.user_id].entries.push(t);
+      map[t.user_id].totalPnl += Number(t.net_pnl);
+      map[t.user_id].totalShares += t.shares_traded;
+    });
+    return Object.entries(map)
+      .map(([userId, data]) => ({ userId, name: getUserName(userId), ...data }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [dayEntries, users]);
+
+  // Account-wise breakdown
   const accountBreakdown = useMemo(() => {
     const map: Record<string, { pnl: number; shares: number; traders: string[] }> = {};
     dayEntries.forEach((t) => {
@@ -89,21 +104,23 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
       }
     });
     return Object.entries(map)
-      .map(([accountId, data]) => ({
-        accountId,
-        ...getAccountInfo(accountId),
-        ...data,
-      }))
+      .map(([accountId, data]) => ({ accountId, ...getAccountInfo(accountId), ...data }))
       .sort((a, b) => b.pnl - a.pnl);
   }, [dayEntries, accounts]);
+
+  const toggleTrader = (userId: string) => {
+    setExpandedTraders((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
 
   const startEditing = (entry: TradingData) => {
     setEditingRows((prev) => ({
       ...prev,
-      [entry.id]: {
-        net_pnl: String(entry.net_pnl),
-        shares_traded: String(entry.shares_traded),
-      },
+      [entry.id]: { net_pnl: String(entry.net_pnl), shares_traded: String(entry.shares_traded) },
     }));
   };
 
@@ -118,18 +135,12 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
   const saveEntry = async (id: string) => {
     const edit = editingRows[id];
     if (!edit) return;
-
     setSaving(id);
     const { error } = await supabase
       .from("trading_data")
-      .update({
-        net_pnl: parseFloat(edit.net_pnl) || 0,
-        shares_traded: parseInt(edit.shares_traded) || 0,
-      })
+      .update({ net_pnl: parseFloat(edit.net_pnl) || 0, shares_traded: parseInt(edit.shares_traded) || 0 })
       .eq("id", id);
-
     setSaving(null);
-
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
@@ -140,20 +151,17 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
   };
 
   const totalShares = dayEntries.reduce((sum, t) => sum + t.shares_traded, 0);
+  const uniqueTraders = traderGroups.length;
 
   return (
     <div className="space-y-6">
-      {/* Date Selector & Company P&L Header */}
+      {/* Date Selector & Summary */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <CardTitle className="text-xl">Single Day P&L Checker</CardTitle>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSelectedDate((d) => subDays(d, 1))}
-              >
+              <Button variant="outline" size="icon" onClick={() => setSelectedDate((d) => subDays(d, 1))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Popover>
@@ -164,37 +172,31 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(d) => d && setSelectedDate(d)}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
+                  <Calendar mode="single" selected={selectedDate} onSelect={(d) => d && setSelectedDate(d)} initialFocus className="p-3 pointer-events-auto" />
                 </PopoverContent>
               </Popover>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSelectedDate((d) => addDays(d, 1))}
-              >
+              <Button variant="outline" size="icon" onClick={() => setSelectedDate((d) => addDays(d, 1))}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className={cn(
-              "rounded-lg p-4 border",
-              companyPnl >= 0 ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
-            )}>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className={cn("rounded-lg p-4 border", companyPnl >= 0 ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800")}>
               <p className="text-sm text-muted-foreground">Company P&L</p>
               <div className="flex items-center gap-2">
                 {companyPnl >= 0 ? <TrendingUp className="h-5 w-5 text-green-600" /> : <TrendingDown className="h-5 w-5 text-red-600" />}
                 <p className={cn("text-2xl font-bold", companyPnl >= 0 ? "text-green-600" : "text-red-600")}>
                   ${companyPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </p>
+              </div>
+            </div>
+            <div className="rounded-lg p-4 border bg-muted/30">
+              <p className="text-sm text-muted-foreground">Total Traders</p>
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-muted-foreground" />
+                <p className="text-2xl font-bold">{uniqueTraders}</p>
               </div>
             </div>
             <div className="rounded-lg p-4 border bg-muted/30">
@@ -238,112 +240,126 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
         </Card>
       )}
 
-      {/* All Entries Table (Editable) */}
+      {/* Trader-wise Grouped Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">All Entries — {format(selectedDate, "MMMM d, yyyy")}</CardTitle>
+          <CardTitle className="text-lg">Trader P&L — {format(selectedDate, "MMMM d, yyyy")}</CardTitle>
         </CardHeader>
         <CardContent>
-          {dayEntries.length === 0 ? (
+          {traderGroups.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No entries for this date.</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8"></TableHead>
                     <TableHead>Trader</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead className="text-right">Net P&L</TableHead>
-                    <TableHead className="text-right">Shares</TableHead>
-                    <TableHead>Attendance</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
+                    <TableHead className="text-center">Accounts</TableHead>
+                    <TableHead className="text-right">Total P&L</TableHead>
+                    <TableHead className="text-right">Total Shares</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {dayEntries.map((entry) => {
-                    const isEditing = !!editingRows[entry.id];
-                    const editData = editingRows[entry.id];
-                    const accInfo = getAccountInfo(entry.account_id);
-
+                  {traderGroups.map((group) => {
+                    const isExpanded = expandedTraders.has(group.userId);
                     return (
-                      <TableRow key={entry.id}>
-                        <TableCell className="font-medium">{getUserName(entry.user_id)}</TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="text-sm">{accInfo.name}</p>
-                            {accInfo.number && <p className="text-xs text-muted-foreground">{accInfo.number}</p>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {isEditing ? (
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={editData.net_pnl}
-                              onChange={(e) =>
-                                setEditingRows((prev) => ({
-                                  ...prev,
-                                  [entry.id]: { ...prev[entry.id], net_pnl: e.target.value },
-                                }))
-                              }
-                              className="w-28 ml-auto text-right"
-                            />
-                          ) : (
-                            <span className={cn("font-semibold", Number(entry.net_pnl) >= 0 ? "text-green-600" : "text-red-600")}>
-                              ${Number(entry.net_pnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      <>
+                        <TableRow
+                          key={group.userId}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => toggleTrader(group.userId)}
+                        >
+                          <TableCell>
+                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          </TableCell>
+                          <TableCell className="font-medium">{group.name}</TableCell>
+                          <TableCell className="text-center">{group.entries.length}</TableCell>
+                          <TableCell className="text-right">
+                            <span className={cn("font-semibold", group.totalPnl >= 0 ? "text-green-600" : "text-red-600")}>
+                              ${group.totalPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                             </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {isEditing ? (
-                            <Input
-                              type="number"
-                              value={editData.shares_traded}
-                              onChange={(e) =>
-                                setEditingRows((prev) => ({
-                                  ...prev,
-                                  [entry.id]: { ...prev[entry.id], shares_traded: e.target.value },
-                                }))
-                              }
-                              className="w-24 ml-auto text-right"
-                            />
-                          ) : (
-                            <span>{entry.shares_traded.toLocaleString()}</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs">
-                            {entry.is_holiday ? "Holiday" : (entry as any).trader1_attendance || "Present"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs text-muted-foreground truncate max-w-[120px] block">
-                            {entry.notes || entry.late_remarks || "—"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {isEditing ? (
-                            <div className="flex gap-1 justify-center">
-                              <Button
-                                size="sm"
-                                onClick={() => saveEntry(entry.id)}
-                                disabled={saving === entry.id}
-                              >
-                                <Save className="h-3 w-3 mr-1" />
-                                {saving === entry.id ? "..." : "Save"}
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => cancelEditing(entry.id)}>
-                                Cancel
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button size="sm" variant="outline" onClick={() => startEditing(entry)}>
-                              Edit
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
+                          </TableCell>
+                          <TableCell className="text-right">{group.totalShares.toLocaleString()}</TableCell>
+                        </TableRow>
+                        {isExpanded &&
+                          group.entries.map((entry) => {
+                            const isEditing = !!editingRows[entry.id];
+                            const editData = editingRows[entry.id];
+                            const accInfo = getAccountInfo(entry.account_id);
+                            return (
+                              <TableRow key={entry.id} className="bg-muted/20">
+                                <TableCell></TableCell>
+                                <TableCell className="pl-8">
+                                  <div>
+                                    <p className="text-sm font-medium">{accInfo.name}</p>
+                                    {accInfo.number && <p className="text-xs text-muted-foreground">{accInfo.number}</p>}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <span className="text-xs text-muted-foreground">
+                                    {entry.is_holiday ? "Holiday" : (entry as any).trader1_attendance || "Present"}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {isEditing ? (
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      value={editData.net_pnl}
+                                      onChange={(e) =>
+                                        setEditingRows((prev) => ({
+                                          ...prev,
+                                          [entry.id]: { ...prev[entry.id], net_pnl: e.target.value },
+                                        }))
+                                      }
+                                      className="w-28 ml-auto text-right"
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  ) : (
+                                    <span className={cn("text-sm", Number(entry.net_pnl) >= 0 ? "text-green-600" : "text-red-600")}>
+                                      ${Number(entry.net_pnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    {isEditing ? (
+                                      <>
+                                        <Input
+                                          type="number"
+                                          value={editData.shares_traded}
+                                          onChange={(e) =>
+                                            setEditingRows((prev) => ({
+                                              ...prev,
+                                              [entry.id]: { ...prev[entry.id], shares_traded: e.target.value },
+                                            }))
+                                          }
+                                          className="w-24 text-right"
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                        <Button size="sm" onClick={(e) => { e.stopPropagation(); saveEntry(entry.id); }} disabled={saving === entry.id}>
+                                          <Save className="h-3 w-3 mr-1" />
+                                          {saving === entry.id ? "..." : "Save"}
+                                        </Button>
+                                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); cancelEditing(entry.id); }}>
+                                          Cancel
+                                        </Button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="text-sm">{entry.shares_traded.toLocaleString()}</span>
+                                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); startEditing(entry); }}>
+                                          Edit
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                      </>
                     );
                   })}
                 </TableBody>
