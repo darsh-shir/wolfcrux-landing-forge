@@ -285,8 +285,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         const primaryShare = grossAmount * primaryPayoutPct;
 
         // Determine role from the trading data entries
-        const role = trades[0]?.trader2_role || "Partner";
-        const splitPct = role === "Partner" ? 50 : 25;
+        const role = trades[0]?.trader2_role || "partner";
+        const splitPct = role.toLowerCase() === "partner" ? 50 : 25;
         const earnings = primaryShare * (splitPct / 100);
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
