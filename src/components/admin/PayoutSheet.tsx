@@ -293,8 +293,18 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
         // Determine role from the trading data entries
         const role = trades[0]?.trader2_role || "partner";
-        const splitPct = role.toLowerCase() === "partner" ? 50 : 25;
-        const earnings = primaryShare * (splitPct / 100);
+        const roleLower = role.toLowerCase();
+        const splitPct = roleLower === "partner" ? 50 : 25;
+
+        let earnings: number;
+        if (roleLower === "partner") {
+          // Partner gets 50% of GROSS
+          earnings = grossAmount * 0.50;
+        } else {
+          // Trainee: their 25% goes to pool, not direct earnings
+          // Show as 0 here - they receive from pool distribution
+          earnings = 0;
+        }
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
         trader2Earnings.push({
