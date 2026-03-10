@@ -70,10 +70,8 @@ const PoolView = ({ users }: PoolViewProps) => {
       const payoutPct = Number(cfg.payout_percentage) / 100;
       const tradersShare = grossAmount * payoutPct;
 
-      // Pool contribution = 25% of payout percentage applied to gross
-      // i.e., payout_percentage * 0.25 of gross amount
-      const poolPct = Number(cfg.payout_percentage) * 0.25;
-      const poolAmount = grossAmount * (poolPct / 100);
+      // Pool contribution = 25% of trader's share (gross × payout%)
+      const poolAmount = tradersShare * 0.25;
 
       const traderUser = users.find(u => u.user_id === cfg.user_id);
       const partnerUser = users.find(u => u.user_id === cfg.partner_id);
@@ -83,8 +81,9 @@ const PoolView = ({ users }: PoolViewProps) => {
         traderName: traderUser?.full_name || "Unknown",
         traineeName: partnerUser?.full_name || "N/A",
         payoutPct: cfg.payout_percentage,
-        poolPct: poolPct,
+        poolPct: 25,
         grossAmount,
+        tradersShare,
         poolAmount: Math.max(0, poolAmount),
       };
     }).filter(Boolean) as {
@@ -94,6 +93,7 @@ const PoolView = ({ users }: PoolViewProps) => {
       payoutPct: number;
       poolPct: number;
       grossAmount: number;
+      tradersShare: number;
       poolAmount: number;
     }[];
 
