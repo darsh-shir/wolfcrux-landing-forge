@@ -172,9 +172,9 @@ const PoolView = ({ users }: PoolViewProps) => {
                       <TableHead>Trader</TableHead>
                       <TableHead>Trainee</TableHead>
                       <TableHead className="text-right">Payout %</TableHead>
-                      <TableHead className="text-right">Pool %</TableHead>
                       <TableHead className="text-right">Gross ($)</TableHead>
-                      <TableHead className="text-right">Pool Amount ($)</TableHead>
+                      <TableHead className="text-right">Trader's Share ($)</TableHead>
+                      <TableHead className="text-right">Pool 25% ($)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -183,8 +183,8 @@ const PoolView = ({ users }: PoolViewProps) => {
                         <TableCell className="font-medium">{c.traderName}</TableCell>
                         <TableCell>{c.traineeName}</TableCell>
                         <TableCell className="text-right">{c.payoutPct}%</TableCell>
-                        <TableCell className="text-right">{c.poolPct.toFixed(2)}%</TableCell>
                         <TableCell className="text-right">${c.grossAmount.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">${c.tradersShare.toFixed(2)}</TableCell>
                         <TableCell className="text-right font-semibold text-primary">
                           ${c.poolAmount.toFixed(2)}
                         </TableCell>
