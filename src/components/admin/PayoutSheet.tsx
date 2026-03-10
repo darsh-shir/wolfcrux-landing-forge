@@ -227,7 +227,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
       for (const [, info] of Object.entries(partnerDeductionMap)) {
         // Partner gets 50% of trader's payout%, Trainee gets 25%
-        const splitPct = info.role === "Partner" ? 50 : 25;
+        const roleLower = info.role.toLowerCase();
+        const splitPct = roleLower === "partner" ? 50 : 25;
         // Calculate this trader2's share of the net payout proportionally
         const dayRatio = info.days / tradingDays;
         const proportionalShare = tradersShare * dayRatio;
@@ -241,7 +242,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         });
         totalPartnerDeduction += deductionAmount;
 
-        if (info.role === "Trainee") {
+        if (roleLower === "trainee") {
           totalPoolContribution += deductionAmount;
         }
       }
@@ -284,8 +285,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         const primaryShare = grossAmount * primaryPayoutPct;
 
         // Determine role from the trading data entries
-        const role = trades[0]?.trader2_role || "Partner";
-        const splitPct = role === "Partner" ? 50 : 25;
+        const role = trades[0]?.trader2_role || "partner";
+        const splitPct = role.toLowerCase() === "partner" ? 50 : 25;
         const earnings = primaryShare * (splitPct / 100);
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
@@ -462,13 +463,13 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                     {calculations.partnerDeductions.length > 0 && (
                       <div className="space-y-2">
                         <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                          {calculations.partnerDeductions.some(d => d.role === "Partner") ? "Partner Share" : "Trainee Share"} Deductions
+                          {calculations.partnerDeductions.some(d => d.role.toLowerCase() === "partner") ? "Partner Share" : "Trainee Share"} Deductions
                         </h3>
                         <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
                           {calculations.partnerDeductions.map((d, idx) => (
                             <React.Fragment key={idx}>
                               <span className="text-muted-foreground">
-                                {d.role === "Partner" ? `Partner Share 50%` : `Trainee Share 25%`} — {d.name}
+                                {d.role.toLowerCase() === "partner" ? `Partner Share 50%` : `Trainee Share 25%`} — {d.name}
                               </span>
                               <span className="font-medium text-right text-orange-600">-${d.amount.toFixed(2)}</span>
                             </React.Fragment>
