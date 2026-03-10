@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell } from "recharts";
 import { Landmark, Users } from "lucide-react";
 
 interface Profile {
@@ -54,15 +54,25 @@ const PoolView = ({ users }: PoolViewProps) => {
   };
 
   const poolData = useMemo(() => {
-    // Find traders with "With Trainee" seat type
-    const traineeConfigs = configs.filter(c => c.seat_type === "With Trainee");
+    // Find all trading_data rows where trader2_role is 'trainee' (case-insensitive)
+    const traineeEntries = tradingData.filter(
+      t => t.trader2_role && t.trader2_role.toLowerCase() === "trainee"
+    );
 
-    const contributions = traineeConfigs.map(cfg => {
-      const traderTrades = tradingData.filter(t => t.user_id === cfg.user_id);
-      if (traderTrades.length === 0) return null;
+    // Group by primary trader (user_id)
+    const traderMap: Record<string, any[]> = {};
+    for (const entry of traineeEntries) {
+      if (!traderMap[entry.user_id]) traderMap[entry.user_id] = [];
+      traderMap[entry.user_id].push(entry);
+    }
 
-      const totalPnl = traderTrades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
-      const totalShares = traderTrades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
+    const contributions = Object.entries(traderMap).map(([userId, trades]) => {
+      // Get trader config for payout percentage
+      const cfg = configs.find(c => c.user_id === userId);
+      if (!cfg) return null;
+
+      const totalPnl = trades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
+      const totalShares = trades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
       const shareCharge = (totalShares / 1000) * 14;
       const softwareCost = Number(cfg.software_cost) || 0;
       const grossAmount = totalPnl - shareCharge - softwareCost;
@@ -70,18 +80,22 @@ const PoolView = ({ users }: PoolViewProps) => {
       const payoutPct = Number(cfg.payout_percentage) / 100;
       const tradersShare = grossAmount * payoutPct;
 
-      // Pool contribution = 25% of trader's share (gross × payout%)
+      // Pool contribution = 25% of trader's share
       const poolAmount = tradersShare * 0.25;
 
-      const traderUser = users.find(u => u.user_id === cfg.user_id);
-      const partnerUser = users.find(u => u.user_id === cfg.partner_id);
+      const traderUser = users.find(u => u.user_id === userId);
+      // Find trainee name from the trades (trader2_id)
+      const traineeIds = [...new Set(trades.map(t => t.trader2_id).filter(Boolean))];
+      const traineeNames = traineeIds.map(id => {
+        const u = users.find(u => u.user_id === id);
+        return u?.full_name || "Unknown";
+      });
 
       return {
-        userId: cfg.user_id,
+        userId,
         traderName: traderUser?.full_name || "Unknown",
-        traineeName: partnerUser?.full_name || "N/A",
+        traineeName: traineeNames.join(", ") || "N/A",
         payoutPct: cfg.payout_percentage,
-        poolPct: 25,
         grossAmount,
         tradersShare,
         poolAmount: Math.max(0, poolAmount),
@@ -91,7 +105,6 @@ const PoolView = ({ users }: PoolViewProps) => {
       traderName: string;
       traineeName: string;
       payoutPct: number;
-      poolPct: number;
       grossAmount: number;
       tradersShare: number;
       poolAmount: number;
@@ -116,7 +129,6 @@ const PoolView = ({ users }: PoolViewProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -147,7 +159,6 @@ const PoolView = ({ users }: PoolViewProps) => {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Table */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -203,7 +214,6 @@ const PoolView = ({ users }: PoolViewProps) => {
           </CardContent>
         </Card>
 
-        {/* Pie Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Pool Distribution</CardTitle>
@@ -235,7 +245,6 @@ const PoolView = ({ users }: PoolViewProps) => {
               </ChartContainer>
             )}
 
-            {/* Total summary card */}
             <div className="mt-4 p-4 rounded-lg bg-muted/30 border text-center">
               <p className="text-sm text-muted-foreground">Total Pool for {MONTH_NAMES[selectedMonth - 1]} {selectedYear}</p>
               <p className="text-3xl font-bold text-primary mt-1">
