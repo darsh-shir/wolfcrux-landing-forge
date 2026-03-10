@@ -242,7 +242,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         });
         totalPartnerDeduction += deductionAmount;
 
-        if (info.role === "Trainee") {
+        if (roleLower === "trainee") {
           totalPoolContribution += deductionAmount;
         }
       }
