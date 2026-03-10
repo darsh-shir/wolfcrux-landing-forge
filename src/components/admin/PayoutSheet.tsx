@@ -226,13 +226,20 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       let totalPartnerDeduction = 0;
 
       for (const [, info] of Object.entries(partnerDeductionMap)) {
-        // Partner gets 50% of trader's payout%, Trainee gets 25%
         const roleLower = info.role.toLowerCase();
         const splitPct = roleLower === "partner" ? 50 : 25;
-        // Calculate this trader2's share of the net payout proportionally
         const dayRatio = info.days / tradingDays;
-        const proportionalShare = tradersShare * dayRatio;
-        const deductionAmount = proportionalShare * (splitPct / 100);
+
+        let deductionAmount: number;
+        if (roleLower === "partner") {
+          // Partner gets 50% of GROSS (proportional to days worked together)
+          const proportionalGross = grossAmount * dayRatio;
+          deductionAmount = proportionalGross * 0.50;
+        } else {
+          // Trainee: 25% of TRADER'S SHARE (proportional to days worked together)
+          const proportionalShare = tradersShare * dayRatio;
+          deductionAmount = proportionalShare * 0.25;
+        }
 
         partnerDeductions.push({
           name: info.name,
@@ -286,8 +293,18 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
         // Determine role from the trading data entries
         const role = trades[0]?.trader2_role || "partner";
-        const splitPct = role.toLowerCase() === "partner" ? 50 : 25;
-        const earnings = primaryShare * (splitPct / 100);
+        const roleLower = role.toLowerCase();
+        const splitPct = roleLower === "partner" ? 50 : 25;
+
+        let earnings: number;
+        if (roleLower === "partner") {
+          // Partner gets 50% of GROSS
+          earnings = grossAmount * 0.50;
+        } else {
+          // Trainee: their 25% goes to pool, not direct earnings
+          // Show as 0 here - they receive from pool distribution
+          earnings = 0;
+        }
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
         trader2Earnings.push({
@@ -469,7 +486,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                           {calculations.partnerDeductions.map((d, idx) => (
                             <React.Fragment key={idx}>
                               <span className="text-muted-foreground">
-                                {d.role.toLowerCase() === "partner" ? `Partner Share 50%` : `Trainee Share 25%`} — {d.name}
+                                {d.role.toLowerCase() === "partner" ? `Partner 50% of Gross` : `Trainee 25% of Trader's Share`} — {d.name}
                               </span>
                               <span className="font-medium text-right text-orange-600">-${d.amount.toFixed(2)}</span>
                             </React.Fragment>
