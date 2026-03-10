@@ -227,7 +227,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
       for (const [, info] of Object.entries(partnerDeductionMap)) {
         // Partner gets 50% of trader's payout%, Trainee gets 25%
-        const splitPct = info.role === "Partner" ? 50 : 25;
+        const roleLower = info.role.toLowerCase();
+        const splitPct = roleLower === "partner" ? 50 : 25;
         // Calculate this trader2's share of the net payout proportionally
         const dayRatio = info.days / tradingDays;
         const proportionalShare = tradersShare * dayRatio;
