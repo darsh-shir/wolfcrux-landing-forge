@@ -463,7 +463,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                     {calculations.partnerDeductions.length > 0 && (
                       <div className="space-y-2">
                         <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                          {calculations.partnerDeductions.some(d => d.role === "Partner") ? "Partner Share" : "Trainee Share"} Deductions
+                          {calculations.partnerDeductions.some(d => d.role.toLowerCase() === "partner") ? "Partner Share" : "Trainee Share"} Deductions
                         </h3>
                         <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
                           {calculations.partnerDeductions.map((d, idx) => (
