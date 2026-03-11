@@ -354,7 +354,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
       return;
     }
 
-    if (trader1 && trader2 && trader2 !== "none" && trader1 === trader2) {
+    if (trader1 && trader2 && trader1 === trader2) {
       toast({ title: "Error", description: "Please select two different traders", variant: "destructive" });
       return;
     }
@@ -362,7 +362,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
     setIsSubmitting(true);
 
     try {
-      const t2 = trader2 && trader2 !== "none" ? trader2 : null;
+      const t2 = trader2 ? trader2 : null;
       const t2role = t2 ? trader2Role : null;
       const t2att = t2 ? trader2Attendance : "present";
 
