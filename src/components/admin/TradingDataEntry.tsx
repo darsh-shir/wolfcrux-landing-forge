@@ -538,7 +538,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
               users={users}
               value={trader1}
               onValueChange={setTrader1}
-              disabledUserId={trader2 !== "none" ? trader2 : undefined}
+              disabledUserId={trader2 ? trader2 : undefined}
               placeholder="Select Trader 1"
             />
             <div className="space-y-1">
