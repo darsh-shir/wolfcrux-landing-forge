@@ -114,6 +114,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     }
 
     setTraderConfig(config);
+    setSoftwareCostInput(config?.software_cost ?? 0);
     setTradingData(tradesRes.data || []);
     setTrader2TradingData(tradesAsTrader2Res.data || []);
     setPartnerOfConfigs(allTrader2ConfigsRes.data || []);
