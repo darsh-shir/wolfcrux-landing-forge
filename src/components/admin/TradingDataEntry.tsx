@@ -258,7 +258,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
         setNotes(e1.notes || "");
         if (e1.trader2_id) {
           setTrader2(e1.trader2_id);
-          setTrader2Role((e1.trader2_role as "partner" | "trainee") || "partner");
+          setTrader2Role((e1.trader2_role as "partner" | "trainee") || "trainee");
         } else {
           setTrader2("");
         }

@@ -271,7 +271,17 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
                               <TableCell>
                                 <Select
                                   value={currentTrader2 || "none"}
-                                  onValueChange={(v) => setEdit(rec.id, "trader2_id", v === "none" ? null : v)}
+                                  onValueChange={(v) => {
+                                    const newVal = v === "none" ? null : v;
+                                    setEdit(rec.id, "trader2_id", newVal);
+                                    // Auto-set role to trainee when assigning a trader2
+                                    if (newVal && !getEditValue(rec.id, "trader2_role")) {
+                                      setEdit(rec.id, "trader2_role", "trainee");
+                                    }
+                                    if (!newVal) {
+                                      setEdit(rec.id, "trader2_role", null);
+                                    }
+                                  }}
                                 >
                                   <SelectTrigger className="h-8 text-xs">
                                     <SelectValue placeholder="None" />
