@@ -584,7 +584,10 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setTrader2("none")}
+                  onClick={() => {
+                    setTrader2("");
+                    setTrader2Role("trainee");
+                  }}
                   className="shrink-0"
                 >
                   Clear
