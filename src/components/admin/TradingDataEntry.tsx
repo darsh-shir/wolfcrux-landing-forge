@@ -152,7 +152,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
 
   const [trader1Attendance, setTrader1Attendance] = useState("present");
   const [trader2Attendance, setTrader2Attendance] = useState("present");
-  const [trader2Role, setTrader2Role] = useState<"partner" | "trainee">("partner");
+  const [trader2Role, setTrader2Role] = useState<"partner" | "trainee">("trainee");
 
   const [account1, setAccount1] = useState("");
   const [netPnl1, setNetPnl1] = useState("");
@@ -258,7 +258,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
         setNotes(e1.notes || "");
         if (e1.trader2_id) {
           setTrader2(e1.trader2_id);
-          setTrader2Role((e1.trader2_role as "partner" | "trainee") || "partner");
+          setTrader2Role((e1.trader2_role as "partner" | "trainee") || "trainee");
         } else {
           setTrader2("");
         }
@@ -282,7 +282,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
           netPnl2: data.length >= 2 ? String(data[1].net_pnl) : "",
           sharesTraded2: data.length >= 2 ? String(data[1].shares_traded) : "",
           trader2: e1.trader2_id || "",
-          trader2Role: (e1.trader2_role as string) || "partner",
+          trader2Role: (e1.trader2_role as string) || "trainee",
           trader1Attendance: e1.trader1_attendance || "present",
           trader2Attendance: e1.trader2_attendance || "present",
           notes: e1.notes || "",
@@ -484,7 +484,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
           netPnl2: refreshed.length >= 2 ? String(refreshed[1].net_pnl) : "",
           sharesTraded2: refreshed.length >= 2 ? String(refreshed[1].shares_traded) : "",
           trader2: e1.trader2_id || "",
-          trader2Role: (e1.trader2_role as string) || "partner",
+          trader2Role: (e1.trader2_role as string) || "trainee",
           trader1Attendance: e1.trader1_attendance || "present",
           trader2Attendance: e1.trader2_attendance || "present",
           notes: e1.notes || "",
