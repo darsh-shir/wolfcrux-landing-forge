@@ -572,13 +572,13 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
               <div className="flex-1">
                 <TraderCombobox
                   users={users}
-                  value={trader2 === "none" ? "" : trader2}
+                  value={trader2}
                   onValueChange={setTrader2}
                   disabledUserId={trader1}
                   placeholder={traderConfig?.seat_type === "With Trainee" ? "Select Trainee" : traderConfig?.seat_type === "With Partner" ? "Select Partner" : "Select Trader 2"}
                 />
               </div>
-              {trader2 && trader2 !== "none" && (
+              {trader2 && (
                 <Button
                   type="button"
                   variant="outline"
