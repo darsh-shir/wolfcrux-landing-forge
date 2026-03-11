@@ -435,7 +435,13 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                         <span className="text-muted-foreground">Share Charge ({calculations.totalShares.toLocaleString()} shares)</span>
                         <span className="font-medium text-right text-orange-600">-${calculations.shareCharge.toFixed(2)}</span>
                         <span className="text-muted-foreground">Software Cost</span>
-                        <span className="font-medium text-right text-orange-600">-${calculations.softwareCost.toFixed(2)}</span>
+                        <span className="font-medium text-right text-orange-600 flex items-center justify-end gap-2">
+                          <Input type="number" className="w-24 text-right" step="0.01" value={softwareCostInput || ""}
+                            onChange={e => setSoftwareCostInput(Number(e.target.value))} placeholder="0" />
+                          <Button size="sm" variant="outline" onClick={handleSaveSoftwareCost} title="Save software cost">
+                            <Save className="h-3 w-3" />
+                          </Button>
+                        </span>
                         <span className="text-muted-foreground font-semibold border-t pt-2">Gross Amount (Company)</span>
                         <span className={`font-bold text-right border-t pt-2 ${calculations.grossAmount >= 0 ? "text-green-600" : "text-red-600"}`}>
                           ${calculations.grossAmount.toFixed(2)}
