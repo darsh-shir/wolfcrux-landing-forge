@@ -166,7 +166,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       const totalPnl = tradingData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
       const totalShares = tradingData.reduce((sum, t) => sum + Number(t.shares_traded), 0);
       const shareCharge = (totalShares / 1000) * 14;
-      const softwareCost = Number(traderConfig.software_cost) || 0;
+      const softwareCost = Number(softwareCostInput) || 0;
       const grossAmount = totalPnl - shareCharge - softwareCost;
       const payoutPct = Number(traderConfig.payout_percentage) / 100;
       const tradersShare = grossAmount * payoutPct;
