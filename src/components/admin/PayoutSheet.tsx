@@ -236,9 +236,9 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
           const proportionalGross = grossAmount * dayRatio;
           deductionAmount = proportionalGross * 0.50;
         } else {
-          // Trainee: 25% of TRADER'S SHARE (proportional to days worked together)
-          const proportionalShare = tradersShare * dayRatio;
-          deductionAmount = proportionalShare * 0.25;
+          // Trainee: 25% of NET PAYOUT (after attendance deductions), proportional to days
+          const proportionalNet = netPayout * dayRatio;
+          deductionAmount = proportionalNet * 0.25;
         }
 
         partnerDeductions.push({
@@ -486,7 +486,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                           {calculations.partnerDeductions.map((d, idx) => (
                             <React.Fragment key={idx}>
                               <span className="text-muted-foreground">
-                                {d.role.toLowerCase() === "partner" ? `Partner 50% of Gross` : `Trainee 25% of Trader's Share`} — {d.name}
+                                {d.role.toLowerCase() === "partner" ? `Partner 50% of Gross` : `Trainee 25% of Net Payout`} — {d.name}
                               </span>
                               <span className="font-medium text-right text-orange-600">-${d.amount.toFixed(2)}</span>
                             </React.Fragment>
