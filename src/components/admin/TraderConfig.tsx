@@ -210,11 +210,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
                         placeholder="0" />
                     </TableCell>
                     <TableCell>
-                      <Input type="number" className="w-24" step="0.01" value={cfg.software_cost || ""}
-                        onChange={e => handleChange(user.user_id, "software_cost", Number(e.target.value))}
-                        placeholder="0" />
-                    </TableCell>
-                    <TableCell>
                       <Button size="sm" onClick={() => saveConfig(user.user_id)}>
                         <Save className="h-4 w-4" />
                       </Button>
