@@ -20,6 +20,7 @@ import TraderConfig from "@/components/admin/TraderConfig";
 import PoolView from "@/components/admin/PoolView";
 import SingleDayPnL from "@/components/admin/SingleDayPnL";
 import MonthlyPnL from "@/components/admin/MonthlyPnL";
+import SeatAssignmentEditor from "@/components/admin/SeatAssignmentEditor";
 
 interface Profile {
   id: string;
