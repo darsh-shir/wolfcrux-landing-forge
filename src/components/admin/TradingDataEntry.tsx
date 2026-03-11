@@ -306,7 +306,6 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
   const hasChanges = useMemo(() => {
     if (!isEditMode || !originalState) return true;
 
-    const currentTrader2 = trader2 === "none" ? "" : trader2;
     return (
       account1 !== originalState.account1 ||
       netPnl1 !== originalState.netPnl1 ||
@@ -314,7 +313,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
       account2 !== originalState.account2 ||
       netPnl2 !== originalState.netPnl2 ||
       sharesTraded2 !== originalState.sharesTraded2 ||
-      currentTrader2 !== originalState.trader2 ||
+      trader2 !== originalState.trader2 ||
       trader2Role !== originalState.trader2Role ||
       trader1Attendance !== originalState.trader1Attendance ||
       trader2Attendance !== originalState.trader2Attendance ||
@@ -354,7 +353,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
       return;
     }
 
-    if (trader1 && trader2 && trader2 !== "none" && trader1 === trader2) {
+    if (trader1 && trader2 && trader1 === trader2) {
       toast({ title: "Error", description: "Please select two different traders", variant: "destructive" });
       return;
     }
@@ -362,7 +361,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
     setIsSubmitting(true);
 
     try {
-      const t2 = trader2 && trader2 !== "none" ? trader2 : null;
+      const t2 = trader2 ? trader2 : null;
       const t2role = t2 ? trader2Role : null;
       const t2att = t2 ? trader2Attendance : "present";
 
@@ -539,7 +538,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
               users={users}
               value={trader1}
               onValueChange={setTrader1}
-              disabledUserId={trader2 !== "none" ? trader2 : undefined}
+              disabledUserId={trader2 ? trader2 : undefined}
               placeholder="Select Trader 1"
             />
             <div className="space-y-1">
@@ -573,18 +572,21 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
               <div className="flex-1">
                 <TraderCombobox
                   users={users}
-                  value={trader2 === "none" ? "" : trader2}
+                  value={trader2}
                   onValueChange={setTrader2}
                   disabledUserId={trader1}
                   placeholder={traderConfig?.seat_type === "With Trainee" ? "Select Trainee" : traderConfig?.seat_type === "With Partner" ? "Select Partner" : "Select Trader 2"}
                 />
               </div>
-              {trader2 && trader2 !== "none" && (
+              {trader2 && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setTrader2("none")}
+                  onClick={() => {
+                    setTrader2("");
+                    setTrader2Role("trainee");
+                  }}
                   className="shrink-0"
                 >
                   Clear

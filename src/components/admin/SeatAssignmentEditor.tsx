@@ -275,7 +275,7 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
                                     const newVal = v === "none" ? null : v;
                                     setEdit(rec.id, "trader2_id", newVal);
                                     // Auto-set role to trainee when assigning a trader2
-                                    if (newVal && !getEditValue(rec.id, "trader2_role")) {
+                                    if (newVal) {
                                       setEdit(rec.id, "trader2_role", "trainee");
                                     }
                                     if (!newVal) {
@@ -300,16 +300,16 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
                               </TableCell>
                               <TableCell>
                                 <Select
-                                  value={currentRole || "none"}
-                                  onValueChange={(v) => setEdit(rec.id, "trader2_role", v === "none" ? null : v)}
+                                  value={currentRole || "trainee"}
+                                  onValueChange={(v) => setEdit(rec.id, "trader2_role", v)}
+                                  disabled={!currentTrader2}
                                 >
                                   <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue placeholder="None" />
+                                    <SelectValue placeholder="Select role" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="none">None</SelectItem>
-                                    <SelectItem value="partner">Partner</SelectItem>
                                     <SelectItem value="trainee">Trainee</SelectItem>
+                                    <SelectItem value="partner">Partner</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </TableCell>
