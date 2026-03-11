@@ -328,6 +328,19 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
   const traderName = users.find(u => u.user_id === selectedTrader)?.full_name || "";
 
+  const handleSaveSoftwareCost = async () => {
+    if (!selectedTrader || !traderConfig?.id) {
+      toast({ title: "Error", description: "No trader config found. Please set up config first.", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("trader_config").update({ software_cost: softwareCostInput }).eq("id", traderConfig.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Saved", description: `Software cost updated to $${softwareCostInput}` });
+    }
+  };
+
   const handleSavePayout = async () => {
     if (!selectedTrader) return;
 
