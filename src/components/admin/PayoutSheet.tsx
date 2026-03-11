@@ -486,7 +486,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                           {calculations.partnerDeductions.map((d, idx) => (
                             <React.Fragment key={idx}>
                               <span className="text-muted-foreground">
-                                {d.role.toLowerCase() === "partner" ? `Partner 50% of Gross` : `Trainee 25% of Trader's Share`} — {d.name}
+                                {d.role.toLowerCase() === "partner" ? `Partner 50% of Gross` : `Trainee 25% of Net Payout`} — {d.name}
                               </span>
                               <span className="font-medium text-right text-orange-600">-${d.amount.toFixed(2)}</span>
                             </React.Fragment>
