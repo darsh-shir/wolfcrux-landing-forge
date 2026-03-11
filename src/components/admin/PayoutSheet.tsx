@@ -41,7 +41,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [allAttendanceRecords, setAllAttendanceRecords] = useState<any[]>([]);
   const [carryForwardDays, setCarryForwardDays] = useState(0);
   const [extraDeduction, setExtraDeduction] = useState(0);
-  const [inrRate, setInrRate] = useState(84);
+  const [softwareCostInput, setSoftwareCostInput] = useState(0);
   const [payoutNotes, setPayoutNotes] = useState("");
   const [paidCash, setPaidCash] = useState(false);
   const [paidOnline, setPaidOnline] = useState(false);
