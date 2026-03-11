@@ -25,6 +25,17 @@ interface TradeRecord {
   trader2_role: string | null;
 }
 
+// Grouped by trader + date (merging all accounts for that day)
+interface DayGroup {
+  key: string; // `${user_id}_${trade_date}`
+  user_id: string;
+  trade_date: string;
+  total_pnl: number;
+  record_ids: string[];
+  trader2_id: string | null;
+  trader2_role: string | null;
+}
+
 interface SeatAssignmentEditorProps {
   users: Profile[];
 }
@@ -86,58 +97,92 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
     return u?.full_name || "Unknown";
   };
 
-  // Group records by main trader (user_id)
+  // Group records by trader + date, merging all accounts into one row per day
   const grouped = useMemo(() => {
-    const map = new Map<string, TradeRecord[]>();
+    // First, create day groups: key = user_id + trade_date
+    const dayMap = new Map<string, DayGroup>();
     records.forEach((r) => {
-      const existing = map.get(r.user_id) || [];
-      existing.push(r);
-      map.set(r.user_id, existing);
+      const key = `${r.user_id}_${r.trade_date}`;
+      const existing = dayMap.get(key);
+      if (existing) {
+        existing.total_pnl += r.net_pnl;
+        existing.record_ids.push(r.id);
+        // Use the first non-null trader2 info
+        if (!existing.trader2_id && r.trader2_id) {
+          existing.trader2_id = r.trader2_id;
+          existing.trader2_role = r.trader2_role;
+        }
+      } else {
+        dayMap.set(key, {
+          key,
+          user_id: r.user_id,
+          trade_date: r.trade_date,
+          total_pnl: r.net_pnl,
+          record_ids: [r.id],
+          trader2_id: r.trader2_id,
+          trader2_role: r.trader2_role,
+        });
+      }
     });
-    // Sort by trader name
-    return Array.from(map.entries()).sort((a, b) => {
-      return getUserName(a[0]).localeCompare(getUserName(b[0]));
+
+    // Now group by trader
+    const traderMap = new Map<string, DayGroup[]>();
+    dayMap.forEach((dg) => {
+      const existing = traderMap.get(dg.user_id) || [];
+      existing.push(dg);
+      traderMap.set(dg.user_id, existing);
     });
+
+    // Sort by trader name, days sorted by date
+    return Array.from(traderMap.entries())
+      .sort((a, b) => getUserName(a[0]).localeCompare(getUserName(b[0])))
+      .map(([traderId, days]) => [traderId, days.sort((a, b) => a.trade_date.localeCompare(b.trade_date))] as [string, DayGroup[]]);
   }, [records, users]);
 
-  const getEditValue = (recordId: string, field: "trader2_id" | "trader2_role") => {
-    if (edits[recordId] && edits[recordId][field] !== undefined) {
-      return edits[recordId][field];
+  const getEditValue = (dayKey: string, field: "trader2_id" | "trader2_role", original: string | null) => {
+    if (edits[dayKey] && edits[dayKey][field] !== undefined) {
+      return edits[dayKey][field];
     }
-    const rec = records.find((r) => r.id === recordId);
-    if (!rec) return null;
-    return rec[field];
+    return original;
   };
 
-  const setEdit = (recordId: string, field: "trader2_id" | "trader2_role", value: string | null) => {
+  const setEdit = (dayKey: string, field: "trader2_id" | "trader2_role", value: string | null) => {
     setEdits((prev) => ({
       ...prev,
-      [recordId]: { ...prev[recordId], [field]: value },
+      [dayKey]: { ...prev[dayKey], [field]: value },
     }));
   };
 
-  const saveRecord = async (recordId: string) => {
-    const edit = edits[recordId];
+  // Save updates all records for this trader+date
+  const saveDayGroup = async (dayGroup: DayGroup) => {
+    const edit = edits[dayGroup.key];
     if (!edit) return;
 
-    setSaving(recordId);
+    setSaving(dayGroup.key);
     const updateData: Record<string, unknown> = {};
     if (edit.trader2_id !== undefined) updateData.trader2_id = edit.trader2_id;
     if (edit.trader2_role !== undefined) updateData.trader2_role = edit.trader2_role;
 
-    const { error } = await supabase.from("trading_data").update(updateData).eq("id", recordId);
+    let success = true;
+    for (const recordId of dayGroup.record_ids) {
+      const { error } = await supabase.from("trading_data").update(updateData).eq("id", recordId);
+      if (error) {
+        toast({ title: "Error saving", description: error.message, variant: "destructive" });
+        success = false;
+        break;
+      }
+    }
 
-    if (error) {
-      toast({ title: "Error saving", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Saved", description: "Record updated successfully." });
-      // Update local state
+    if (success) {
+      toast({ title: "Saved", description: `Updated ${dayGroup.record_ids.length} record(s) for this day.` });
       setRecords((prev) =>
-        prev.map((r) => (r.id === recordId ? { ...r, ...updateData } as TradeRecord : r))
+        prev.map((r) =>
+          dayGroup.record_ids.includes(r.id) ? { ...r, ...updateData } as TradeRecord : r
+        )
       );
       setEdits((prev) => {
         const next = { ...prev };
-        delete next[recordId];
+        delete next[dayGroup.key];
         return next;
       });
     }
@@ -145,27 +190,44 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
   };
 
   const saveAll = async () => {
-    const editIds = Object.keys(edits);
-    if (editIds.length === 0) return;
+    const editKeys = Object.keys(edits);
+    if (editKeys.length === 0) return;
 
     setSaving("all");
     let successCount = 0;
-    for (const id of editIds) {
-      const edit = edits[id];
+
+    // Build a map of dayKey -> DayGroup for quick lookup
+    const dayGroupMap = new Map<string, DayGroup>();
+    grouped.forEach(([, days]) => days.forEach((dg) => dayGroupMap.set(dg.key, dg)));
+
+    for (const dayKey of editKeys) {
+      const edit = edits[dayKey];
+      const dg = dayGroupMap.get(dayKey);
+      if (!dg) continue;
+
       const updateData: Record<string, unknown> = {};
       if (edit.trader2_id !== undefined) updateData.trader2_id = edit.trader2_id;
       if (edit.trader2_role !== undefined) updateData.trader2_role = edit.trader2_role;
 
-      const { error } = await supabase.from("trading_data").update(updateData).eq("id", id);
-      if (!error) {
+      let allOk = true;
+      for (const recordId of dg.record_ids) {
+        const { error } = await supabase.from("trading_data").update(updateData).eq("id", recordId);
+        if (error) {
+          allOk = false;
+          break;
+        }
+      }
+      if (allOk) {
         successCount++;
         setRecords((prev) =>
-          prev.map((r) => (r.id === id ? { ...r, ...updateData } as TradeRecord : r))
+          prev.map((r) =>
+            dg.record_ids.includes(r.id) ? { ...r, ...updateData } as TradeRecord : r
+          )
         );
       }
     }
     setEdits({});
-    toast({ title: "Bulk Save", description: `${successCount}/${editIds.length} records updated.` });
+    toast({ title: "Bulk Save", description: `${successCount}/${editKeys.length} day(s) updated.` });
     setSaving(null);
   };
 
@@ -179,7 +241,7 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
           Seat Assignment Editor — Fix Trader Pairings
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          View and edit who sat with whom (Partner / Trainee) for each trading day. Changes are highlighted until saved.
+          View and edit who sat with whom (Partner / Trainee) for each trading day. One row per trader per day (all accounts merged).
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -231,12 +293,12 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
           <p className="text-center text-muted-foreground py-8">No trading records found for this month.</p>
         ) : (
           <div className="space-y-6">
-            {grouped.map(([mainTraderId, traderRecords]) => (
+            {grouped.map(([mainTraderId, dayGroups]) => (
               <Card key={mainTraderId} className="border-border/30">
                 <CardHeader className="py-3 px-4">
                   <CardTitle className="text-base text-foreground">
                     {getUserName(mainTraderId)}
-                    <span className="text-xs text-muted-foreground ml-2">({traderRecords.length} days)</span>
+                    <span className="text-xs text-muted-foreground ml-2">({dayGroups.length} days)</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -252,34 +314,33 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {traderRecords.map((rec) => {
-                          const hasEdit = !!edits[rec.id];
-                          const currentTrader2 = getEditValue(rec.id, "trader2_id") as string | null;
-                          const currentRole = getEditValue(rec.id, "trader2_role") as string | null;
+                        {dayGroups.map((dg) => {
+                          const hasEdit = !!edits[dg.key];
+                          const currentTrader2 = getEditValue(dg.key, "trader2_id", dg.trader2_id) as string | null;
+                          const currentRole = getEditValue(dg.key, "trader2_role", dg.trader2_role) as string | null;
 
                           return (
                             <TableRow
-                              key={rec.id}
+                              key={dg.key}
                               className={hasEdit ? "bg-primary/5 border-l-2 border-l-primary" : ""}
                             >
                               <TableCell className="font-mono text-sm">
-                                {format(parseISO(rec.trade_date), "dd MMM")}
+                                {format(parseISO(dg.trade_date), "dd MMM")}
                               </TableCell>
-                              <TableCell className={rec.net_pnl >= 0 ? "text-green-500" : "text-red-500"}>
-                                ${rec.net_pnl.toLocaleString()}
+                              <TableCell className={dg.total_pnl >= 0 ? "text-green-500" : "text-red-500"}>
+                                ${dg.total_pnl.toLocaleString()}
                               </TableCell>
                               <TableCell>
                                 <Select
                                   value={currentTrader2 || "none"}
                                   onValueChange={(v) => {
                                     const newVal = v === "none" ? null : v;
-                                    setEdit(rec.id, "trader2_id", newVal);
-                                    // Auto-set role to trainee when assigning a trader2
+                                    setEdit(dg.key, "trader2_id", newVal);
                                     if (newVal) {
-                                      setEdit(rec.id, "trader2_role", "trainee");
+                                      setEdit(dg.key, "trader2_role", "trainee");
                                     }
                                     if (!newVal) {
-                                      setEdit(rec.id, "trader2_role", null);
+                                      setEdit(dg.key, "trader2_role", null);
                                     }
                                   }}
                                 >
@@ -289,7 +350,7 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
                                   <SelectContent>
                                     <SelectItem value="none">None (Alone)</SelectItem>
                                     {users
-                                      .filter((u) => u.user_id !== rec.user_id)
+                                      .filter((u) => u.user_id !== dg.user_id)
                                       .map((u) => (
                                         <SelectItem key={u.user_id} value={u.user_id}>
                                           {u.full_name}
@@ -301,7 +362,7 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
                               <TableCell>
                                 <Select
                                   value={currentRole || "trainee"}
-                                  onValueChange={(v) => setEdit(rec.id, "trader2_role", v)}
+                                  onValueChange={(v) => setEdit(dg.key, "trader2_role", v)}
                                   disabled={!currentTrader2}
                                 >
                                   <SelectTrigger className="h-8 text-xs">
@@ -319,10 +380,10 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
                                     size="sm"
                                     variant="outline"
                                     className="h-7 text-xs"
-                                    onClick={() => saveRecord(rec.id)}
-                                    disabled={saving === rec.id}
+                                    onClick={() => saveDayGroup(dg)}
+                                    disabled={saving === dg.key}
                                   >
-                                    {saving === rec.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                                    {saving === dg.key ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
                                   </Button>
                                 )}
                               </TableCell>
