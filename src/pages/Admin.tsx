@@ -157,6 +157,10 @@ const Admin = () => {
                 <CalendarRange className="h-4 w-4" />
                 Monthly P&L
               </TabsTrigger>
+              <TabsTrigger value="seat-editor" className="gap-2 data-[state=active]:bg-background">
+                <Armchair className="h-4 w-4" />
+                Seat Editor
+              </TabsTrigger>
             </TabsList>
 
             {/* DASHBOARD TAB */}
