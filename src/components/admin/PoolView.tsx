@@ -101,7 +101,7 @@ const PoolView = ({ users }: PoolViewProps) => {
 
       const traderUser = users.find(u => u.user_id === userId);
       // Find trainee name from the trades (trader2_id)
-      const traineeIds = [...new Set(trades.map(t => t.trader2_id).filter(Boolean))];
+      const traineeIds = [...new Set(traineeTrades.map(t => t.trader2_id).filter(Boolean))];
       const traineeNames = traineeIds.map(id => {
         const u = users.find(u => u.user_id === id);
         return u?.full_name || "Unknown";
