@@ -41,6 +41,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [allAttendanceRecords, setAllAttendanceRecords] = useState<any[]>([]);
   const [carryForwardDays, setCarryForwardDays] = useState(0);
   const [extraDeduction, setExtraDeduction] = useState(0);
+  const [softwareCostInput, setSoftwareCostInput] = useState(0);
   const [inrRate, setInrRate] = useState(84);
   const [payoutNotes, setPayoutNotes] = useState("");
   const [paidCash, setPaidCash] = useState(false);
@@ -113,6 +114,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     }
 
     setTraderConfig(config);
+    setSoftwareCostInput(config?.software_cost ?? 0);
     setTradingData(tradesRes.data || []);
     setTrader2TradingData(tradesAsTrader2Res.data || []);
     setPartnerOfConfigs(allTrader2ConfigsRes.data || []);
@@ -164,7 +166,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       const totalPnl = tradingData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
       const totalShares = tradingData.reduce((sum, t) => sum + Number(t.shares_traded), 0);
       const shareCharge = (totalShares / 1000) * 14;
-      const softwareCost = Number(traderConfig.software_cost) || 0;
+      const softwareCost = Number(softwareCostInput) || 0;
       const grossAmount = totalPnl - shareCharge - softwareCost;
       const payoutPct = Number(traderConfig.payout_percentage) / 100;
       const tradersShare = grossAmount * payoutPct;
@@ -322,9 +324,22 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     result.combinedNetPayout = primaryNetPayout + trader2Total;
 
     return result;
-  }, [traderConfig, tradingData, trader2TradingData, partnerOfConfigs, allAttendanceRecords, carryForwardDays, selectedMonth, selectedYear, extraDeduction, users]);
+  }, [traderConfig, tradingData, trader2TradingData, partnerOfConfigs, allAttendanceRecords, carryForwardDays, selectedMonth, selectedYear, extraDeduction, users, softwareCostInput]);
 
   const traderName = users.find(u => u.user_id === selectedTrader)?.full_name || "";
+
+  const handleSaveSoftwareCost = async () => {
+    if (!selectedTrader || !traderConfig?.id) {
+      toast({ title: "Error", description: "No trader config found. Please set up config first.", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("trader_config").update({ software_cost: softwareCostInput }).eq("id", traderConfig.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Saved", description: `Software cost updated to $${softwareCostInput}` });
+    }
+  };
 
   const handleSavePayout = async () => {
     if (!selectedTrader) return;
@@ -433,7 +448,13 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                         <span className="text-muted-foreground">Share Charge ({calculations.totalShares.toLocaleString()} shares)</span>
                         <span className="font-medium text-right text-orange-600">-${calculations.shareCharge.toFixed(2)}</span>
                         <span className="text-muted-foreground">Software Cost</span>
-                        <span className="font-medium text-right text-orange-600">-${calculations.softwareCost.toFixed(2)}</span>
+                        <span className="font-medium text-right text-orange-600 flex items-center justify-end gap-2">
+                          <Input type="number" className="w-24 text-right" step="0.01" value={softwareCostInput || ""}
+                            onChange={e => setSoftwareCostInput(Number(e.target.value))} placeholder="0" />
+                          <Button size="sm" variant="outline" onClick={handleSaveSoftwareCost} title="Save software cost">
+                            <Save className="h-3 w-3" />
+                          </Button>
+                        </span>
                         <span className="text-muted-foreground font-semibold border-t pt-2">Gross Amount (Company)</span>
                         <span className={`font-bold text-right border-t pt-2 ${calculations.grossAmount >= 0 ? "text-green-600" : "text-red-600"}`}>
                           ${calculations.grossAmount.toFixed(2)}

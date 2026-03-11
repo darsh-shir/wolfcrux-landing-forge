@@ -184,7 +184,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
-          Set each trader's payout % and software cost. Partner/Trainee role is assigned per-day in Trading Data entry.
+          Set each trader's payout %. Software cost is set per-trader in the Payout Sheet tab.
           Trainee = 25% of trader's payout, Partner = 50%.
         </p>
       </CardHeader>
@@ -195,7 +195,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
               <TableRow>
                 <TableHead>Trader</TableHead>
                 <TableHead>Payout %</TableHead>
-                <TableHead>Software Cost ($)</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -208,11 +207,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
                     <TableCell>
                       <Input type="number" className="w-20" step="1" value={cfg.payout_percentage || ""}
                         onChange={e => handleChange(user.user_id, "payout_percentage", Number(e.target.value))}
-                        placeholder="0" />
-                    </TableCell>
-                    <TableCell>
-                      <Input type="number" className="w-24" step="0.01" value={cfg.software_cost || ""}
-                        onChange={e => handleChange(user.user_id, "software_cost", Number(e.target.value))}
                         placeholder="0" />
                     </TableCell>
                     <TableCell>
