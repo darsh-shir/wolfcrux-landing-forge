@@ -91,13 +91,8 @@ const PoolView = ({ users }: PoolViewProps) => {
       // Net payout = trader's share (simplified, without attendance deductions here)
       const netPayout = tradersShare;
 
-      // Calculate days with trainee vs total trading days
-      const tradingDays = allTrades.filter((t: any) => !t.is_holiday).length;
-      const traineeDays = traineeTrades.length;
-      const dayRatio = tradingDays > 0 ? traineeDays / tradingDays : 0;
-
-      // Pool contribution = 25% of net payout, proportional to days with trainee
-      const poolAmount = netPayout * dayRatio * 0.25;
+      // Pool contribution = flat 25% of net payout when trainee is present
+      const poolAmount = netPayout * 0.25;
 
       const traderUser = users.find(u => u.user_id === userId);
       // Find trainee name from the trades (trader2_id)
