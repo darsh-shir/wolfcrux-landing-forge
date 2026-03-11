@@ -258,6 +258,10 @@ const Admin = () => {
                 onRefresh={fetchAllData}
               />
             </TabsContent>
+            {/* SEAT EDITOR TAB */}
+            <TabsContent value="seat-editor">
+              <SeatAssignmentEditor users={users} />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
