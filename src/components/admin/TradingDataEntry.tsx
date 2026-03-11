@@ -282,7 +282,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
           netPnl2: data.length >= 2 ? String(data[1].net_pnl) : "",
           sharesTraded2: data.length >= 2 ? String(data[1].shares_traded) : "",
           trader2: e1.trader2_id || "",
-          trader2Role: (e1.trader2_role as string) || "partner",
+          trader2Role: (e1.trader2_role as string) || "trainee",
           trader1Attendance: e1.trader1_attendance || "present",
           trader2Attendance: e1.trader2_attendance || "present",
           notes: e1.notes || "",
