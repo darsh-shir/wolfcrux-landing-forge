@@ -236,9 +236,9 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
           const proportionalGross = grossAmount * dayRatio;
           deductionAmount = proportionalGross * 0.50;
         } else {
-          // Trainee: 25% of TRADER'S SHARE (proportional to days worked together)
-          const proportionalShare = tradersShare * dayRatio;
-          deductionAmount = proportionalShare * 0.25;
+          // Trainee: 25% of NET PAYOUT (after attendance deductions), proportional to days
+          const proportionalNet = netPayout * dayRatio;
+          deductionAmount = proportionalNet * 0.25;
         }
 
         partnerDeductions.push({

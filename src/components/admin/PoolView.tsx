@@ -66,22 +66,38 @@ const PoolView = ({ users }: PoolViewProps) => {
       traderMap[entry.user_id].push(entry);
     }
 
-    const contributions = Object.entries(traderMap).map(([userId, trades]) => {
+    // We also need all trading data for each trader to calculate total trading days
+    const allTradesMap: Record<string, any[]> = {};
+    for (const entry of tradingData) {
+      if (!allTradesMap[entry.user_id]) allTradesMap[entry.user_id] = [];
+      allTradesMap[entry.user_id].push(entry);
+    }
+
+    const contributions = Object.entries(traderMap).map(([userId, traineeTrades]) => {
       // Get trader config for payout percentage
       const cfg = configs.find(c => c.user_id === userId);
       if (!cfg) return null;
 
-      const totalPnl = trades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
-      const totalShares = trades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
+      // Use ALL trades for this trader (not just trainee ones) for full P&L calculation
+      const allTrades = allTradesMap[userId] || traineeTrades;
+      const totalPnl = allTrades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
+      const totalShares = allTrades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
       const shareCharge = (totalShares / 1000) * 14;
       const softwareCost = Number(cfg.software_cost) || 0;
       const grossAmount = totalPnl - shareCharge - softwareCost;
 
       const payoutPct = Number(cfg.payout_percentage) / 100;
       const tradersShare = grossAmount * payoutPct;
+      // Net payout = trader's share (simplified, without attendance deductions here)
+      const netPayout = tradersShare;
 
-      // Pool contribution = 25% of trader's share
-      const poolAmount = tradersShare * 0.25;
+      // Calculate days with trainee vs total trading days
+      const tradingDays = allTrades.filter((t: any) => !t.is_holiday).length;
+      const traineeDays = traineeTrades.length;
+      const dayRatio = tradingDays > 0 ? traineeDays / tradingDays : 0;
+
+      // Pool contribution = 25% of net payout, proportional to days with trainee
+      const poolAmount = netPayout * dayRatio * 0.25;
 
       const traderUser = users.find(u => u.user_id === userId);
       // Find trainee name from the trades (trader2_id)
