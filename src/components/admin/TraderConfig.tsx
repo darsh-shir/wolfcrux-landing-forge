@@ -184,7 +184,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
-          Set each trader's payout % and software cost. Partner/Trainee role is assigned per-day in Trading Data entry.
+          Set each trader's payout %. Software cost is set per-trader in the Payout Sheet tab.
           Trainee = 25% of trader's payout, Partner = 50%.
         </p>
       </CardHeader>
