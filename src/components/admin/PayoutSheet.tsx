@@ -324,7 +324,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     result.combinedNetPayout = primaryNetPayout + trader2Total;
 
     return result;
-  }, [traderConfig, tradingData, trader2TradingData, partnerOfConfigs, allAttendanceRecords, carryForwardDays, selectedMonth, selectedYear, extraDeduction, users]);
+  }, [traderConfig, tradingData, trader2TradingData, partnerOfConfigs, allAttendanceRecords, carryForwardDays, selectedMonth, selectedYear, extraDeduction, users, softwareCostInput]);
 
   const traderName = users.find(u => u.user_id === selectedTrader)?.full_name || "";
 
