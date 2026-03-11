@@ -195,7 +195,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
               <TableRow>
                 <TableHead>Trader</TableHead>
                 <TableHead>Payout %</TableHead>
-                <TableHead>Software Cost ($)</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
