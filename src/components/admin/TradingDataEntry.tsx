@@ -306,7 +306,6 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
   const hasChanges = useMemo(() => {
     if (!isEditMode || !originalState) return true;
 
-    const currentTrader2 = trader2 === "none" ? "" : trader2;
     return (
       account1 !== originalState.account1 ||
       netPnl1 !== originalState.netPnl1 ||
@@ -314,7 +313,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
       account2 !== originalState.account2 ||
       netPnl2 !== originalState.netPnl2 ||
       sharesTraded2 !== originalState.sharesTraded2 ||
-      currentTrader2 !== originalState.trader2 ||
+      trader2 !== originalState.trader2 ||
       trader2Role !== originalState.trader2Role ||
       trader1Attendance !== originalState.trader1Attendance ||
       trader2Attendance !== originalState.trader2Attendance ||
