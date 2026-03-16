@@ -321,6 +321,7 @@ const MyData = () => {
                   netAfterBrokerage={netAfterBrokerage}
                   tradingDays={tradingDays}
                   allTradingData={tradingData}
+                  allDailySummary={allDailySummary}
                 />
               )}
             </TabsContent>
