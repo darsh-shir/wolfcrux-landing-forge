@@ -269,10 +269,10 @@ const Dashboard = () => {
         <title>Trading Dashboard | Wolfcrux</title>
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Navigation />
 
-        <main className="pt-24 pb-16 px-4 max-w-7xl mx-auto">
+        <main className="pt-24 pb-6 px-4 max-w-7xl mx-auto flex-1">
           {/* Market Sentiment Header */}
           <div className="flex justify-between items-center mb-4">
             <MarketSentiment
