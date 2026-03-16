@@ -285,6 +285,7 @@ const MyData = () => {
                   totalPnl={totalPnl}
                   netAfterBrokerage={netAfterBrokerage}
                   tradingDays={tradingDays}
+                  allTradingData={tradingData}
                 />
               )}
             </TabsContent>

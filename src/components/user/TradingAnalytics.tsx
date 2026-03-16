@@ -404,7 +404,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
       </div>
 
       {/* Calendar Heatmap */}
-      <CalendarHeatmap dailySummary={dailySummary} />
+      <CalendarHeatmap allTradingData={allTradingData} />
 
       {/* Monthly P&L Breakdown */}
       <MonthlyPnlBreakdown dailySummary={dailySummary} />
