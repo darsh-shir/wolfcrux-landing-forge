@@ -355,6 +355,11 @@ const Dashboard = () => {
             <TabsContent value="earnings" className="mt-6">
               <Earnings />
             </TabsContent>
+
+            {/* ================= PEERS TAB ================= */}
+            <TabsContent value="peers" className="mt-6">
+              <Peers />
+            </TabsContent>
           </Tabs>
         </main>
 
