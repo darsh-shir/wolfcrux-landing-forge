@@ -106,7 +106,7 @@ const MarketMovers = ({
   };
 
   return (
-    <Card className="bg-card border border-border/50 shadow-sm h-full">
+    <Card className="bg-card border border-border/50 shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold text-foreground">
           Market Movers
