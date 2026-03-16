@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, getDay, getDaysInMonth, addMonths, subMonths } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -112,10 +112,17 @@ const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
             <CalendarIcon className="h-4 w-4" />
             P&L Calendar Heatmap
           </CardTitle>
-          <div className="flex items-center gap-2">
-            <span className={`text-sm font-bold ${monthPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {fmt(monthPnl)}
-            </span>
+           <div className="flex items-center gap-2">
+              <span className={`text-sm font-bold ${monthPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {fmt(monthPnl)}
+              </span>
+              <button
+                onClick={() => setViewDate(prev => subMonths(prev, 1))}
+                className="p-1 rounded-md hover:bg-muted transition-colors"
+                aria-label="Previous month"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
             <Select
               value={format(viewDate, "yyyy-MM")}
               onValueChange={(v) => setViewDate(parseISO(`${v}-01`))}
@@ -131,7 +138,14 @@ const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+              <button
+                onClick={() => setViewDate(prev => addMonths(prev, 1))}
+                className="p-1 rounded-md hover:bg-muted transition-colors"
+                aria-label="Next month"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
         </div>
       </CardHeader>
       <CardContent>
