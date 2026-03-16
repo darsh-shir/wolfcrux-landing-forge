@@ -85,6 +85,7 @@ const Peers = () => {
   const [symbol, setSymbol] = useState("");
   const [peers, setPeers] = useState<PeerData[]>([]);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [quote, setQuote] = useState<QuoteData | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
@@ -97,12 +98,14 @@ const Peers = () => {
     setLoading(true);
     setSearched(true);
     setProfile(null);
+    setQuote(null);
     setDescExpanded(false);
 
     try {
-      const [peersRes, profileRes] = await Promise.all([
+      const [peersRes, profileRes, quoteRes] = await Promise.all([
         fetch(`${PROXY_URL}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/peers/${trimmed}?version=2.18&source=default`)}`),
         fetch(`${PROXY_URL}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/profile/${trimmed}`)}`),
+        fetch(`${PROXY_URL}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/quote/${trimmed}`)}`),
       ]);
 
       const peersData = await peersRes.json();
@@ -113,6 +116,11 @@ const Peers = () => {
       const profileData = await profileRes.json();
       if (profileData && profileData.symbol) {
         setProfile(profileData);
+      }
+
+      const quoteData = await quoteRes.json();
+      if (quoteData && quoteData.symbol) {
+        setQuote(quoteData);
       }
     } catch (e) {
       console.error("Fetch failed", e);
