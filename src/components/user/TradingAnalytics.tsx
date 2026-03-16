@@ -4,6 +4,8 @@ import {
   TrendingUp, TrendingDown, Calendar, Target, 
   Award, AlertTriangle, Percent, Activity 
 } from "lucide-react";
+import MonthlyPnlBreakdown from "./MonthlyPnlBreakdown";
+import CalendarHeatmap from "./CalendarHeatmap";
 import { 
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, 
   CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
