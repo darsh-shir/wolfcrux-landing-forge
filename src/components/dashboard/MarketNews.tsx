@@ -116,8 +116,8 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
               const sources = item.sources || [];
 
               return (
-                <div key={i} className="border-b border-border/30 pb-6 last:border-0 last:pb-0">
-                  <h3 className="text-base font-semibold text-foreground leading-snug">
+                <div key={i} className="border-b-2 border-border pb-6 last:border-0 last:pb-0">
+                  <h3 className="text-base font-bold text-foreground leading-snug">
                     {item.headline}
                   </h3>
 
