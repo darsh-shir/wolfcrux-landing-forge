@@ -49,12 +49,14 @@ const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
     return months;
   }, []);
 
-  // Get max absolute PnL for color scaling
+  // Get max absolute PnL for color scaling - scoped to current viewed month only
   const maxAbsPnl = useMemo(() => {
-    const values = Object.values(pnlMap);
-    if (values.length === 0) return 1;
-    return Math.max(...values.map(Math.abs), 1);
-  }, [pnlMap]);
+    const monthValues = calendarDays
+      .filter(({ dateStr }) => dateStr && pnlMap[dateStr] !== undefined)
+      .map(({ dateStr }) => Math.abs(pnlMap[dateStr!]));
+    if (monthValues.length === 0) return 1;
+    return Math.max(...monthValues, 1);
+  }, [pnlMap, calendarDays]);
 
   const getColor = (pnl: number): string => {
     const intensity = Math.min(Math.abs(pnl) / maxAbsPnl, 1);
