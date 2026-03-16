@@ -41,6 +41,7 @@ const MyData = () => {
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [tradingData, setTradingData] = useState<TradingData[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
 
   // Filters
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("monthly");
