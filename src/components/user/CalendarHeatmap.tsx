@@ -49,7 +49,26 @@ const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
     return months;
   }, []);
 
-  // Get max absolute PnL for color scaling - scoped to current viewed month only
+  const calendarDays = useMemo(() => {
+    const monthStart = startOfMonth(viewDate);
+    const daysInMonth = getDaysInMonth(viewDate);
+    const startDayOfWeek = getDay(monthStart);
+
+    const days: Array<{ day: number | null; dateStr: string | null }> = [];
+
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push({ day: null, dateStr: null });
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = format(new Date(viewDate.getFullYear(), viewDate.getMonth(), d), "yyyy-MM-dd");
+      days.push({ day: d, dateStr });
+    }
+
+    return days;
+  }, [viewDate]);
+
+  // Color scaling scoped to current viewed month only
   const maxAbsPnl = useMemo(() => {
     const monthValues = calendarDays
       .filter(({ dateStr }) => dateStr && pnlMap[dateStr] !== undefined)
@@ -61,37 +80,14 @@ const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
   const getColor = (pnl: number): string => {
     const intensity = Math.min(Math.abs(pnl) / maxAbsPnl, 1);
     if (pnl > 0) {
-      // Green shades
       const alpha = 0.15 + intensity * 0.75;
       return `rgba(34, 197, 94, ${alpha})`;
     } else if (pnl < 0) {
-      // Red shades
       const alpha = 0.15 + intensity * 0.75;
       return `rgba(239, 68, 68, ${alpha})`;
     }
     return "transparent";
   };
-
-  const calendarDays = useMemo(() => {
-    const monthStart = startOfMonth(viewDate);
-    const daysInMonth = getDaysInMonth(viewDate);
-    const startDayOfWeek = getDay(monthStart);
-
-    const days: Array<{ day: number | null; dateStr: string | null }> = [];
-
-    // Empty cells for days before month starts
-    for (let i = 0; i < startDayOfWeek; i++) {
-      days.push({ day: null, dateStr: null });
-    }
-
-    // Actual days
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = format(new Date(viewDate.getFullYear(), viewDate.getMonth(), d), "yyyy-MM-dd");
-      days.push({ day: d, dateStr });
-    }
-
-    return days;
-  }, [viewDate]);
 
   const monthPnl = useMemo(() => {
     let total = 0;
