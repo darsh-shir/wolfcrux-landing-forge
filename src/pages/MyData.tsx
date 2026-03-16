@@ -449,34 +449,82 @@ const MyData = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {dailySummary.map((day) => (
-                            <TableRow key={day.date}>
-                              <TableCell className="font-medium">
-                                {format(parseISO(day.date), "MMM d, yyyy")}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex flex-wrap gap-1">
-                                  {day.entries.map((e) => (
-                                    <Badge key={e.id} variant="outline" className="text-xs">
-                                      {getAccountName(e.account_id)}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </TableCell>
-                              <TableCell className={`text-right font-semibold ${day.combinedPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                                ${day.combinedPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {day.totalShares.toLocaleString()}
-                              </TableCell>
-                              <TableCell className="text-right text-orange-600">
-                                -${day.brokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell className={`text-right font-bold ${day.netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
-                                ${day.netAfterBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {dailySummary.map((day) => {
+                            const isExpanded = expandedDates.has(day.date);
+                            const hasMultipleEntries = day.entries.length > 1;
+                            return (
+                              <React.Fragment key={day.date}>
+                                <TableRow 
+                                  className={hasMultipleEntries ? "cursor-pointer hover:bg-muted/50" : ""}
+                                  onClick={() => {
+                                    if (!hasMultipleEntries) return;
+                                    setExpandedDates(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(day.date)) next.delete(day.date);
+                                      else next.add(day.date);
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  <TableCell className="font-medium">
+                                    <div className="flex items-center gap-1">
+                                      {hasMultipleEntries && (
+                                        isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                      )}
+                                      {format(parseISO(day.date), "MMM d, yyyy")}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-wrap gap-1">
+                                      {day.entries.map((e) => (
+                                        <Badge key={e.id} variant="outline" className="text-xs">
+                                          {getAccountName(e.account_id)}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className={`text-right font-semibold ${day.combinedPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                    ${day.combinedPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {day.totalShares.toLocaleString()}
+                                  </TableCell>
+                                  <TableCell className="text-right text-orange-600">
+                                    -${day.brokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                  </TableCell>
+                                  <TableCell className={`text-right font-bold ${day.netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                    ${day.netAfterBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                  </TableCell>
+                                </TableRow>
+                                {isExpanded && day.entries.map((entry) => {
+                                  const entryBrokerage = (entry.shares_traded / 1000) * 14;
+                                  const entryNet = Number(entry.net_pnl) - entryBrokerage;
+                                  return (
+                                    <TableRow key={entry.id} className="bg-muted/30">
+                                      <TableCell className="pl-10 text-muted-foreground text-sm">↳</TableCell>
+                                      <TableCell>
+                                        <Badge variant="secondary" className="text-xs">
+                                          {getAccountName(entry.account_id)}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className={`text-right text-sm ${Number(entry.net_pnl) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                        ${Number(entry.net_pnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                      </TableCell>
+                                      <TableCell className="text-right text-sm">
+                                        {entry.shares_traded.toLocaleString()}
+                                      </TableCell>
+                                      <TableCell className="text-right text-sm text-orange-600">
+                                        -${entryBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                      </TableCell>
+                                      <TableCell className={`text-right text-sm font-semibold ${entryNet >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                        ${entryNet.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </React.Fragment>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>
