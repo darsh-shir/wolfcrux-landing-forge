@@ -48,11 +48,20 @@ const getSession = (date: Date) => {
   return "POST-MARKET";
 };
 
+const parseSummary = (raw?: string): string[] => {
+  if (!raw) return [];
+  return raw
+    .split("\n")
+    .map((line) => line.replace(/^-\s*/, "").trim())
+    .filter(Boolean);
+};
+
 const Earnings = () => {
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState<EarningsDay[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [sortMode, setSortMode] = useState<"marketcap" | "time">("marketcap");
+  const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
 
   const fetchEarnings = async () => {
     try {
