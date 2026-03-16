@@ -5,30 +5,38 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, getDay, getDaysInMonth, addMonths, subMonths } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-interface DailySummary {
-  date: string;
-  combinedPnl: number;
-  totalShares: number;
-  brokerage: number;
-  netAfterBrokerage: number;
+interface TradingDataRaw {
+  trade_date: string;
+  net_pnl: number;
+  shares_traded: number;
 }
 
 interface CalendarHeatmapProps {
-  dailySummary: DailySummary[];
+  allTradingData: TradingDataRaw[];
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const CalendarHeatmap = ({ dailySummary }: CalendarHeatmapProps) => {
+const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
   const [viewDate, setViewDate] = useState(() => new Date());
 
+  // Build pnlMap from ALL trading data (not filtered by parent)
   const pnlMap = useMemo(() => {
+    const grouped: Record<string, { pnl: number; shares: number }> = {};
+    allTradingData.forEach((t) => {
+      if (!grouped[t.trade_date]) {
+        grouped[t.trade_date] = { pnl: 0, shares: 0 };
+      }
+      grouped[t.trade_date].pnl += Number(t.net_pnl);
+      grouped[t.trade_date].shares += t.shares_traded;
+    });
     const map: Record<string, number> = {};
-    dailySummary.forEach((d) => {
-      map[d.date] = d.netAfterBrokerage;
+    Object.entries(grouped).forEach(([date, data]) => {
+      const brokerage = (data.shares / 1000) * 14;
+      map[date] = data.pnl - brokerage;
     });
     return map;
-  }, [dailySummary]);
+  }, [allTradingData]);
 
   // Get all available months from data
   const availableMonths = useMemo(() => {

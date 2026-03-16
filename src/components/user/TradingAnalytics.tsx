@@ -21,14 +21,21 @@ interface DailySummary {
   netAfterBrokerage: number;
 }
 
+interface TradingDataRaw {
+  trade_date: string;
+  net_pnl: number;
+  shares_traded: number;
+}
+
 interface TradingAnalyticsProps {
   dailySummary: DailySummary[];
   totalPnl: number;
   netAfterBrokerage: number;
   tradingDays: number;
+  allTradingData: TradingDataRaw[];
 }
 
-const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDays }: TradingAnalyticsProps) => {
+const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDays, allTradingData }: TradingAnalyticsProps) => {
   const analytics = useMemo(() => {
     if (dailySummary.length === 0) {
       return {
@@ -397,7 +404,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
       </div>
 
       {/* Calendar Heatmap */}
-      <CalendarHeatmap dailySummary={dailySummary} />
+      <CalendarHeatmap allTradingData={allTradingData} />
 
       {/* Monthly P&L Breakdown */}
       <MonthlyPnlBreakdown dailySummary={dailySummary} />
