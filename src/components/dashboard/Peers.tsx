@@ -132,7 +132,7 @@ const Peers = () => {
                 className="pl-10 font-mono text-sm uppercase"
               />
             </div>
-            <Button onClick={fetchPeers} disabled={loading || !symbol.trim()}>
+            <Button onClick={() => fetchData()} disabled={loading || !symbol.trim()}>
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
