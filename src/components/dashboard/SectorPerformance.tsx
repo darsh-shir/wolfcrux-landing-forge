@@ -28,7 +28,10 @@ const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
           { name: "Real Estate", changesPercentage: -0.67 },
           { name: "Materials", changesPercentage: -0.28 },
         ]
-  ).sort((a, b) => b.changesPercentage - a.changesPercentage); // ✅ Most positive on top
+  ).sort((a, b) => b.changesPercentage - a.changesPercentage);
+
+  // Find the max absolute value for scaling bars
+  const maxAbs = Math.max(...sectors.map((s) => Math.abs(s.changesPercentage)), 0.01);
 
   if (loading && data.length === 0) {
     return (
@@ -64,31 +67,45 @@ const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
       </CardHeader>
 
       <CardContent>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {sectors.map((sector) => {
             const isPositive = sector.changesPercentage >= 0;
+            const barWidth = (Math.abs(sector.changesPercentage) / maxAbs) * 100;
 
             return (
               <div
                 key={sector.name}
-                className={`flex items-center justify-between py-2.5 px-3 rounded-lg transition-colors
-                  ${isPositive ? "bg-green-500/10" : "bg-red-500/10"}
-                  hover:bg-muted/50`}
+                className="group relative flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-muted/30 transition-colors"
               >
-                <div className="flex items-center gap-2">
+                {/* Icon */}
+                <div className="shrink-0">
                   {isPositive ? (
-                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <TrendingUp className="w-3.5 h-3.5 text-green-600" />
                   ) : (
-                    <TrendingDown className="w-4 h-4 text-red-600" />
+                    <TrendingDown className="w-3.5 h-3.5 text-red-600" />
                   )}
-
-                  <span className="text-sm font-medium text-foreground">
-                    {sector.name}
-                  </span>
                 </div>
 
+                {/* Name */}
+                <span className="text-sm font-medium text-foreground w-[160px] shrink-0 truncate">
+                  {sector.name}
+                </span>
+
+                {/* Bar */}
+                <div className="flex-1 h-5 bg-muted/40 rounded-md overflow-hidden relative">
+                  <div
+                    className={`h-full rounded-md transition-all duration-700 ease-out ${
+                      isPositive
+                        ? "bg-gradient-to-r from-green-500/60 to-green-500/90"
+                        : "bg-gradient-to-r from-red-500/60 to-red-500/90"
+                    }`}
+                    style={{ width: `${barWidth}%` }}
+                  />
+                </div>
+
+                {/* Percentage */}
                 <span
-                  className={`text-sm font-semibold ${
+                  className={`text-sm font-bold tabular-nums w-[60px] text-right shrink-0 ${
                     isPositive ? "text-green-600" : "text-red-600"
                   }`}
                 >
