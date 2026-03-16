@@ -166,6 +166,46 @@ const LeaveApplication = () => {
         </CardContent>
       </Card>
 
+      {/* Cumulative Carry Forward Card */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-full bg-primary/10">
+              <ArrowUpDown className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold font-['Space_Grotesk'] text-foreground">Leave Balance Summary</h3>
+              <p className="text-xs text-muted-foreground">
+                Cumulative from January {selectedMonth.split("-")[0]}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="p-3 rounded-lg bg-background border">
+              <p className="text-xs text-muted-foreground mb-1">Carry Forward</p>
+              <p className={`text-xl font-bold ${carryForwardStats.carry >= 0 ? "text-primary" : "text-destructive"}`}>
+                {carryForwardStats.carry >= 0 ? "" : ""}{carryForwardStats.carry.toFixed(1)}
+              </p>
+              <p className="text-xs text-muted-foreground">from prev months</p>
+            </div>
+            <div className="p-3 rounded-lg bg-background border">
+              <p className="text-xs text-muted-foreground mb-1">This Month</p>
+              <p className={`text-xl font-bold ${carryForwardStats.pending >= 0 ? "text-primary" : "text-destructive"}`}>
+                {carryForwardStats.pending >= 0 ? "" : ""}{carryForwardStats.pending.toFixed(1)}
+              </p>
+              <p className="text-xs text-muted-foreground">pending</p>
+            </div>
+            <div className="p-3 rounded-lg bg-background border">
+              <p className="text-xs text-muted-foreground mb-1">Total Available</p>
+              <p className={`text-xl font-bold ${carryForwardStats.totalAvailable >= 0 ? "text-primary" : "text-destructive"}`}>
+                {carryForwardStats.totalAvailable.toFixed(1)}
+              </p>
+              <p className="text-xs text-muted-foreground">balance</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Monthly Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
