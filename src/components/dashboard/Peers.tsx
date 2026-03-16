@@ -37,6 +37,30 @@ interface ProfileData {
   mktCap?: number;
 }
 
+interface QuoteData {
+  symbol: string;
+  price: number;
+  change: number;
+  changesPercentage: number;
+  dayLow: number;
+  dayHigh: number;
+  yearLow: number;
+  yearHigh: number;
+  open: number;
+  previousClose: number;
+  volume: number;
+  avgVolume: number;
+  marketCap: number;
+  pe: number;
+  eps: number;
+  priceAvg50: number;
+  priceAvg200: number;
+  afterHoursPrice?: number;
+  afterHoursChange?: number;
+  afterHoursPercentChange?: number;
+  isMarketOpen?: boolean;
+}
+
 const formatMarketCap = (cap: number): string => {
   if (cap >= 1e12) return `$${(cap / 1e12).toFixed(2)}T`;
   if (cap >= 1e9) return `$${(cap / 1e9).toFixed(2)}B`;
