@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import logo from "@/assets/wolfcrux-logo.png";
+import BirthdayNotification from "@/components/BirthdayNotification";
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
