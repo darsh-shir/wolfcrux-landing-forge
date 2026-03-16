@@ -213,6 +213,16 @@ const Peers = () => {
                   )}
                 </CardTitle>
               </div>
+              {quote && (
+                <div className="flex items-baseline gap-2 shrink-0">
+                  <span className="text-2xl font-bold font-mono">${quote.price.toFixed(2)}</span>
+                  <div className={`flex items-center gap-1 text-sm font-medium ${quote.changesPercentage >= 0 ? "text-green-500" : "text-red-500"}`}>
+                    {quote.changesPercentage >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                    <span>{quote.change >= 0 ? "+" : ""}{quote.change.toFixed(2)}</span>
+                    <span className="text-xs">({quote.changesPercentage >= 0 ? "+" : ""}{quote.changesPercentage.toFixed(2)}%)</span>
+                  </div>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent className="pt-0">
