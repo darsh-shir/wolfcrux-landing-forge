@@ -37,6 +37,30 @@ interface ProfileData {
   mktCap?: number;
 }
 
+interface QuoteData {
+  symbol: string;
+  price: number;
+  change: number;
+  changesPercentage: number;
+  dayLow: number;
+  dayHigh: number;
+  yearLow: number;
+  yearHigh: number;
+  open: number;
+  previousClose: number;
+  volume: number;
+  avgVolume: number;
+  marketCap: number;
+  pe: number;
+  eps: number;
+  priceAvg50: number;
+  priceAvg200: number;
+  afterHoursPrice?: number;
+  afterHoursChange?: number;
+  afterHoursPercentChange?: number;
+  isMarketOpen?: boolean;
+}
+
 const formatMarketCap = (cap: number): string => {
   if (cap >= 1e12) return `$${(cap / 1e12).toFixed(2)}T`;
   if (cap >= 1e9) return `$${(cap / 1e9).toFixed(2)}B`;
@@ -61,6 +85,7 @@ const Peers = () => {
   const [symbol, setSymbol] = useState("");
   const [peers, setPeers] = useState<PeerData[]>([]);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [quote, setQuote] = useState<QuoteData | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
@@ -73,12 +98,14 @@ const Peers = () => {
     setLoading(true);
     setSearched(true);
     setProfile(null);
+    setQuote(null);
     setDescExpanded(false);
 
     try {
-      const [peersRes, profileRes] = await Promise.all([
+      const [peersRes, profileRes, quoteRes] = await Promise.all([
         fetch(`${PROXY_URL}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/peers/${trimmed}?version=2.18&source=default`)}`),
         fetch(`${PROXY_URL}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/profile/${trimmed}`)}`),
+        fetch(`${PROXY_URL}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/quote/${trimmed}`)}`),
       ]);
 
       const peersData = await peersRes.json();
@@ -89,6 +116,11 @@ const Peers = () => {
       const profileData = await profileRes.json();
       if (profileData && profileData.symbol) {
         setProfile(profileData);
+      }
+
+      const quoteData = await quoteRes.json();
+      if (quoteData && quoteData.symbol) {
+        setQuote(quoteData);
       }
     } catch (e) {
       console.error("Fetch failed", e);
@@ -151,12 +183,12 @@ const Peers = () => {
         </div>
       )}
 
-      {/* Stock Profile */}
-      {!loading && profile && (
+      {/* Stock Quote + Profile */}
+      {!loading && (profile || quote) && (
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
-              {profile.image && (
+              {profile?.image && (
                 <img
                   src={profile.image}
                   alt={profile.symbol}
@@ -168,8 +200,8 @@ const Peers = () => {
               )}
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  {profile.companyName}
-                  {profile.website && (
+                  {profile?.companyName || quote?.symbol}
+                  {profile?.website && (
                     <a
                       href={profile.website}
                       target="_blank"
@@ -184,28 +216,92 @@ const Peers = () => {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="divide-y divide-border">
-              {profileRows.map((row) => (
-                <div key={row.label} className="flex justify-between py-2.5 text-sm">
-                  <span className="text-muted-foreground">{row.label}</span>
-                  <span className="font-medium text-foreground">{row.value}</span>
+            {/* Quote Price Section */}
+            {quote && (
+              <div className="mb-4 pb-4 border-b border-border">
+                <div className="flex items-baseline gap-3 mb-3">
+                  <span className="text-3xl font-bold font-mono">${quote.price.toFixed(2)}</span>
+                  <div className={`flex items-center gap-1 text-base font-medium ${quote.changesPercentage >= 0 ? "text-green-500" : "text-red-500"}`}>
+                    {quote.changesPercentage >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                    <span>{quote.change >= 0 ? "+" : ""}{quote.change.toFixed(2)}</span>
+                    <span className="text-sm">({quote.changesPercentage >= 0 ? "+" : ""}{quote.changesPercentage.toFixed(2)}%)</span>
+                  </div>
                 </div>
-              ))}
-            </div>
 
-            {profile.description && (
-              <div className="mt-3 pt-3 border-t border-border">
-                <p className={`text-sm text-muted-foreground ${!descExpanded ? "line-clamp-3" : ""}`}>
-                  {profile.description}
-                </p>
-                <button
-                  onClick={() => setDescExpanded(!descExpanded)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-1"
-                >
-                  {descExpanded ? "View Less" : "View More"}
-                  {descExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                </button>
+                {/* After hours */}
+                {quote.afterHoursPrice != null && !quote.isMarketOpen && (
+                  <div className="text-xs text-muted-foreground mb-3">
+                    After Hours: <span className="font-mono font-medium text-foreground">${quote.afterHoursPrice.toFixed(2)}</span>
+                    <span className={`ml-1 ${(quote.afterHoursPercentChange ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                      {(quote.afterHoursChange ?? 0) >= 0 ? "+" : ""}{(quote.afterHoursChange ?? 0).toFixed(2)} ({(quote.afterHoursPercentChange ?? 0) >= 0 ? "+" : ""}{(quote.afterHoursPercentChange ?? 0).toFixed(2)}%)
+                    </span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Open</span>
+                    <span className="font-medium font-mono">${quote.open.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Prev Close</span>
+                    <span className="font-medium font-mono">${quote.previousClose.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Day Range</span>
+                    <span className="font-medium font-mono">${quote.dayLow.toFixed(2)} - ${quote.dayHigh.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">52W Range</span>
+                    <span className="font-medium font-mono">${quote.yearLow.toFixed(2)} - ${quote.yearHigh.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Volume</span>
+                    <span className="font-medium font-mono">{quote.volume.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Avg Volume</span>
+                    <span className="font-medium font-mono">{quote.avgVolume.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">P/E</span>
+                    <span className="font-medium font-mono">{quote.pe?.toFixed(2) || "N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">EPS</span>
+                    <span className="font-medium font-mono">${quote.eps?.toFixed(2) || "N/A"}</span>
+                  </div>
+                </div>
               </div>
+            )}
+
+            {/* Profile Details */}
+            {profile && (
+              <>
+                <div className="divide-y divide-border">
+                  {profileRows.map((row) => (
+                    <div key={row.label} className="flex justify-between py-2.5 text-sm">
+                      <span className="text-muted-foreground">{row.label}</span>
+                      <span className="font-medium text-foreground">{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {profile.description && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className={`text-sm text-muted-foreground ${!descExpanded ? "line-clamp-3" : ""}`}>
+                      {profile.description}
+                    </p>
+                    <button
+                      onClick={() => setDescExpanded(!descExpanded)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-1"
+                    >
+                      {descExpanded ? "View Less" : "View More"}
+                      {descExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
