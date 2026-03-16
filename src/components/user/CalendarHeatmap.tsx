@@ -32,12 +32,14 @@ const CalendarHeatmap = ({ dailySummary }: CalendarHeatmapProps) => {
 
   // Get all available months from data
   const availableMonths = useMemo(() => {
-    const months = new Set<string>();
-    dailySummary.forEach((d) => months.add(d.date.substring(0, 7)));
-    // Add current month
-    months.add(format(new Date(), "yyyy-MM"));
-    return Array.from(months).sort().reverse();
-  }, [dailySummary]);
+    const months: string[] = [];
+    const now = new Date();
+    for (let i = 0; i < 24; i++) {
+      const d = subMonths(now, i);
+      months.push(format(d, "yyyy-MM"));
+    }
+    return months;
+  }, []);
 
   // Get max absolute PnL for color scaling
   const maxAbsPnl = useMemo(() => {
