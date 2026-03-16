@@ -64,6 +64,9 @@ const Navigation = () => {
               </Link>
             ))}
 
+            {/* Birthday Notification */}
+            <BirthdayNotification />
+
             {/* Auth Button */}
             {loading ? (
               <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
