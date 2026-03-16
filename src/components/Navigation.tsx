@@ -113,6 +113,7 @@ const Navigation = () => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-4">
+            <BirthdayNotification />
             {!loading && user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
