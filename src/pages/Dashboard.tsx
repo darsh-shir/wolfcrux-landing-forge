@@ -285,7 +285,7 @@ const Dashboard = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
+            <TabsList className="w-full justify-start">
               <TabsTrigger value="overview">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Overview
