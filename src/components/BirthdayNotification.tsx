@@ -23,12 +23,12 @@ interface MonthBirthday {
 }
 
 const BirthdayNotification = () => {
-  const { isAdmin } = useAuth();
+  const { user } = useAuth();
   const [birthdays, setBirthdays] = useState<UpcomingBirthday[]>([]);
   const [monthBirthdays, setMonthBirthdays] = useState<MonthBirthday[]>([]);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!user) return;
 
     const fetchBirthdays = async () => {
       const { data } = await supabase
@@ -88,9 +88,9 @@ const BirthdayNotification = () => {
     };
 
     fetchBirthdays();
-  }, [isAdmin]);
+  }, [user]);
 
-  if (!isAdmin || (birthdays.length === 0 && monthBirthdays.length === 0)) return null;
+  if (!user || (birthdays.length === 0 && monthBirthdays.length === 0)) return null;
 
   const totalCount = birthdays.length + monthBirthdays.length;
 
