@@ -199,9 +199,9 @@ const MyData = () => {
       <div className="min-h-screen bg-background pt-24 pb-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold font-['Space_Grotesk'] text-foreground">
-              My Dashboard
-            </h1>
+             <h1 className="text-3xl font-bold font-['Space_Grotesk'] text-foreground">
+               Hi{firstName ? `, ${firstName}` : ""} 👋
+             </h1>
             <p className="text-muted-foreground font-['Inter'] mt-2">
               View your trading performance and attendance
             </p>
