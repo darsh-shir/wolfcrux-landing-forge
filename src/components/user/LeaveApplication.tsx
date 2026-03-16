@@ -65,9 +65,10 @@ const LeaveApplication = () => {
     const halfDays = filteredRecords.filter((r) => r.status === "half_day").length;
     const lateCount = filteredRecords.filter((r) => r.status === "late").length;
 
-    // 2 half days = 1 full day; monthly allowance = 1.5 days
-    const totalUsed = fullDays + halfDays * 0.5;
-    const pending = Math.max(0, 1.5 - totalUsed);
+    // 2 half days = 1 full day; every 3 lates = 0.5 day; monthly allowance = 1.5 days
+    const lateDeduction = Math.floor(lateCount / 3) * 0.5;
+    const totalUsed = fullDays + halfDays * 0.5 + lateDeduction;
+    const pending = 1.5 - totalUsed;
 
     return {
       fullDays,
@@ -76,6 +77,47 @@ const LeaveApplication = () => {
       pending,
     };
   }, [filteredRecords]);
+
+  // Calculate cumulative carry forward from January of current year
+  const carryForwardStats = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1; // 1-based
+    const [selYear, selMonth] = selectedMonth.split("-").map(Number);
+
+    // Only calculate for current year (2026+)
+    const year = selYear;
+    const monthsToCalc = selMonth;
+
+    const monthlyBalances: { month: number; pending: number; carry: number }[] = [];
+    let runningCarry = 0;
+
+    for (let m = 1; m <= monthsToCalc; m++) {
+      const start = startOfMonth(new Date(year, m - 1));
+      const end = endOfMonth(new Date(year, m - 1));
+
+      const monthRecords = attendanceRecords.filter((r) => {
+        const d = parseISO(r.record_date);
+        return d >= start && d <= end;
+      });
+
+      const fullDays = monthRecords.filter((r) => r.status === "absent").length;
+      const halfDays = monthRecords.filter((r) => r.status === "half_day").length;
+      const lateCount = monthRecords.filter((r) => r.status === "late").length;
+      const lateDeduction = Math.floor(lateCount / 3) * 0.5;
+      const totalUsed = fullDays + halfDays * 0.5 + lateDeduction;
+      const pending = 1.5 - totalUsed;
+
+      monthlyBalances.push({ month: m, pending, carry: runningCarry });
+      runningCarry += pending;
+    }
+
+    const currentMonthData = monthlyBalances[monthlyBalances.length - 1];
+    return {
+      carry: currentMonthData?.carry ?? 0,
+      pending: currentMonthData?.pending ?? 1.5,
+      totalAvailable: (currentMonthData?.carry ?? 0) + (currentMonthData?.pending ?? 1.5),
+    };
+  }, [attendanceRecords, selectedMonth]);
 
   // Generate months for dropdown
   const months = useMemo(() => {
