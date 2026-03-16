@@ -99,7 +99,7 @@ const Peers = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") fetchPeers();
+    if (e.key === "Enter") fetchData();
   };
 
   const profileRows = profile
