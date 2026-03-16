@@ -315,23 +315,26 @@ const Dashboard = () => {
                 onRefresh={fetchAll}
               />
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                <SectorPerformance
-                  data={sectors}
-                  loading={loadingSectors}
-                />
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6">
+                {/* Left column: Sectors + News stacked */}
+                <div className="space-y-6">
+                  <SectorPerformance
+                    data={sectors}
+                    loading={loadingSectors}
+                  />
+                  <NewsOverview data={newsPosts} loading={loadingNews} />
+                </div>
 
-                <MarketMovers
-                  gainers={gainers}
-                  losers={losers}
-                  actives={actives}
-                  loading={loadingMovers}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <NewsOverview data={newsPosts} loading={loadingNews} />
-                <StockSplits limit={6} compact />
+                {/* Right column: Market Movers + Stock Splits stacked */}
+                <div className="space-y-6">
+                  <MarketMovers
+                    gainers={gainers}
+                    losers={losers}
+                    actives={actives}
+                    loading={loadingMovers}
+                  />
+                  <StockSplits limit={6} compact />
+                </div>
               </div>
             </TabsContent>
 
