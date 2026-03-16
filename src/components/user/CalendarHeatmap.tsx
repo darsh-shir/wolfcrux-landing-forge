@@ -138,7 +138,14 @@ const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+              <button
+                onClick={() => setViewDate(prev => addMonths(prev, 1))}
+                className="p-1 rounded-md hover:bg-muted transition-colors"
+                aria-label="Next month"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
         </div>
       </CardHeader>
       <CardContent>
