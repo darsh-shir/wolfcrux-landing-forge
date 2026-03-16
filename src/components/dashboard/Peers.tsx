@@ -226,7 +226,7 @@ const Peers = () => {
             {peers.map((peer) => {
               const isPositive = peer.changesPercentage >= 0;
               return (
-                <Card key={peer.symbol} className="hover:shadow-md transition-shadow">
+                <Card key={peer.symbol} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => fetchData(peer.symbol)}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
                       {peer.image && (
