@@ -49,27 +49,6 @@ const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
     return months;
   }, []);
 
-  // Get max absolute PnL for color scaling
-  const maxAbsPnl = useMemo(() => {
-    const values = Object.values(pnlMap);
-    if (values.length === 0) return 1;
-    return Math.max(...values.map(Math.abs), 1);
-  }, [pnlMap]);
-
-  const getColor = (pnl: number): string => {
-    const intensity = Math.min(Math.abs(pnl) / maxAbsPnl, 1);
-    if (pnl > 0) {
-      // Green shades
-      const alpha = 0.15 + intensity * 0.75;
-      return `rgba(34, 197, 94, ${alpha})`;
-    } else if (pnl < 0) {
-      // Red shades
-      const alpha = 0.15 + intensity * 0.75;
-      return `rgba(239, 68, 68, ${alpha})`;
-    }
-    return "transparent";
-  };
-
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(viewDate);
     const daysInMonth = getDaysInMonth(viewDate);
@@ -77,12 +56,10 @@ const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
 
     const days: Array<{ day: number | null; dateStr: string | null }> = [];
 
-    // Empty cells for days before month starts
     for (let i = 0; i < startDayOfWeek; i++) {
       days.push({ day: null, dateStr: null });
     }
 
-    // Actual days
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = format(new Date(viewDate.getFullYear(), viewDate.getMonth(), d), "yyyy-MM-dd");
       days.push({ day: d, dateStr });
@@ -90,6 +67,27 @@ const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
 
     return days;
   }, [viewDate]);
+
+  // Color scaling scoped to current viewed month only
+  const maxAbsPnl = useMemo(() => {
+    const monthValues = calendarDays
+      .filter(({ dateStr }) => dateStr && pnlMap[dateStr] !== undefined)
+      .map(({ dateStr }) => Math.abs(pnlMap[dateStr!]));
+    if (monthValues.length === 0) return 1;
+    return Math.max(...monthValues, 1);
+  }, [pnlMap, calendarDays]);
+
+  const getColor = (pnl: number): string => {
+    const intensity = Math.min(Math.abs(pnl) / maxAbsPnl, 1);
+    if (pnl > 0) {
+      const alpha = 0.15 + intensity * 0.75;
+      return `rgba(34, 197, 94, ${alpha})`;
+    } else if (pnl < 0) {
+      const alpha = 0.15 + intensity * 0.75;
+      return `rgba(239, 68, 68, ${alpha})`;
+    }
+    return "transparent";
+  };
 
   const monthPnl = useMemo(() => {
     let total = 0;
