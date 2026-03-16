@@ -65,10 +65,11 @@ const Peers = () => {
   const [searched, setSearched] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
 
-  const fetchPeers = async () => {
-    const trimmed = symbol.trim().toUpperCase();
+  const fetchData = async (searchSymbol?: string) => {
+    const trimmed = (searchSymbol || symbol).trim().toUpperCase();
     if (!trimmed) return;
 
+    if (searchSymbol) setSymbol(trimmed);
     setLoading(true);
     setSearched(true);
     setProfile(null);
@@ -98,7 +99,7 @@ const Peers = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") fetchPeers();
+    if (e.key === "Enter") fetchData();
   };
 
   const profileRows = profile
@@ -131,7 +132,7 @@ const Peers = () => {
                 className="pl-10 font-mono text-sm uppercase"
               />
             </div>
-            <Button onClick={fetchPeers} disabled={loading || !symbol.trim()}>
+            <Button onClick={() => fetchData()} disabled={loading || !symbol.trim()}>
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
@@ -225,7 +226,7 @@ const Peers = () => {
             {peers.map((peer) => {
               const isPositive = peer.changesPercentage >= 0;
               return (
-                <Card key={peer.symbol} className="hover:shadow-md transition-shadow">
+                <Card key={peer.symbol} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => fetchData(peer.symbol)}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
                       {peer.image && (
