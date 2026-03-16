@@ -20,6 +20,23 @@ interface PeerData {
   imageDark?: string;
 }
 
+interface ProfileData {
+  symbol: string;
+  companyName: string;
+  ceo: string;
+  sector: string;
+  industry: string;
+  country: string;
+  fullTimeEmployees: string;
+  exchange: string;
+  exchangeShortName: string;
+  ipoDate: string;
+  description: string;
+  image?: string;
+  website?: string;
+  mktCap?: number;
+}
+
 const formatMarketCap = (cap: number): string => {
   if (cap >= 1e12) return `$${(cap / 1e12).toFixed(2)}T`;
   if (cap >= 1e9) return `$${(cap / 1e9).toFixed(2)}B`;
