@@ -150,6 +150,30 @@ const MyData = () => {
     }).sort((a, b) => b.date.localeCompare(a.date));
   }, [filteredData]);
 
+  // All daily summary (unfiltered) for monthly breakdown
+  const allDailySummary = useMemo(() => {
+    const grouped: Record<string, { pnl: number; shares: number }> = {};
+    
+    tradingData.forEach((t) => {
+      if (!grouped[t.trade_date]) {
+        grouped[t.trade_date] = { pnl: 0, shares: 0 };
+      }
+      grouped[t.trade_date].pnl += Number(t.net_pnl);
+      grouped[t.trade_date].shares += t.shares_traded;
+    });
+
+    return Object.entries(grouped).map(([date, data]) => {
+      const brokerage = (data.shares / 1000) * 14;
+      return {
+        date,
+        combinedPnl: data.pnl,
+        totalShares: data.shares,
+        brokerage,
+        netAfterBrokerage: data.pnl - brokerage,
+      };
+    }).sort((a, b) => b.date.localeCompare(a.date));
+  }, [tradingData]);
+
   const totalPnl = dailySummary.reduce((sum, d) => sum + d.combinedPnl, 0);
   const totalShares = dailySummary.reduce((sum, d) => sum + d.totalShares, 0);
   const totalBrokerage = (totalShares / 1000) * 14;
