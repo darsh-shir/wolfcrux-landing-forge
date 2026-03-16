@@ -326,11 +326,19 @@ const Earnings = () => {
                   </div>
 
                   <div className="space-y-2">
-                    {grouped[session].map((e, i) => (
+                    {grouped[session].map((e, i) => {
+                      const key = `${session}-${e.symbol}-${i}`;
+                      const isExpanded = expandedSymbol === key;
+                      const hasSummary = e.summary && e.summary.length > 0;
+                      return (
                       <div
                         key={i}
-                        className="flex items-center justify-between px-3 py-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                        className="rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                       >
+                        <div
+                          className="flex items-center justify-between px-3 py-3 cursor-pointer"
+                          onClick={() => hasSummary && setExpandedSymbol(isExpanded ? null : key)}
+                        >
                         <div className="flex items-center gap-3">
                           {e.image ? (
                             <img
@@ -356,15 +364,35 @@ const Earnings = () => {
                           </div>
                         </div>
 
-                        <div className="text-right text-xs text-muted-foreground">
-                          {e.quarter} • {e.time}
-                          <br />
-                          {e.marketCap
-                            ? `${(e.marketCap / 1_000_000_000).toFixed(1)}B`
-                            : "—"}
+                        <div className="flex items-center gap-2">
+                          <div className="text-right text-xs text-muted-foreground">
+                            {e.quarter} • {e.time}
+                            <br />
+                            {e.marketCap
+                              ? `${(e.marketCap / 1_000_000_000).toFixed(1)}B`
+                              : "—"}
+                          </div>
+                          {hasSummary && (
+                            isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          )}
                         </div>
+                        </div>
+
+                        {isExpanded && hasSummary && (
+                          <div className="px-4 pb-3 pt-0">
+                            <ul className="space-y-1 text-xs text-muted-foreground border-t pt-2">
+                              {e.summary!.map((point, j) => (
+                                <li key={j} className="flex items-start gap-2">
+                                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                  <span>{point}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </>
               )}
