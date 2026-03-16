@@ -44,8 +44,8 @@ const NewsOverview = ({ data, loading }: NewsOverviewProps) => {
       <CardContent>
         <div className="space-y-4 max-h-[400px] overflow-y-auto">
           {posts.slice(0, 5).map((item: any, i: number) => (
-            <div key={i} className="border-b border-border/30 pb-3 last:border-0 last:pb-0">
-              <h3 className="text-sm font-semibold text-foreground leading-snug">
+            <div key={i} className="border-b-2 border-border pb-3 last:border-0 last:pb-0">
+              <h3 className="text-sm font-bold text-foreground leading-snug">
                 {item.headline}
               </h3>
               <p className="text-xs text-muted-foreground mt-1 line-clamp-3">
