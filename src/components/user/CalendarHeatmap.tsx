@@ -5,16 +5,14 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, getDay, getDaysInMonth, addMonths, subMonths } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-interface DailySummary {
-  date: string;
-  combinedPnl: number;
-  totalShares: number;
-  brokerage: number;
-  netAfterBrokerage: number;
+interface TradingDataRaw {
+  trade_date: string;
+  net_pnl: number;
+  shares_traded: number;
 }
 
 interface CalendarHeatmapProps {
-  dailySummary: DailySummary[];
+  allTradingData: TradingDataRaw[];
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
