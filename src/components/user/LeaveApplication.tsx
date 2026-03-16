@@ -161,7 +161,7 @@ const LeaveApplication = () => {
       <Card className="bg-muted/50 border-dashed">
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground text-center">
-            Attendance is managed by admin. You can view your leave status and history below.
+            Attendance is managed by your admin. View your leave status and history below. For any corrections or queries, please reach out to your manager.
           </p>
         </CardContent>
       </Card>
