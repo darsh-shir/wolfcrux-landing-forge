@@ -12,6 +12,7 @@ interface EarningsItem {
   time: string;
   session: string;
   marketCap?: number;
+  summary?: string[];
 }
 
 interface EarningsDay {
