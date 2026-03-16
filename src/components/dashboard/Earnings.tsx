@@ -111,6 +111,7 @@ const Earnings = () => {
             time: estTime,
             session: getSession(localEST),
             marketCap: e.marketCap || e.mktCap || 0,
+            summary: parseSummary(e.summary),
           };
         });
 
