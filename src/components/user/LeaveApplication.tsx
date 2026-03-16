@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, CheckCircle } from "lucide-react";
+import { Calendar, Clock, CheckCircle, TrendingUp, ArrowUpDown } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 
 interface AttendanceRecord {
@@ -65,9 +65,10 @@ const LeaveApplication = () => {
     const halfDays = filteredRecords.filter((r) => r.status === "half_day").length;
     const lateCount = filteredRecords.filter((r) => r.status === "late").length;
 
-    // 2 half days = 1 full day; monthly allowance = 1.5 days
-    const totalUsed = fullDays + halfDays * 0.5;
-    const pending = Math.max(0, 1.5 - totalUsed);
+    // 2 half days = 1 full day; every 3 lates = 0.5 day; monthly allowance = 1.5 days
+    const lateDeduction = Math.floor(lateCount / 3) * 0.5;
+    const totalUsed = fullDays + halfDays * 0.5 + lateDeduction;
+    const pending = 1.5 - totalUsed;
 
     return {
       fullDays,
@@ -76,6 +77,47 @@ const LeaveApplication = () => {
       pending,
     };
   }, [filteredRecords]);
+
+  // Calculate cumulative carry forward from January of current year
+  const carryForwardStats = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1; // 1-based
+    const [selYear, selMonth] = selectedMonth.split("-").map(Number);
+
+    // Only calculate for current year (2026+)
+    const year = selYear;
+    const monthsToCalc = selMonth;
+
+    const monthlyBalances: { month: number; pending: number; carry: number }[] = [];
+    let runningCarry = 0;
+
+    for (let m = 1; m <= monthsToCalc; m++) {
+      const start = startOfMonth(new Date(year, m - 1));
+      const end = endOfMonth(new Date(year, m - 1));
+
+      const monthRecords = attendanceRecords.filter((r) => {
+        const d = parseISO(r.record_date);
+        return d >= start && d <= end;
+      });
+
+      const fullDays = monthRecords.filter((r) => r.status === "absent").length;
+      const halfDays = monthRecords.filter((r) => r.status === "half_day").length;
+      const lateCount = monthRecords.filter((r) => r.status === "late").length;
+      const lateDeduction = Math.floor(lateCount / 3) * 0.5;
+      const totalUsed = fullDays + halfDays * 0.5 + lateDeduction;
+      const pending = 1.5 - totalUsed;
+
+      monthlyBalances.push({ month: m, pending, carry: runningCarry });
+      runningCarry += pending;
+    }
+
+    const currentMonthData = monthlyBalances[monthlyBalances.length - 1];
+    return {
+      carry: currentMonthData?.carry ?? 0,
+      pending: currentMonthData?.pending ?? 1.5,
+      totalAvailable: (currentMonthData?.carry ?? 0) + (currentMonthData?.pending ?? 1.5),
+    };
+  }, [attendanceRecords, selectedMonth]);
 
   // Generate months for dropdown
   const months = useMemo(() => {
@@ -121,6 +163,46 @@ const LeaveApplication = () => {
           <p className="text-sm text-muted-foreground text-center">
             Attendance is managed by admin. You can view your leave status and history below.
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Cumulative Carry Forward Card */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-full bg-primary/10">
+              <ArrowUpDown className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold font-['Space_Grotesk'] text-foreground">Leave Balance Summary</h3>
+              <p className="text-xs text-muted-foreground">
+                Cumulative from January {selectedMonth.split("-")[0]}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="p-3 rounded-lg bg-background border">
+              <p className="text-xs text-muted-foreground mb-1">Carry Forward</p>
+              <p className={`text-xl font-bold ${carryForwardStats.carry >= 0 ? "text-primary" : "text-destructive"}`}>
+                {carryForwardStats.carry >= 0 ? "" : ""}{carryForwardStats.carry.toFixed(1)}
+              </p>
+              <p className="text-xs text-muted-foreground">from prev months</p>
+            </div>
+            <div className="p-3 rounded-lg bg-background border">
+              <p className="text-xs text-muted-foreground mb-1">This Month</p>
+              <p className={`text-xl font-bold ${carryForwardStats.pending >= 0 ? "text-primary" : "text-destructive"}`}>
+                {carryForwardStats.pending >= 0 ? "" : ""}{carryForwardStats.pending.toFixed(1)}
+              </p>
+              <p className="text-xs text-muted-foreground">pending</p>
+            </div>
+            <div className="p-3 rounded-lg bg-background border">
+              <p className="text-xs text-muted-foreground mb-1">Total Available</p>
+              <p className={`text-xl font-bold ${carryForwardStats.totalAvailable >= 0 ? "text-primary" : "text-destructive"}`}>
+                {carryForwardStats.totalAvailable.toFixed(1)}
+              </p>
+              <p className="text-xs text-muted-foreground">balance</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
