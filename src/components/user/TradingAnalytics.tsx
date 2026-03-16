@@ -395,6 +395,12 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
           </CardContent>
         </Card>
       </div>
+
+      {/* Calendar Heatmap */}
+      <CalendarHeatmap dailySummary={dailySummary} />
+
+      {/* Monthly P&L Breakdown */}
+      <MonthlyPnlBreakdown dailySummary={dailySummary} />
     </div>
   );
 };
