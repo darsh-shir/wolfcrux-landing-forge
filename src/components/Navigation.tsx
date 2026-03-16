@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import logo from "@/assets/wolfcrux-logo.png";
+import BirthdayNotification from "@/components/BirthdayNotification";
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -63,6 +64,9 @@ const Navigation = () => {
               </Link>
             ))}
 
+            {/* Birthday Notification */}
+            <BirthdayNotification />
+
             {/* Auth Button */}
             {loading ? (
               <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
@@ -109,6 +113,7 @@ const Navigation = () => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-4">
+            <BirthdayNotification />
             {!loading && user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
