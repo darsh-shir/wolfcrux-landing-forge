@@ -14,6 +14,7 @@ import StockSplits from "@/components/dashboard/StockSplits";
 import MarketSentiment from "@/components/dashboard/MarketSentiment";
 import NewsOverview from "@/components/dashboard/NewsOverview";
 import Earnings from "@/components/dashboard/Earnings";
+import Peers from "@/components/dashboard/Peers";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
