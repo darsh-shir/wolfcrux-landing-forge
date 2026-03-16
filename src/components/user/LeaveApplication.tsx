@@ -65,15 +65,15 @@ const LeaveApplication = () => {
     const halfDays = filteredRecords.filter((r) => r.status === "half_day").length;
     const lateCount = filteredRecords.filter((r) => r.status === "late").length;
 
-    // Remaining from monthly allowance (1 full + 1 half = 1.5)
-    const usedInLimit = Math.min(fullDays, 1) + Math.min(halfDays, 1) * 0.5;
-    const pending = 1.5 - usedInLimit;
+    // 2 half days = 1 full day; monthly allowance = 1.5 days
+    const totalUsed = fullDays + halfDays * 0.5;
+    const pending = Math.max(0, 1.5 - totalUsed);
 
     return {
       fullDays,
       halfDays,
       lateCount,
-      pending: Math.max(0, pending),
+      pending,
     };
   }, [filteredRecords]);
 
