@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Scissors, Newspaper, Calendar } from "lucide-react";
+import { BarChart3, Scissors, Newspaper, Calendar, Users } from "lucide-react";
 
 // Dashboard components
 import IndexCards from "@/components/dashboard/IndexCards";
@@ -14,6 +14,7 @@ import StockSplits from "@/components/dashboard/StockSplits";
 import MarketSentiment from "@/components/dashboard/MarketSentiment";
 import NewsOverview from "@/components/dashboard/NewsOverview";
 import Earnings from "@/components/dashboard/Earnings";
+import Peers from "@/components/dashboard/Peers";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
@@ -304,6 +305,11 @@ const Dashboard = () => {
                 <Calendar className="w-4 h-4 mr-2" />
                 Earnings
               </TabsTrigger>
+
+              <TabsTrigger value="peers">
+                <Users className="w-4 h-4 mr-2" />
+                Peers
+              </TabsTrigger>
             </TabsList>
 
             {/* ================= OVERVIEW TAB ================= */}
@@ -348,6 +354,11 @@ const Dashboard = () => {
             {/* ================= EARNINGS TAB ================= */}
             <TabsContent value="earnings" className="mt-6">
               <Earnings />
+            </TabsContent>
+
+            {/* ================= PEERS TAB ================= */}
+            <TabsContent value="peers" className="mt-6">
+              <Peers />
             </TabsContent>
           </Tabs>
         </main>
