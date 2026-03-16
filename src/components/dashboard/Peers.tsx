@@ -45,7 +45,9 @@ const Peers = () => {
       );
       const response = await fetch(`${PROXY_URL}${url}`);
       const data = await response.json();
-      setPeers(Array.isArray(data) ? data : []);
+      const items: PeerData[] = Array.isArray(data) ? data : [];
+      items.sort((a, b) => b.marketCap - a.marketCap);
+      setPeers(items);
     } catch (e) {
       console.error("Peers fetch failed", e);
       setPeers([]);
