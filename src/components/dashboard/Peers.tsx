@@ -65,10 +65,11 @@ const Peers = () => {
   const [searched, setSearched] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
 
-  const fetchPeers = async () => {
-    const trimmed = symbol.trim().toUpperCase();
+  const fetchData = async (searchSymbol?: string) => {
+    const trimmed = (searchSymbol || symbol).trim().toUpperCase();
     if (!trimmed) return;
 
+    if (searchSymbol) setSymbol(trimmed);
     setLoading(true);
     setSearched(true);
     setProfile(null);
