@@ -305,6 +305,11 @@ const Dashboard = () => {
                 <Calendar className="w-4 h-4 mr-2" />
                 Earnings
               </TabsTrigger>
+
+              <TabsTrigger value="peers">
+                <Users className="w-4 h-4 mr-2" />
+                Peers
+              </TabsTrigger>
             </TabsList>
 
             {/* ================= OVERVIEW TAB ================= */}
