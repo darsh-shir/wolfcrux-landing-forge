@@ -42,6 +42,7 @@ const MyData = () => {
   const [tradingData, setTradingData] = useState<TradingData[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+  const [firstName, setFirstName] = useState<string>("");
 
   // Filters
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("monthly");
@@ -61,6 +62,16 @@ const MyData = () => {
   useEffect(() => {
     if (user) {
       fetchData();
+      supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.full_name) {
+            setFirstName(data.full_name.split(" ")[0]);
+          }
+        });
     }
   }, [user]);
 
@@ -188,9 +199,9 @@ const MyData = () => {
       <div className="min-h-screen bg-background pt-24 pb-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold font-['Space_Grotesk'] text-foreground">
-              My Dashboard
-            </h1>
+             <h1 className="text-3xl font-bold font-['Space_Grotesk'] text-foreground">
+               Hi{firstName ? `, ${firstName}` : ""} 👋
+             </h1>
             <p className="text-muted-foreground font-['Inter'] mt-2">
               View your trading performance and attendance
             </p>
