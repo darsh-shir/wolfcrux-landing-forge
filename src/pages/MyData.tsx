@@ -62,6 +62,16 @@ const MyData = () => {
   useEffect(() => {
     if (user) {
       fetchData();
+      supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.full_name) {
+            setFirstName(data.full_name.split(" ")[0]);
+          }
+        });
     }
   }, [user]);
 
