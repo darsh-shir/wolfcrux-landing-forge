@@ -246,6 +246,10 @@ const MyData = () => {
                 <Calendar className="h-4 w-4" />
                 Attendance
               </TabsTrigger>
+              <TabsTrigger value="payout" className="gap-2">
+                <Wallet className="h-4 w-4" />
+                Payout
+              </TabsTrigger>
               <TabsTrigger value="settings" className="gap-2">
                 <Key className="h-4 w-4" />
                 Settings
