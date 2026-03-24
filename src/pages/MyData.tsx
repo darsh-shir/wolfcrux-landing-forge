@@ -9,10 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, TrendingDown, Calendar, BarChart3, Key, DollarSign, LineChart, ChevronDown, ChevronRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar, BarChart3, Key, DollarSign, LineChart, ChevronDown, ChevronRight, Wallet } from "lucide-react";
 import ChangePassword from "@/components/user/ChangePassword";
 import LeaveApplication from "@/components/user/LeaveApplication";
 import TradingAnalytics from "@/components/user/TradingAnalytics";
+import PayoutSummary from "@/components/user/PayoutSummary";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, parseISO } from "date-fns";
 
 interface TradingAccount {
