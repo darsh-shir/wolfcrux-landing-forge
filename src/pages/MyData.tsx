@@ -9,10 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, TrendingDown, Calendar, BarChart3, Key, DollarSign, LineChart, ChevronDown, ChevronRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar, BarChart3, Key, DollarSign, LineChart, ChevronDown, ChevronRight, Wallet } from "lucide-react";
 import ChangePassword from "@/components/user/ChangePassword";
 import LeaveApplication from "@/components/user/LeaveApplication";
 import TradingAnalytics from "@/components/user/TradingAnalytics";
+import PayoutSummary from "@/components/user/PayoutSummary";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, parseISO } from "date-fns";
 
 interface TradingAccount {
@@ -244,6 +245,10 @@ const MyData = () => {
               <TabsTrigger value="attendance" className="gap-2">
                 <Calendar className="h-4 w-4" />
                 Attendance
+              </TabsTrigger>
+              <TabsTrigger value="payout" className="gap-2">
+                <Wallet className="h-4 w-4" />
+                Payout
               </TabsTrigger>
               <TabsTrigger value="settings" className="gap-2">
                 <Key className="h-4 w-4" />
@@ -573,6 +578,11 @@ const MyData = () => {
             {/* ATTENDANCE TAB - Read-only */}
             <TabsContent value="attendance">
               <LeaveApplication />
+            </TabsContent>
+
+            {/* PAYOUT TAB */}
+            <TabsContent value="payout">
+              <PayoutSummary />
             </TabsContent>
 
             {/* SETTINGS TAB */}
