@@ -580,6 +580,11 @@ const MyData = () => {
               <LeaveApplication />
             </TabsContent>
 
+            {/* PAYOUT TAB */}
+            <TabsContent value="payout">
+              <PayoutSummary />
+            </TabsContent>
+
             {/* SETTINGS TAB */}
             <TabsContent value="settings">
               <div className="max-w-md">
