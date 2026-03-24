@@ -7,14 +7,27 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Save } from "lucide-react";
+import { FileText, Save, TrendingUp, Clock, Lock, Unlock } from "lucide-react";
+import {
+  MILESTONES,
+  getMilestoneLevel,
+  getNextMilestone,
+  calculateShareCost,
+  calculateLeaveDeduction,
+  getSTOPayoutDate,
+  getLTOUnlockDate,
+  monthsBetween,
+} from "@/lib/payoutCalculations";
 
 interface Profile {
   id: string;
   user_id: string;
   full_name: string;
   email: string;
+  employee_role?: string;
 }
 
 interface PayoutSheetProps {
@@ -34,13 +47,10 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [selectedTrader, setSelectedTrader] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [traderConfig, setTraderConfig] = useState<any>(null);
   const [tradingData, setTradingData] = useState<any[]>([]);
   const [trader2TradingData, setTrader2TradingData] = useState<any[]>([]);
-  const [partnerOfConfigs, setPartnerOfConfigs] = useState<any[]>([]);
   const [allAttendanceRecords, setAllAttendanceRecords] = useState<any[]>([]);
   const [carryForwardDays, setCarryForwardDays] = useState(0);
-  const [extraDeduction, setExtraDeduction] = useState(0);
   const [softwareCostInput, setSoftwareCostInput] = useState(0);
   const [inrRate, setInrRate] = useState(84);
   const [payoutNotes, setPayoutNotes] = useState("");
@@ -51,6 +61,12 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [bankPaidInput, setBankPaidInput] = useState(0);
   const [loading, setLoading] = useState(false);
   const [existingRecord, setExistingRecord] = useState<any>(null);
+  const [milestoneData, setMilestoneData] = useState<any>(null);
+  const [existingSto, setExistingSto] = useState<any>(null);
+  const [existingLto, setExistingLto] = useState<any>(null);
+  const [stoHistory, setStoHistory] = useState<any[]>([]);
+  const [ltoHistory, setLtoHistory] = useState<any[]>([]);
+  const [traderConfig, setTraderConfig] = useState<any>(null);
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
@@ -64,62 +80,67 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const monthStart = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
     const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
     const monthEnd = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-
-    // Fetch all attendance records for the year (for cumulative calculation)
     const yearStart = `${selectedYear}-01-01`;
 
-    const [configRes, tradesRes, tradesAsTrader2Res, allTrader2ConfigsRes, attendanceRes, carryRes, existingRes] = await Promise.all([
-      supabase.from("trader_config").select("*")
-        .eq("user_id", selectedTrader)
-        .eq("month", selectedMonth)
-        .eq("year", selectedYear)
-        .maybeSingle(),
+    const [
+      tradesRes, tradesAsTrader2Res, attendanceRes, carryRes,
+      existingRes, milestoneRes, stoRes, ltoRes, stoHistRes, ltoHistRes,
+      configRes, exchangeRateRes
+    ] = await Promise.all([
       supabase.from("trading_data").select("*")
-        .eq("user_id", selectedTrader)
-        .gte("trade_date", monthStart)
-        .lte("trade_date", monthEnd),
+        .eq("user_id", selectedTrader).gte("trade_date", monthStart).lte("trade_date", monthEnd),
       supabase.from("trading_data").select("*")
-        .eq("trader2_id", selectedTrader)
-        .gte("trade_date", monthStart)
-        .lte("trade_date", monthEnd),
-      // Fetch configs for all primary traders whose accounts this trader worked on as trader2
-      supabase.from("trader_config").select("*")
-        .eq("month", selectedMonth)
-        .eq("year", selectedYear),
+        .eq("trader2_id", selectedTrader).gte("trade_date", monthStart).lte("trade_date", monthEnd),
       supabase.from("attendance_records").select("*")
-        .eq("user_id", selectedTrader)
-        .gte("record_date", yearStart)
-        .lte("record_date", monthEnd),
+        .eq("user_id", selectedTrader).gte("record_date", yearStart).lte("record_date", monthEnd),
       supabase.from("leave_carry_forward").select("*")
-        .eq("user_id", selectedTrader)
-        .eq("year", selectedYear)
-        .maybeSingle(),
+        .eq("user_id", selectedTrader).eq("year", selectedYear).maybeSingle(),
       supabase.from("payout_records").select("*")
-        .eq("user_id", selectedTrader)
-        .eq("month", selectedMonth)
-        .eq("year", selectedYear)
-        .maybeSingle(),
+        .eq("user_id", selectedTrader).eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
+      supabase.from("trader_milestones").select("*")
+        .eq("user_id", selectedTrader).maybeSingle(),
+      supabase.from("sto_ledger").select("*")
+        .eq("user_id", selectedTrader).eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
+      supabase.from("lto_ledger").select("*")
+        .eq("user_id", selectedTrader).eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
+      supabase.from("sto_ledger").select("*")
+        .eq("user_id", selectedTrader).order("year", { ascending: false }).order("month", { ascending: false }).limit(12),
+      supabase.from("lto_ledger").select("*")
+        .eq("user_id", selectedTrader).order("year", { ascending: false }).order("month", { ascending: false }).limit(12),
+      supabase.from("trader_config").select("*")
+        .eq("user_id", selectedTrader).eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
+      supabase.from("monthly_exchange_rates").select("*")
+        .eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
     ]);
 
-    // Fallback: if no month-specific config, try without month/year filter
+    setTradingData(tradesRes.data || []);
+    setTrader2TradingData(tradesAsTrader2Res.data || []);
+    setAllAttendanceRecords(attendanceRes.data || []);
+    setCarryForwardDays(carryRes.data?.carry_forward_days ?? 0);
+    setMilestoneData(milestoneRes.data);
+    setExistingSto(stoRes.data);
+    setExistingLto(ltoRes.data);
+    setStoHistory(stoHistRes.data || []);
+    setLtoHistory(ltoHistRes.data || []);
+    setTraderConfig(configRes.data);
+
+    if (exchangeRateRes.data) {
+      setInrRate(Number(exchangeRateRes.data.usd_to_inr));
+    }
+
+    // Fallback config if no month-specific one
     let config = configRes.data;
     if (!config) {
       const fallback = await supabase.from("trader_config").select("*")
         .eq("user_id", selectedTrader)
-        .order("year", { ascending: false })
-        .order("month", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order("year", { ascending: false }).order("month", { ascending: false })
+        .limit(1).maybeSingle();
       config = fallback.data;
+      setTraderConfig(config);
     }
 
-    setTraderConfig(config);
-    setSoftwareCostInput(config?.software_cost ?? 0);
-    setTradingData(tradesRes.data || []);
-    setTrader2TradingData(tradesAsTrader2Res.data || []);
-    setPartnerOfConfigs(allTrader2ConfigsRes.data || []);
-    setAllAttendanceRecords(attendanceRes.data || []);
-    setCarryForwardDays(carryRes.data?.carry_forward_days ?? 0);
+    if (config) setSoftwareCostInput(config.software_cost ?? 0);
+
     if (existingRes.data) {
       setExistingRecord(existingRes.data);
       setPaidCash(existingRes.data.paid_cash || false);
@@ -140,214 +161,230 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     setLoading(false);
   };
 
+  // Determine milestone level
+  const milestone = useMemo(() => {
+    if (!milestoneData) return MILESTONES[0];
+    const accountStart = new Date(milestoneData.account_start_date);
+    const currentDate = new Date(selectedYear, selectedMonth - 1, 28);
+    const months = monthsBetween(accountStart, currentDate);
+    const cumProfit = Number(milestoneData.cumulative_net_profit || 0);
+    return getMilestoneLevel(months, cumProfit);
+  }, [milestoneData, selectedMonth, selectedYear]);
+
+  const nextMilestone = useMemo(() => getNextMilestone(milestone.level), [milestone]);
+
   const calculations = useMemo(() => {
     const result = {
-      totalPnl: 0, totalShares: 0, shareCharge: 0, softwareCost: 0,
-      grossAmount: 0, payoutPct: 0, tradersShare: 0,
-      attendanceDeductionPct: 0, attendanceDeduction: 0,
-      totalDeductions: 0, netPayout: 0,
-      // Partner/trainee deductions from primary account
+      totalPnl: 0, totalShares: 0, shareCost: 0, softwareCost: 0,
+      netProfit: 0, stoPercent: milestone.stoPercent, ltoPercent: milestone.ltoPercent,
+      stoAmount: 0, ltoAmount: 0,
+      leaveDeductionPct: 0, leaveDeductionAmount: 0,
+      traineePoolContribution: 0, finalStoAmount: 0,
+      stoPayoutDate: getSTOPayoutDate(selectedMonth, selectedYear),
+      ltoUnlockDate: getLTOUnlockDate(selectedMonth, selectedYear),
+      tradingDays: 0,
+      // Partner earnings
       partnerDeductions: [] as { name: string; role: string; splitPct: number; amount: number }[],
       totalPartnerDeduction: 0,
       traderKeepsFromPrimary: 0,
-      tradingDays: 0,
-      // Trader2 earnings from other accounts (where this trader sits as partner/trainee)
       trader2Earnings: [] as { primaryTraderName: string; pnl: number; role: string; splitPct: number; earnings: number }[],
       trader2Total: 0,
-      combinedNetPayout: 0,
-      poolContribution: 0,
+      combinedFinalSto: 0,
     };
 
-    // === PRIMARY ACCOUNT CALCULATION ===
-    const hasPrimaryData = tradingData.length > 0 && traderConfig;
-    let primaryNetPayout = 0;
+    if (tradingData.length === 0) return result;
 
-    if (hasPrimaryData) {
-      const totalPnl = tradingData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
-      const totalShares = tradingData.reduce((sum, t) => sum + Number(t.shares_traded), 0);
-      const shareCharge = (totalShares / 1000) * 14;
-      const softwareCost = Number(softwareCostInput) || 0;
-      const grossAmount = totalPnl - shareCharge - softwareCost;
-      const payoutPct = Number(traderConfig.payout_percentage) / 100;
-      const tradersShare = grossAmount * payoutPct;
-      const tradingDays = tradingData.filter(t => !t.is_holiday).length;
+    const totalPnl = tradingData.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
+    const totalShares = tradingData.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
+    const shareCost = calculateShareCost(totalShares);
+    const softwareCost = Number(softwareCostInput) || 0;
+    const netProfit = totalPnl - shareCost - softwareCost;
+    const tradingDays = tradingData.filter((t: any) => !t.is_holiday).length;
 
-      // Cumulative leave balance calculation
-      let attendanceDeductionPct = 0;
-      {
-        let runningBalance = carryForwardDays;
-        for (let m = 1; m <= selectedMonth; m++) {
-          runningBalance += 1.5;
-          const monthRecords = allAttendanceRecords.filter((r: any) => {
-            const d = new Date(r.record_date);
-            return d.getFullYear() === selectedYear && d.getMonth() + 1 === m;
-          });
-          const fullDays = monthRecords.filter((r: any) => r.status === "absent").length;
-          const halfDays = monthRecords.filter((r: any) => r.status === "half_day").length;
-          const lateCount = monthRecords.filter((r: any) => r.status === "late").length;
-          const lateConverted = Math.floor(lateCount / 3) * 0.5;
-          const totalUsed = fullDays + halfDays * 0.5 + lateConverted;
+    // STO and LTO amounts (only on positive net profit)
+    const stoAmount = netProfit > 0 ? netProfit * (milestone.stoPercent / 100) : 0;
+    const ltoAmount = netProfit > 0 ? netProfit * (milestone.ltoPercent / 100) : 0;
 
-          if (m < selectedMonth) {
-            runningBalance = Math.max(0, runningBalance - totalUsed);
-          } else {
-            const excess = Math.max(0, totalUsed - runningBalance);
-            attendanceDeductionPct = excess * 4;
-          }
+    // Leave deductions
+    const leaveResult = calculateLeaveDeduction(
+      allAttendanceRecords, selectedMonth, selectedYear, carryForwardDays
+    );
+    const leaveDeductionPct = leaveResult.deductionPercent;
+    const leaveDeductionAmount = stoAmount * (leaveDeductionPct / 100);
+    const stoAfterLeave = stoAmount - leaveDeductionAmount;
+
+    // Trainee pool: check if trader has a trainee
+    const hasTrainee = tradingData.some((t: any) =>
+      t.trader2_id && t.trader2_role?.toLowerCase() === "trainee"
+    );
+    const traineePoolContribution = hasTrainee ? stoAfterLeave * 0.25 : 0;
+    const finalStoAmount = stoAfterLeave - traineePoolContribution;
+
+    // Partner deductions (for partner role - 50% of gross)
+    const partnerDeductionMap: Record<string, { name: string; role: string; totalPnl: number; totalShares: number; days: number }> = {};
+
+    tradingData.forEach((trade: any) => {
+      if (trade.trader2_id && trade.trader2_role) {
+        const key = trade.trader2_id;
+        if (!partnerDeductionMap[key]) {
+          const trader2User = users.find(u => u.user_id === trade.trader2_id);
+          partnerDeductionMap[key] = {
+            name: trader2User?.full_name || "Unknown",
+            role: trade.trader2_role,
+            totalPnl: 0, totalShares: 0, days: 0,
+          };
         }
+        partnerDeductionMap[key].totalPnl += Number(trade.net_pnl);
+        partnerDeductionMap[key].totalShares += Number(trade.shares_traded);
+        partnerDeductionMap[key].days += 1;
       }
+    });
 
-      const attendanceDeduction = tradersShare * (attendanceDeductionPct / 100);
-      const totalDeductions = attendanceDeduction + extraDeduction;
-      const netPayout = tradersShare - totalDeductions;
+    const partnerDeductions: typeof result.partnerDeductions = [];
+    let totalPartnerDeduction = 0;
 
-      // Calculate per-day partner/trainee deductions based on trader2_role
-      const partnerDeductionMap: Record<string, { name: string; role: string; totalPnl: number; totalShares: number; days: number }> = {};
-      let totalPoolContribution = 0;
-
-      tradingData.forEach(trade => {
-        if (trade.trader2_id && trade.trader2_role) {
-          const key = trade.trader2_id;
-          if (!partnerDeductionMap[key]) {
-            const trader2User = users.find(u => u.user_id === trade.trader2_id);
-            partnerDeductionMap[key] = {
-              name: trader2User?.full_name || "Unknown",
-              role: trade.trader2_role,
-              totalPnl: 0,
-              totalShares: 0,
-              days: 0,
-            };
-          }
-          partnerDeductionMap[key].totalPnl += Number(trade.net_pnl);
-          partnerDeductionMap[key].totalShares += Number(trade.shares_traded);
-          partnerDeductionMap[key].days += 1;
-        }
-      });
-
-      const partnerDeductions: typeof result.partnerDeductions = [];
-      let totalPartnerDeduction = 0;
-
-      for (const [, info] of Object.entries(partnerDeductionMap)) {
-        const roleLower = info.role.toLowerCase();
-        const splitPct = roleLower === "partner" ? 50 : 25;
+    for (const [, info] of Object.entries(partnerDeductionMap)) {
+      const roleLower = info.role.toLowerCase();
+      if (roleLower === "partner") {
         const dayRatio = info.days / tradingDays;
-
-        let deductionAmount: number;
-        if (roleLower === "partner") {
-          // Partner gets 50% of GROSS (proportional to days worked together)
-          const proportionalGross = grossAmount * dayRatio;
-          deductionAmount = proportionalGross * 0.50;
-        } else {
-          // Trainee: flat 25% of NET PAYOUT is deducted and goes to pool
-          deductionAmount = netPayout * 0.25;
-        }
-
-        partnerDeductions.push({
-          name: info.name,
-          role: info.role,
-          splitPct,
-          amount: deductionAmount,
-        });
-        totalPartnerDeduction += deductionAmount;
-
-        if (roleLower === "trainee") {
-          totalPoolContribution += deductionAmount;
-        }
+        const proportionalGross = netProfit * dayRatio;
+        const deduction = proportionalGross * 0.50;
+        partnerDeductions.push({ name: info.name, role: info.role, splitPct: 50, amount: deduction });
+        totalPartnerDeduction += deduction;
       }
-
-      const traderKeepsFromPrimary = netPayout - totalPartnerDeduction;
-
-      Object.assign(result, {
-        totalPnl, totalShares, shareCharge, softwareCost, grossAmount,
-        payoutPct: traderConfig.payout_percentage, tradersShare,
-        attendanceDeductionPct, attendanceDeduction, totalDeductions,
-        netPayout, tradingDays,
-        partnerDeductions, totalPartnerDeduction, traderKeepsFromPrimary,
-        poolContribution: totalPoolContribution,
-      });
-
-      primaryNetPayout = traderKeepsFromPrimary;
+      // Trainee deductions are handled via traineePoolContribution above
     }
 
-    // === TRADER2 EARNINGS (where this trader is trader2 on someone else's account) ===
-    const trader2Earnings: typeof result.trader2Earnings = [];
+    const traderKeepsFromPrimary = finalStoAmount - totalPartnerDeduction;
 
+    // Trader2 earnings (where this trader is partner on someone else's account)
+    const trader2Earnings: typeof result.trader2Earnings = [];
     if (trader2TradingData.length > 0) {
-      // Group by primary trader
       const byPrimary: Record<string, any[]> = {};
-      trader2TradingData.forEach(t => {
+      trader2TradingData.forEach((t: any) => {
         if (!byPrimary[t.user_id]) byPrimary[t.user_id] = [];
         byPrimary[t.user_id].push(t);
       });
 
       for (const [primaryUserId, trades] of Object.entries(byPrimary)) {
-        const primaryConfig = partnerOfConfigs.find((c: any) => c.user_id === primaryUserId);
-        if (!primaryConfig) continue;
+        const totalPnl2 = trades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
+        const totalShares2 = trades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
+        const shareCost2 = calculateShareCost(totalShares2);
+        const netProfit2 = totalPnl2 - shareCost2;
 
-        const totalPnl = trades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
-        const totalShares = trades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
-        const shareCharge = (totalShares / 1000) * 14;
-        const softwareCost = Number(primaryConfig.software_cost) || 0;
-        const grossAmount = totalPnl - shareCharge - softwareCost;
-        const primaryPayoutPct = Number(primaryConfig.payout_percentage) / 100;
-        const primaryShare = grossAmount * primaryPayoutPct;
-
-        // Determine role from the trading data entries
         const role = trades[0]?.trader2_role || "partner";
         const roleLower = role.toLowerCase();
-        const splitPct = roleLower === "partner" ? 50 : 25;
 
-        let earnings: number;
+        let earnings = 0;
         if (roleLower === "partner") {
-          // Partner gets 50% of GROSS
-          earnings = grossAmount * 0.50;
-        } else {
-          // Trainee: their 25% goes to pool, not direct earnings
-          // Show as 0 here - they receive from pool distribution
-          earnings = 0;
+          earnings = netProfit2 * 0.50;
         }
+        // Trainees receive from pool, not direct earnings
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
         trader2Earnings.push({
           primaryTraderName: primaryUser?.full_name || "Unknown",
-          pnl: totalPnl,
-          role,
-          splitPct,
-          earnings,
+          pnl: totalPnl2, role, splitPct: roleLower === "partner" ? 50 : 25, earnings,
         });
       }
     }
 
     const trader2Total = trader2Earnings.reduce((sum, e) => sum + e.earnings, 0);
-    result.trader2Earnings = trader2Earnings;
-    result.trader2Total = trader2Total;
-    result.combinedNetPayout = primaryNetPayout + trader2Total;
+
+    Object.assign(result, {
+      totalPnl, totalShares, shareCost, softwareCost, netProfit,
+      stoAmount, ltoAmount, leaveDeductionPct, leaveDeductionAmount,
+      traineePoolContribution, finalStoAmount, tradingDays,
+      partnerDeductions, totalPartnerDeduction, traderKeepsFromPrimary,
+      trader2Earnings, trader2Total,
+      combinedFinalSto: traderKeepsFromPrimary + trader2Total,
+    });
 
     return result;
-  }, [traderConfig, tradingData, trader2TradingData, partnerOfConfigs, allAttendanceRecords, carryForwardDays, selectedMonth, selectedYear, extraDeduction, users, softwareCostInput]);
+  }, [tradingData, trader2TradingData, allAttendanceRecords, carryForwardDays,
+    selectedMonth, selectedYear, users, softwareCostInput, milestone]);
 
   const traderName = users.find(u => u.user_id === selectedTrader)?.full_name || "";
 
   const handleSaveSoftwareCost = async () => {
     if (!selectedTrader || !traderConfig?.id) {
-      toast({ title: "Error", description: "No trader config found. Please set up config first.", variant: "destructive" });
+      toast({ title: "Error", description: "No trader config found.", variant: "destructive" });
       return;
     }
     const { error } = await supabase.from("trader_config").update({ software_cost: softwareCostInput }).eq("id", traderConfig.id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Saved", description: `Software cost updated to $${softwareCostInput}` });
-    }
+    if (!error) toast({ title: "Saved", description: `Software cost updated to $${softwareCostInput}` });
   };
 
-  const handleSavePayout = async () => {
+  const handleSaveAll = async () => {
     if (!selectedTrader) return;
 
-    const finalUsd = calculations.combinedNetPayout;
+    const finalUsd = calculations.combinedFinalSto;
     const totalInr = finalUsd * inrRate;
 
-    const payload = {
+    // Save exchange rate
+    const { data: existingRate } = await supabase.from("monthly_exchange_rates")
+      .select("id").eq("month", selectedMonth).eq("year", selectedYear).maybeSingle();
+
+    if (existingRate) {
+      await supabase.from("monthly_exchange_rates").update({ usd_to_inr: inrRate }).eq("id", existingRate.id);
+    } else {
+      await supabase.from("monthly_exchange_rates").insert({ month: selectedMonth, year: selectedYear, usd_to_inr: inrRate });
+    }
+
+    // Save STO ledger
+    const stoPayload = {
+      user_id: selectedTrader,
+      month: selectedMonth,
+      year: selectedYear,
+      gross_profit: calculations.totalPnl,
+      shares_traded: calculations.totalShares,
+      share_cost: calculations.shareCost,
+      software_cost: calculations.softwareCost,
+      net_profit: calculations.netProfit,
+      sto_percentage: calculations.stoPercent,
+      sto_amount: calculations.stoAmount,
+      leave_deduction_percent: calculations.leaveDeductionPct,
+      leave_deduction_amount: calculations.leaveDeductionAmount,
+      trainee_pool_contribution: calculations.traineePoolContribution,
+      final_sto_amount: calculations.finalStoAmount,
+      payout_due_date: calculations.stoPayoutDate.toISOString().split("T")[0],
+    };
+
+    if (existingSto?.id) {
+      await supabase.from("sto_ledger").update(stoPayload).eq("id", existingSto.id);
+    } else {
+      await supabase.from("sto_ledger").insert(stoPayload);
+    }
+
+    // Save LTO ledger
+    if (calculations.ltoAmount > 0) {
+      const ltoPayload = {
+        user_id: selectedTrader,
+        month: selectedMonth,
+        year: selectedYear,
+        net_profit: calculations.netProfit,
+        lto_percentage: calculations.ltoPercent,
+        lto_amount: calculations.ltoAmount,
+        unlock_date: calculations.ltoUnlockDate.toISOString().split("T")[0],
+      };
+
+      if (existingLto?.id) {
+        await supabase.from("lto_ledger").update(ltoPayload).eq("id", existingLto.id);
+      } else {
+        await supabase.from("lto_ledger").insert(ltoPayload);
+      }
+    }
+
+    // Update milestone cumulative profit
+    if (milestoneData) {
+      const newCumulative = Number(milestoneData.cumulative_net_profit) + calculations.netProfit;
+      await supabase.from("trader_milestones")
+        .update({ cumulative_net_profit: newCumulative, current_level: milestone.level })
+        .eq("id", milestoneData.id);
+    }
+
+    // Save payout record
+    const payoutPayload = {
       user_id: selectedTrader,
       month: selectedMonth,
       year: selectedYear,
@@ -362,17 +399,21 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     };
 
     if (existingRecord?.id) {
-      await supabase.from("payout_records").update(payload).eq("id", existingRecord.id);
+      await supabase.from("payout_records").update(payoutPayload).eq("id", existingRecord.id);
     } else {
-      await supabase.from("payout_records").insert(payload);
+      await supabase.from("payout_records").insert(payoutPayload);
     }
 
-    toast({ title: "Saved", description: "Payout record saved" });
+    toast({ title: "Saved", description: "All payout records saved successfully" });
     fetchPayoutData();
   };
 
+  const formatCurrency = (val: number, prefix = "$") =>
+    `${prefix}${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
     <div className="space-y-6">
+      {/* Selector */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -418,172 +459,257 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       {selectedTrader && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">
-              {traderName} — {MONTHS[selectedMonth - 1]} {selectedYear}
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span>{traderName} — {MONTHS[selectedMonth - 1]} {selectedYear}</span>
+              <Badge variant="outline" className="gap-1">
+                <TrendingUp className="h-3 w-3" />
+                {milestone.label} — STO {milestone.stoPercent}% / LTO {milestone.ltoPercent}%
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {loading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
-            ) : !traderConfig && trader2TradingData.length === 0 ? (
-              <div className="text-center py-8 text-destructive font-medium">
-                No Trader Config found for {traderName}. Please set up their payout percentage, software cost, and seat type in the <strong>Trader Config</strong> tab first.
-              </div>
             ) : tradingData.length === 0 && trader2TradingData.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No trading data found for {MONTHS[selectedMonth - 1]} {selectedYear}.
               </div>
             ) : (
               <>
-                {/* P&L Breakdown - only show if trader has primary trading data */}
-                {tradingData.length > 0 && traderConfig && (
-                  <>
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">P&L Breakdown (Primary Account)</h3>
-                      <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
-                        <span className="text-muted-foreground">Total P&L</span>
-                        <span className={`font-medium text-right ${calculations.totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          ${calculations.totalPnl.toFixed(2)}
-                        </span>
-                        <span className="text-muted-foreground">Share Charge ({calculations.totalShares.toLocaleString()} shares)</span>
-                        <span className="font-medium text-right text-orange-600">-${calculations.shareCharge.toFixed(2)}</span>
-                        <span className="text-muted-foreground">Software Cost</span>
-                        <span className="font-medium text-right text-orange-600 flex items-center justify-end gap-2">
-                          <Input type="number" className="w-24 text-right" step="0.01" value={softwareCostInput || ""}
-                            onChange={e => setSoftwareCostInput(Number(e.target.value))} placeholder="0" />
-                          <Button size="sm" variant="outline" onClick={handleSaveSoftwareCost} title="Save software cost">
-                            <Save className="h-3 w-3" />
-                          </Button>
-                        </span>
-                        <span className="text-muted-foreground font-semibold border-t pt-2">Gross Amount (Company)</span>
-                        <span className={`font-bold text-right border-t pt-2 ${calculations.grossAmount >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          ${calculations.grossAmount.toFixed(2)}
-                        </span>
-                        <span className="text-muted-foreground">Trader Payout %</span>
-                        <span className="font-medium text-right">{calculations.payoutPct}%</span>
-                        <span className="text-muted-foreground font-semibold">Trader's Share</span>
-                        <span className={`font-bold text-right ${calculations.tradersShare >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          ${calculations.tradersShare.toFixed(2)}
-                        </span>
+                {/* Milestone Progress */}
+                {nextMilestone && milestoneData && (
+                  <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" /> Milestone Progress → {nextMilestone.label}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Profit: {formatCurrency(Number(milestoneData.cumulative_net_profit))} / {formatCurrency(nextMilestone.profitRequired)}
+                        </p>
+                        <Progress
+                          value={Math.min(100, (Number(milestoneData.cumulative_net_profit) / nextMilestone.profitRequired) * 100)}
+                          className="h-2"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Time: {monthsBetween(new Date(milestoneData.account_start_date), new Date())}mo / {nextMilestone.monthsRequired}mo
+                        </p>
+                        <Progress
+                          value={Math.min(100, (monthsBetween(new Date(milestoneData.account_start_date), new Date()) / nextMilestone.monthsRequired) * 100)}
+                          className="h-2"
+                        />
                       </div>
                     </div>
-
-                    {/* Deductions */}
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Deductions</h3>
-                      <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
-                        <span className="text-muted-foreground">Attendance Deduction %</span>
-                        <span className="font-medium text-right text-red-600">{calculations.attendanceDeductionPct.toFixed(2)}%</span>
-                        <span className="text-muted-foreground">Attendance Deduction $</span>
-                        <span className="font-medium text-right text-red-600">-${calculations.attendanceDeduction.toFixed(2)}</span>
-                        <span className="text-muted-foreground">Extra Deduction</span>
-                        <span className="text-right">
-                          <Input type="number" className="w-24 inline text-right" value={extraDeduction || ""}
-                            onChange={e => setExtraDeduction(Number(e.target.value))} placeholder="0" />
-                        </span>
-                        <span className="text-muted-foreground font-semibold border-t pt-2">Total Deductions</span>
-                        <span className="font-bold text-right text-red-600 border-t pt-2">-${calculations.totalDeductions.toFixed(2)}</span>
-                      </div>
-                    </div>
-
-                    {/* Net Payout from primary */}
-                    <div className="border rounded-lg p-4 bg-primary/5">
-                      <div className="grid grid-cols-2 gap-y-2 text-sm">
-                        <span className="font-bold text-base">NET PAYOUT (Primary Account)</span>
-                        <span className={`font-bold text-right text-lg ${calculations.netPayout >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          ${calculations.netPayout.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Partner/Trainee Deductions from Primary Account */}
-                    {calculations.partnerDeductions.length > 0 && (
-                      <div className="space-y-2">
-                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                          {calculations.partnerDeductions.some(d => d.role.toLowerCase() === "partner") ? "Partner Share" : "Trainee Share"} Deductions
-                        </h3>
-                        <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
-                          {calculations.partnerDeductions.map((d, idx) => (
-                            <React.Fragment key={idx}>
-                              <span className="text-muted-foreground">
-                                {d.role.toLowerCase() === "partner" ? `Partner 50% of Gross` : `Trainee 25% of Net Payout`} — {d.name}
-                              </span>
-                              <span className="font-medium text-right text-orange-600">-${d.amount.toFixed(2)}</span>
-                            </React.Fragment>
-                          ))}
-                          <span className="text-muted-foreground font-semibold border-t pt-2">Total Deducted</span>
-                          <span className="font-bold text-right text-orange-600 border-t pt-2">-${calculations.totalPartnerDeduction.toFixed(2)}</span>
-                          <span className="text-muted-foreground font-semibold">Trader Keeps</span>
-                          <span className="font-bold text-right text-green-600">${calculations.traderKeepsFromPrimary.toFixed(2)}</span>
-                          {calculations.poolContribution > 0 && (
-                            <>
-                              <span className="text-muted-foreground text-xs italic">→ Trainee share added to Pool</span>
-                              <span className="text-right text-xs italic text-blue-600">${calculations.poolContribution.toFixed(2)}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </>
+                    <p className="text-xs text-muted-foreground">
+                      Next level: STO {nextMilestone.stoPercent}% / LTO {nextMilestone.ltoPercent}%
+                    </p>
+                  </div>
                 )}
 
-                {/* Trader2/Trainee Earnings from other accounts */}
-                {calculations.trader2Earnings.length > 0 && (
+                {/* P&L Breakdown */}
+                {tradingData.length > 0 && (
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                      Earnings as Partner/Trainee
-                    </h3>
-                    <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
-                      {calculations.trader2Earnings.map((earning, idx) => (
-                        <div key={idx} className="grid grid-cols-2 gap-y-1 text-sm">
-                          <span className="text-muted-foreground">From Account of</span>
-                          <span className="font-medium text-right">{earning.primaryTraderName}</span>
-                          <span className="text-muted-foreground">Account P&L</span>
-                          <span className={`font-medium text-right ${earning.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            ${earning.pnl.toFixed(2)}
-                          </span>
-                          <span className="text-muted-foreground">Role ({earning.role} — {earning.splitPct}%)</span>
-                          <span className="font-medium text-right">{earning.splitPct}%</span>
-                          <span className="text-muted-foreground font-semibold border-t pt-1">Earnings</span>
-                          <span className={`font-bold text-right border-t pt-1 ${earning.earnings >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            ${earning.earnings.toFixed(2)}
-                          </span>
-                          {idx < calculations.trader2Earnings.length - 1 && <div className="col-span-2 border-b my-1" />}
-                        </div>
-                      ))}
-                      {calculations.trader2Earnings.length > 0 && (
-                        <div className="flex justify-between items-center border-t pt-2">
-                          <span className="font-bold">Total Partner/Trainee Earnings</span>
-                          <span className={`font-bold ${calculations.trader2Total >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            ${calculations.trader2Total.toFixed(2)}
-                          </span>
-                        </div>
-                      )}
+                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">P&L Breakdown</h3>
+                    <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
+                      <span className="text-muted-foreground">Gross Profit (Total P&L)</span>
+                      <span className={`font-medium text-right ${calculations.totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {calculations.totalPnl >= 0 ? "" : "-"}{formatCurrency(calculations.totalPnl)}
+                      </span>
+                      <span className="text-muted-foreground">Share Cost ({calculations.totalShares.toLocaleString()} shares × $14/1000)</span>
+                      <span className="font-medium text-right text-orange-600">-{formatCurrency(calculations.shareCost)}</span>
+                      <span className="text-muted-foreground">Software Cost</span>
+                      <span className="font-medium text-right text-orange-600 flex items-center justify-end gap-2">
+                        <Input type="number" className="w-24 text-right" step="0.01" value={softwareCostInput || ""}
+                          onChange={e => setSoftwareCostInput(Number(e.target.value))} placeholder="0" />
+                        <Button size="sm" variant="outline" onClick={handleSaveSoftwareCost} title="Save">
+                          <Save className="h-3 w-3" />
+                        </Button>
+                      </span>
+                      <span className="text-muted-foreground font-semibold border-t pt-2">Net Trading Profit</span>
+                      <span className={`font-bold text-right border-t pt-2 ${calculations.netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {calculations.netProfit >= 0 ? "" : "-"}{formatCurrency(calculations.netProfit)}
+                      </span>
                     </div>
                   </div>
                 )}
 
-                {/* Combined Net Payout */}
-                {(calculations.trader2Earnings.length > 0 || (tradingData.length > 0 && traderConfig)) && (
-                  <div className="border-2 border-primary rounded-lg p-4 bg-primary/10">
-                    <div className="grid grid-cols-2 gap-y-2 text-sm">
-                      <span className="font-bold text-base">COMBINED NET PAYOUT</span>
-                      <span className={`font-bold text-right text-xl ${calculations.combinedNetPayout >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        ${calculations.combinedNetPayout.toFixed(2)}
+                {/* STO Calculation */}
+                {tradingData.length > 0 && calculations.netProfit > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                      <Clock className="h-4 w-4" /> STO (Short Term Output) — {calculations.stoPercent}%
+                    </h3>
+                    <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
+                      <span className="text-muted-foreground">STO Amount ({calculations.stoPercent}% of Net Profit)</span>
+                      <span className="font-medium text-right text-green-600">{formatCurrency(calculations.stoAmount)}</span>
+                      <span className="text-muted-foreground">Leave Deduction ({calculations.leaveDeductionPct.toFixed(1)}%)</span>
+                      <span className="font-medium text-right text-red-600">-{formatCurrency(calculations.leaveDeductionAmount)}</span>
+                      {calculations.traineePoolContribution > 0 && (
+                        <>
+                          <span className="text-muted-foreground">Trainee Pool (25% contribution)</span>
+                          <span className="font-medium text-right text-blue-600">-{formatCurrency(calculations.traineePoolContribution)}</span>
+                        </>
+                      )}
+                      {calculations.partnerDeductions.length > 0 && calculations.partnerDeductions.map((d, idx) => (
+                        <React.Fragment key={idx}>
+                          <span className="text-muted-foreground">Partner Share 50% — {d.name}</span>
+                          <span className="font-medium text-right text-orange-600">-{formatCurrency(d.amount)}</span>
+                        </React.Fragment>
+                      ))}
+                      <span className="text-muted-foreground font-semibold border-t pt-2">Final STO</span>
+                      <span className="font-bold text-right text-green-600 border-t pt-2">
+                        {formatCurrency(calculations.traderKeepsFromPrimary)}
                       </span>
+                      <span className="text-muted-foreground text-xs italic">Payout Date</span>
+                      <span className="text-right text-xs italic text-primary">
+                        {calculations.stoPayoutDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* LTO Calculation */}
+                {tradingData.length > 0 && calculations.ltoAmount > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                      <Lock className="h-4 w-4" /> LTO (Long Term Output) — {calculations.ltoPercent}%
+                    </h3>
+                    <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
+                      <span className="text-muted-foreground">LTO Amount ({calculations.ltoPercent}% of Net Profit)</span>
+                      <span className="font-medium text-right text-green-600">{formatCurrency(calculations.ltoAmount)}</span>
+                      <span className="text-muted-foreground text-xs italic">Unlock Date (12 months lock)</span>
+                      <span className="text-right text-xs italic text-primary">
+                        {calculations.ltoUnlockDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Partner Earnings */}
+                {calculations.trader2Earnings.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+                      Earnings as Partner
+                    </h3>
+                    <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                      {calculations.trader2Earnings.map((earning, idx) => (
+                        <div key={idx} className="grid grid-cols-2 gap-y-1 text-sm">
+                          <span className="text-muted-foreground">From: {earning.primaryTraderName}</span>
+                          <span className={`font-medium text-right ${earning.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            P&L: {formatCurrency(earning.pnl)}
+                          </span>
+                          <span className="text-muted-foreground">Role: {earning.role} ({earning.splitPct}%)</span>
+                          <span className={`font-bold text-right ${earning.earnings >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {formatCurrency(earning.earnings)}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center border-t pt-2">
+                        <span className="font-bold">Total Partner Earnings</span>
+                        <span className={`font-bold ${calculations.trader2Total >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {formatCurrency(calculations.trader2Total)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Combined Total */}
+                <div className="border-2 border-primary rounded-lg p-4 bg-primary/10">
+                  <div className="grid grid-cols-2 gap-y-2 text-sm">
+                    <span className="font-bold text-base">COMBINED STO PAYOUT (USD)</span>
+                    <span className={`font-bold text-right text-xl ${calculations.combinedFinalSto >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      {formatCurrency(calculations.combinedFinalSto)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* STO History */}
+                {stoHistory.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                      <Clock className="h-4 w-4" /> STO Payout Schedule
+                    </h3>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/50">
+                          <tr>
+                            <th className="text-left p-2">Period</th>
+                            <th className="text-right p-2">STO Amount</th>
+                            <th className="text-right p-2">Due Date</th>
+                            <th className="text-center p-2">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stoHistory.map((s: any) => (
+                            <tr key={s.id} className="border-t">
+                              <td className="p-2">{MONTHS[(s.month || 1) - 1]} {s.year}</td>
+                              <td className="p-2 text-right font-medium">{formatCurrency(Number(s.final_sto_amount))}</td>
+                              <td className="p-2 text-right text-muted-foreground">{s.payout_due_date}</td>
+                              <td className="p-2 text-center">
+                                <Badge variant={s.is_paid ? "default" : "secondary"} className="text-xs">
+                                  {s.is_paid ? "Paid" : "Pending"}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* LTO History */}
+                {ltoHistory.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                      <Lock className="h-4 w-4" /> LTO Lock Schedule
+                    </h3>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/50">
+                          <tr>
+                            <th className="text-left p-2">Period</th>
+                            <th className="text-right p-2">LTO Amount</th>
+                            <th className="text-right p-2">Unlock Date</th>
+                            <th className="text-center p-2">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ltoHistory.map((l: any) => {
+                            const isUnlocked = new Date(l.unlock_date) <= new Date();
+                            return (
+                              <tr key={l.id} className="border-t">
+                                <td className="p-2">{MONTHS[(l.month || 1) - 1]} {l.year}</td>
+                                <td className="p-2 text-right font-medium">{formatCurrency(Number(l.lto_amount))}</td>
+                                <td className="p-2 text-right text-muted-foreground">{l.unlock_date}</td>
+                                <td className="p-2 text-center">
+                                  <Badge variant={l.is_released ? "default" : isUnlocked ? "outline" : "secondary"} className="text-xs gap-1">
+                                    {l.is_released ? <><Unlock className="h-3 w-3" /> Released</> :
+                                      isUnlocked ? <><Unlock className="h-3 w-3" /> Unlocked</> :
+                                        <><Lock className="h-3 w-3" /> Locked</>}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
 
                 {/* INR Conversion & Settlement */}
                 {(() => {
-                  const finalUsd = calculations.combinedNetPayout;
+                  const finalUsd = calculations.combinedFinalSto;
                   const totalInr = finalUsd * inrRate;
                   return (
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>INR Conversion Rate</Label>
+                          <Label>USD → INR Rate</Label>
                           <Input type="number" step="0.01" value={inrRate}
                             onChange={e => setInrRate(Number(e.target.value))} />
                         </div>
@@ -596,13 +722,12 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
                       <div className="border rounded-lg p-5 bg-primary/5 space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground font-medium">Total Payout (INR)</span>
+                          <span className="text-muted-foreground font-medium">STO Payout (INR)</span>
                           <span className={`text-2xl font-bold ${totalInr >= 0 ? "text-green-600" : "text-red-600"}`}>
                             ₹{totalInr.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                           </span>
                         </div>
 
-                        {/* Payment Status */}
                         <div className="border-t pt-3 space-y-2">
                           <div className="flex items-center gap-6">
                             <label className="flex items-center gap-2 cursor-pointer">
@@ -614,14 +739,11 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                               <span className="text-sm font-medium">Online Paid</span>
                             </label>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {paidCash || paidOnline ? "✅ Marked as paid" : "⏳ Unpaid — check when payment is completed"}
-                          </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-y-2 text-sm border-t pt-3">
                           <span className="text-muted-foreground">(-) Monthly Salary</span>
-                          <span className="font-medium text-right text-orange-600">
+                          <span className="font-medium text-right">
                             <Input type="number" className="w-28 inline text-right" value={monthlySalaryInput || ""}
                               onChange={e => setMonthlySalaryInput(Number(e.target.value))} placeholder="0" />
                           </span>
@@ -651,7 +773,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                   <span>Trading Days: {calculations.tradingDays}</span>
                 </div>
 
-                <Button onClick={handleSavePayout} className="w-full gap-2">
+                <Button onClick={handleSaveAll} className="w-full gap-2">
                   <Save className="h-4 w-4" /> Save Payout Record
                 </Button>
               </>
