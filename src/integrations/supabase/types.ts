@@ -128,6 +128,81 @@ export type Database = {
         }
         Relationships: []
       }
+      lto_ledger: {
+        Row: {
+          created_at: string
+          id: string
+          is_released: boolean
+          lto_amount: number
+          lto_percentage: number
+          month: number
+          net_profit: number
+          released_at: string | null
+          unlock_date: string
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_released?: boolean
+          lto_amount?: number
+          lto_percentage?: number
+          month: number
+          net_profit?: number
+          released_at?: string | null
+          unlock_date: string
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_released?: boolean
+          lto_amount?: number
+          lto_percentage?: number
+          month?: number
+          net_profit?: number
+          released_at?: string | null
+          unlock_date?: string
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      monthly_exchange_rates: {
+        Row: {
+          created_at: string
+          id: string
+          month: number
+          set_by: string | null
+          updated_at: string
+          usd_to_inr: number
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: number
+          set_by?: string | null
+          updated_at?: string
+          usd_to_inr?: number
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: number
+          set_by?: string | null
+          updated_at?: string
+          usd_to_inr?: number
+          year?: number
+        }
+        Relationships: []
+      }
       monthly_leave_summary: {
         Row: {
           allowed_full_days: number
@@ -226,9 +301,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          assigned_trader_id: string | null
           birthdate: string | null
           created_at: string
           email: string
+          employee_role: string
           full_name: string
           id: string
           joining_date: string | null
@@ -237,9 +314,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_trader_id?: string | null
           birthdate?: string | null
           created_at?: string
           email: string
+          employee_role?: string
           full_name: string
           id?: string
           joining_date?: string | null
@@ -248,9 +327,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_trader_id?: string | null
           birthdate?: string | null
           created_at?: string
           email?: string
+          employee_role?: string
           full_name?: string
           id?: string
           joining_date?: string | null
@@ -290,6 +371,75 @@ export type Database = {
           id?: string
           month?: number
           notes?: string | null
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      sto_ledger: {
+        Row: {
+          created_at: string
+          final_sto_amount: number
+          gross_profit: number
+          id: string
+          is_paid: boolean
+          leave_deduction_amount: number
+          leave_deduction_percent: number
+          month: number
+          net_profit: number
+          paid_at: string | null
+          payout_due_date: string | null
+          share_cost: number
+          shares_traded: number
+          software_cost: number
+          sto_amount: number
+          sto_percentage: number
+          trainee_pool_contribution: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          final_sto_amount?: number
+          gross_profit?: number
+          id?: string
+          is_paid?: boolean
+          leave_deduction_amount?: number
+          leave_deduction_percent?: number
+          month: number
+          net_profit?: number
+          paid_at?: string | null
+          payout_due_date?: string | null
+          share_cost?: number
+          shares_traded?: number
+          software_cost?: number
+          sto_amount?: number
+          sto_percentage?: number
+          trainee_pool_contribution?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          final_sto_amount?: number
+          gross_profit?: number
+          id?: string
+          is_paid?: boolean
+          leave_deduction_amount?: number
+          leave_deduction_percent?: number
+          month?: number
+          net_profit?: number
+          paid_at?: string | null
+          payout_due_date?: string | null
+          share_cost?: number
+          shares_traded?: number
+          software_cost?: number
+          sto_amount?: number
+          sto_percentage?: number
+          trainee_pool_contribution?: number
           updated_at?: string
           user_id?: string
           year?: number
@@ -367,6 +517,39 @@ export type Database = {
           updated_at?: string
           user_id?: string
           year?: number
+        }
+        Relationships: []
+      }
+      trader_milestones: {
+        Row: {
+          account_start_date: string
+          created_at: string
+          cumulative_net_profit: number
+          current_level: number
+          id: string
+          last_evaluated_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_start_date: string
+          created_at?: string
+          cumulative_net_profit?: number
+          current_level?: number
+          id?: string
+          last_evaluated_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_start_date?: string
+          created_at?: string
+          cumulative_net_profit?: number
+          current_level?: number
+          id?: string
+          last_evaluated_at?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -455,6 +638,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      trainee_pool_ledger: {
+        Row: {
+          created_at: string
+          distributed_at: string | null
+          id: string
+          is_distributed: boolean
+          month: number
+          num_trainees: number
+          per_trainee_amount: number
+          total_pool_amount: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          distributed_at?: string | null
+          id?: string
+          is_distributed?: boolean
+          month: number
+          num_trainees?: number
+          per_trainee_amount?: number
+          total_pool_amount?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          distributed_at?: string | null
+          id?: string
+          is_distributed?: boolean
+          month?: number
+          num_trainees?: number
+          per_trainee_amount?: number
+          total_pool_amount?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
