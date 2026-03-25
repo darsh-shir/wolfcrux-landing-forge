@@ -1,16 +1,43 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
   TrendingUp, TrendingDown, Users, 
-  PiggyBank, ArrowUpRight, ArrowDownRight
+  PiggyBank, ArrowUpRight, ArrowDownRight,
+  Clock, Lock, Landmark
 } from "lucide-react";
 import { CompanyStats } from "./types";
 import { format, parseISO } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CompanyKPIsProps {
   stats: CompanyStats;
 }
 
 const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
+  const [stoPending, setStoPending] = useState(0);
+  const [ltoLocked, setLtoLocked] = useState(0);
+  const [traineePool, setTraineePool] = useState(0);
+
+  useEffect(() => {
+    fetchFinancialKPIs();
+  }, []);
+
+  const fetchFinancialKPIs = async () => {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+
+    const [stoRes, ltoRes, poolRes] = await Promise.all([
+      supabase.from("sto_ledger").select("final_sto_amount").eq("is_paid", false),
+      supabase.from("lto_ledger").select("lto_amount").eq("is_released", false),
+      supabase.from("trainee_pool_ledger").select("total_pool_amount").eq("month", month).eq("year", year).maybeSingle(),
+    ]);
+
+    if (stoRes.data) setStoPending(stoRes.data.reduce((s, r) => s + Number(r.final_sto_amount), 0));
+    if (ltoRes.data) setLtoLocked(ltoRes.data.reduce((s, r) => s + Number(r.lto_amount), 0));
+    if (poolRes.data) setTraineePool(Number(poolRes.data.total_pool_amount));
+  };
+
   const formatCurrency = (value: number) => {
     const absValue = Math.abs(value);
     if (absValue >= 1000000) {
@@ -63,20 +90,28 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
       bgColor: "bg-blue-500/10",
     },
     {
-      label: "Realized Profit",
-      value: formatCurrency(stats.totalRealizedProfit),
-      subLabel: "Total Gains",
-      icon: PiggyBank,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-500/10",
+      label: "STO Pending",
+      value: formatCurrency(stoPending),
+      subLabel: "Unpaid payouts",
+      icon: Clock,
+      color: "text-amber-600",
+      bgColor: "bg-amber-500/10",
     },
     {
-      label: "Realized Loss",
-      value: formatCurrency(stats.totalRealizedLoss),
-      subLabel: "Total Losses",
-      icon: TrendingDown,
-      color: "text-red-600",
-      bgColor: "bg-red-500/10",
+      label: "LTO Locked",
+      value: formatCurrency(ltoLocked),
+      subLabel: "12-month lock",
+      icon: Lock,
+      color: "text-blue-600",
+      bgColor: "bg-blue-500/10",
+    },
+    {
+      label: "Trainee Pool",
+      value: formatCurrency(traineePool),
+      subLabel: "This month",
+      icon: Landmark,
+      color: "text-purple-600",
+      bgColor: "bg-purple-500/10",
     },
     {
       label: "Best Day",

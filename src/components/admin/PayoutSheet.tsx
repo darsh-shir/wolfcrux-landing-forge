@@ -375,9 +375,11 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       }
     }
 
-    // Update milestone cumulative profit
+    // Update milestone cumulative profit (avoid double-counting on re-save)
     if (milestoneData) {
-      const newCumulative = Number(milestoneData.cumulative_net_profit) + calculations.netProfit;
+      const previousNetProfit = existingSto ? Number(existingSto.net_profit) : 0;
+      const delta = calculations.netProfit - previousNetProfit;
+      const newCumulative = Number(milestoneData.cumulative_net_profit) + delta;
       await supabase.from("trader_milestones")
         .update({ cumulative_net_profit: newCumulative, current_level: milestone.level })
         .eq("id", milestoneData.id);
