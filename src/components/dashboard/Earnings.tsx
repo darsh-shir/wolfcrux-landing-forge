@@ -91,8 +91,7 @@ const Earnings = () => {
     }
   }, [peerCache]);
 
-  const handleToggle = useCallback((key: string, symbol: string, hasSummary: boolean) => {
-    if (!hasSummary) return;
+  const handleToggle = useCallback((key: string, symbol: string) => {
     if (expandedSymbol === key) {
       setExpandedSymbol(null);
     } else {
@@ -288,7 +287,7 @@ const Earnings = () => {
               >
                 <div
                   className="flex items-center justify-between px-3 py-3 cursor-pointer"
-                  onClick={() => handleToggle(`${e.symbol}-${i}`, e.symbol, !!hasSummary)}
+                  onClick={() => handleToggle(`${e.symbol}-${i}`, e.symbol)}
                 >
                 <div className="flex items-center gap-3">
                   {e.image ? (
@@ -325,22 +324,22 @@ const Earnings = () => {
                       ? `${(e.marketCap / 1_000_000_000).toFixed(1)}B`
                       : "—"}
                   </div>
-                  {hasSummary && (
-                    isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  )}
+                  {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                 </div>
                 </div>
 
-                {isExpanded && hasSummary && (
+                {isExpanded && (
                   <div className="px-4 pb-3 pt-0">
-                    <ul className="space-y-1 text-xs text-muted-foreground border-t pt-2">
-                      {e.summary!.map((point, j) => (
-                        <li key={j} className="flex items-start gap-2">
-                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {hasSummary && (
+                      <ul className="space-y-1 text-xs text-muted-foreground border-t pt-2">
+                        {e.summary!.map((point, j) => (
+                          <li key={j} className="flex items-start gap-2">
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
 
                     {/* Peers */}
                     <div className="mt-3 pt-2 border-t">
@@ -403,7 +402,7 @@ const Earnings = () => {
                       >
                         <div
                           className="flex items-center justify-between px-3 py-3 cursor-pointer"
-                          onClick={() => handleToggle(key, e.symbol, !!hasSummary)}
+                          onClick={() => handleToggle(key, e.symbol)}
                         >
                         <div className="flex items-center gap-3">
                           {e.image ? (
@@ -438,22 +437,22 @@ const Earnings = () => {
                               ? `${(e.marketCap / 1_000_000_000).toFixed(1)}B`
                               : "—"}
                           </div>
-                          {hasSummary && (
-                            isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                          )}
+                          {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                         </div>
                         </div>
 
-                        {isExpanded && hasSummary && (
+                        {isExpanded && (
                           <div className="px-4 pb-3 pt-0">
-                            <ul className="space-y-1 text-xs text-muted-foreground border-t pt-2">
-                              {e.summary!.map((point, j) => (
-                                <li key={j} className="flex items-start gap-2">
-                                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                                  <span>{point}</span>
-                                </li>
-                              ))}
-                            </ul>
+                            {hasSummary && (
+                              <ul className="space-y-1 text-xs text-muted-foreground border-t pt-2">
+                                {e.summary!.map((point, j) => (
+                                  <li key={j} className="flex items-start gap-2">
+                                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                    <span>{point}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
 
                             {/* Peers */}
                             <div className="mt-3 pt-2 border-t">
