@@ -339,7 +339,7 @@ const Earnings = () => {
                           </li>
                         ))}
                       </ul>
-                    )
+                    )}
 
                     {/* Peers */}
                     <div className="mt-3 pt-2 border-t">
