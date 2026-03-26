@@ -324,9 +324,7 @@ const Earnings = () => {
                       ? `${(e.marketCap / 1_000_000_000).toFixed(1)}B`
                       : "—"}
                   </div>
-                  {hasSummary && (
-                    isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  )}
+                  {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                 </div>
                 </div>
 
