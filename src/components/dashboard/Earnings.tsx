@@ -91,8 +91,7 @@ const Earnings = () => {
     }
   }, [peerCache]);
 
-  const handleToggle = useCallback((key: string, symbol: string, hasSummary: boolean) => {
-    if (!hasSummary) return;
+  const handleToggle = useCallback((key: string, symbol: string) => {
     if (expandedSymbol === key) {
       setExpandedSymbol(null);
     } else {
