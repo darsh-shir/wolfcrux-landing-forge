@@ -100,6 +100,8 @@ const Earnings = () => {
       fetchPeers(symbol);
     }
   }, [expandedSymbol, fetchPeers]);
+
+  const fetchEarnings = async () => {
     try {
       setLoading(true);
 
