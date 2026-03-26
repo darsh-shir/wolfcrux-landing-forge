@@ -1,8 +1,17 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 
 const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+
+interface PeerData {
+  symbol: string;
+  name: string;
+  price: number;
+  changesPercentage: number;
+  marketCap: number;
+  image?: string;
+}
 
 interface EarningsItem {
   symbol: string;
@@ -62,6 +71,35 @@ const Earnings = () => {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [sortMode, setSortMode] = useState<"marketcap" | "time">("marketcap");
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
+  const [peerCache, setPeerCache] = useState<Record<string, PeerData[]>>({});
+  const [peerLoading, setPeerLoading] = useState<Record<string, boolean>>({});
+
+  const fetchPeers = useCallback(async (sym: string) => {
+    if (peerCache[sym]) return;
+    setPeerLoading(prev => ({ ...prev, [sym]: true }));
+    try {
+      const res = await fetch(`${PROXY}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/peers/${sym}?version=2.18&source=default`)}`);
+      const data = await res.json();
+      const items: PeerData[] = (Array.isArray(data) ? data : [])
+        .sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0))
+        .slice(0, 8);
+      setPeerCache(prev => ({ ...prev, [sym]: items }));
+    } catch {
+      setPeerCache(prev => ({ ...prev, [sym]: [] }));
+    } finally {
+      setPeerLoading(prev => ({ ...prev, [sym]: false }));
+    }
+  }, [peerCache]);
+
+  const handleToggle = useCallback((key: string, symbol: string, hasSummary: boolean) => {
+    if (!hasSummary) return;
+    if (expandedSymbol === key) {
+      setExpandedSymbol(null);
+    } else {
+      setExpandedSymbol(key);
+      fetchPeers(symbol);
+    }
+  }, [expandedSymbol, fetchPeers]);
 
   const fetchEarnings = async () => {
     try {
@@ -250,7 +288,7 @@ const Earnings = () => {
               >
                 <div
                   className="flex items-center justify-between px-3 py-3 cursor-pointer"
-                  onClick={() => hasSummary && setExpandedSymbol(isExpanded ? null : `${e.symbol}-${i}`)}
+                  onClick={() => handleToggle(`${e.symbol}-${i}`, e.symbol, !!hasSummary)}
                 >
                 <div className="flex items-center gap-3">
                   {e.image ? (
@@ -303,6 +341,34 @@ const Earnings = () => {
                         </li>
                       ))}
                     </ul>
+
+                    {/* Peers */}
+                    <div className="mt-3 pt-2 border-t">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Peers</p>
+                      {peerLoading[e.symbol] ? (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Loading peers...
+                        </div>
+                      ) : (peerCache[e.symbol] || []).length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {peerCache[e.symbol].map((p) => (
+                            <div key={p.symbol} className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border bg-muted/40 hover:bg-muted/70 transition-colors text-xs">
+                              {p.image && (
+                                <img src={p.image} className="w-4 h-4 rounded object-contain" alt={p.symbol}
+                                  onError={(ev) => ((ev.target as HTMLImageElement).style.display = "none")} />
+                              )}
+                              <span className="font-medium">{p.symbol}</span>
+                              <span className={`flex items-center gap-0.5 ${p.changesPercentage >= 0 ? "text-green-600" : "text-red-500"}`}>
+                                {p.changesPercentage >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                {Math.abs(p.changesPercentage).toFixed(1)}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">No peers found</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -337,7 +403,7 @@ const Earnings = () => {
                       >
                         <div
                           className="flex items-center justify-between px-3 py-3 cursor-pointer"
-                          onClick={() => hasSummary && setExpandedSymbol(isExpanded ? null : key)}
+                          onClick={() => handleToggle(key, e.symbol, !!hasSummary)}
                         >
                         <div className="flex items-center gap-3">
                           {e.image ? (
@@ -388,6 +454,34 @@ const Earnings = () => {
                                 </li>
                               ))}
                             </ul>
+
+                            {/* Peers */}
+                            <div className="mt-3 pt-2 border-t">
+                              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Peers</p>
+                              {peerLoading[e.symbol] ? (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <Loader2 className="w-3 h-3 animate-spin" /> Loading peers...
+                                </div>
+                              ) : (peerCache[e.symbol] || []).length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {peerCache[e.symbol].map((p) => (
+                                    <div key={p.symbol} className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border bg-muted/40 hover:bg-muted/70 transition-colors text-xs">
+                                      {p.image && (
+                                        <img src={p.image} className="w-4 h-4 rounded object-contain" alt={p.symbol}
+                                          onError={(ev) => ((ev.target as HTMLImageElement).style.display = "none")} />
+                                      )}
+                                      <span className="font-medium">{p.symbol}</span>
+                                      <span className={`flex items-center gap-0.5 ${p.changesPercentage >= 0 ? "text-green-600" : "text-red-500"}`}>
+                                        {p.changesPercentage >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                        {Math.abs(p.changesPercentage).toFixed(1)}%
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">No peers found</p>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
