@@ -328,16 +328,18 @@ const Earnings = () => {
                 </div>
                 </div>
 
-                {isExpanded && hasSummary && (
+                {isExpanded && (
                   <div className="px-4 pb-3 pt-0">
-                    <ul className="space-y-1 text-xs text-muted-foreground border-t pt-2">
-                      {e.summary!.map((point, j) => (
-                        <li key={j} className="flex items-start gap-2">
-                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {hasSummary && (
+                      <ul className="space-y-1 text-xs text-muted-foreground border-t pt-2">
+                        {e.summary!.map((point, j) => (
+                          <li key={j} className="flex items-start gap-2">
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )
 
                     {/* Peers */}
                     <div className="mt-3 pt-2 border-t">
