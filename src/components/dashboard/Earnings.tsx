@@ -71,8 +71,35 @@ const Earnings = () => {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [sortMode, setSortMode] = useState<"marketcap" | "time">("marketcap");
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
+  const [peerCache, setPeerCache] = useState<Record<string, PeerData[]>>({});
+  const [peerLoading, setPeerLoading] = useState<Record<string, boolean>>({});
 
-  const fetchEarnings = async () => {
+  const fetchPeers = useCallback(async (sym: string) => {
+    if (peerCache[sym]) return;
+    setPeerLoading(prev => ({ ...prev, [sym]: true }));
+    try {
+      const res = await fetch(`${PROXY}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/peers/${sym}?version=2.18&source=default`)}`);
+      const data = await res.json();
+      const items: PeerData[] = (Array.isArray(data) ? data : [])
+        .sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0))
+        .slice(0, 8);
+      setPeerCache(prev => ({ ...prev, [sym]: items }));
+    } catch {
+      setPeerCache(prev => ({ ...prev, [sym]: [] }));
+    } finally {
+      setPeerLoading(prev => ({ ...prev, [sym]: false }));
+    }
+  }, [peerCache]);
+
+  const handleToggle = useCallback((key: string, symbol: string, hasSummary: boolean) => {
+    if (!hasSummary) return;
+    if (expandedSymbol === key) {
+      setExpandedSymbol(null);
+    } else {
+      setExpandedSymbol(key);
+      fetchPeers(symbol);
+    }
+  }, [expandedSymbol, fetchPeers]);
     try {
       setLoading(true);
 
