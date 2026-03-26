@@ -403,7 +403,7 @@ const Earnings = () => {
                       >
                         <div
                           className="flex items-center justify-between px-3 py-3 cursor-pointer"
-                          onClick={() => hasSummary && setExpandedSymbol(isExpanded ? null : key)}
+                          onClick={() => handleToggle(key, e.symbol, !!hasSummary)}
                         >
                         <div className="flex items-center gap-3">
                           {e.image ? (
