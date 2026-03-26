@@ -1,8 +1,17 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 
 const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+
+interface PeerData {
+  symbol: string;
+  name: string;
+  price: number;
+  changesPercentage: number;
+  marketCap: number;
+  image?: string;
+}
 
 interface EarningsItem {
   symbol: string;
