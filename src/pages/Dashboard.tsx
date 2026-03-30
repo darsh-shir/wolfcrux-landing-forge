@@ -357,7 +357,7 @@ const Dashboard = () => {
             </TabsContent>
 
             {/* ================= PEERS TAB ================= */}
-            <TabsContent value="peers" className="mt-6">
+            <TabsContent value="peers" className="mt-6" forceMount style={{ display: activeTab === "peers" ? undefined : "none" }}>
               <Peers />
             </TabsContent>
           </Tabs>
