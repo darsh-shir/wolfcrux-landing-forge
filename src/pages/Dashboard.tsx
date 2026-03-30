@@ -342,7 +342,7 @@ const Dashboard = () => {
             </TabsContent>
 
             {/* ================= MARKET NEWS TAB ================= */}
-            <TabsContent value="news" className="mt-6">
+            <TabsContent value="news" className="mt-6" forceMount style={{ display: activeTab === "news" ? undefined : "none" }}>
               <MarketNews data={{ posts: newsPosts }} loading={loadingNews} />
             </TabsContent>
 
