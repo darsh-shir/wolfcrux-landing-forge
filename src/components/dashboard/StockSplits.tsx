@@ -178,7 +178,7 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
 
       <CardContent>
         {fullSortedAscending.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No upcoming stock splits</p>
+          <p className="text-sm text-muted-foreground text-left py-8">No upcoming stock splits</p>
         ) : (
           <div className="space-y-3">
             {fullSortedAscending.map((split, idx) => {
