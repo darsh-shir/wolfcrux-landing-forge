@@ -347,7 +347,7 @@ const Dashboard = () => {
             </TabsContent>
 
             {/* ================= FULL STOCK SPLITS TAB ================= */}
-            <TabsContent value="splits" className="mt-6">
+            <TabsContent value="splits" className="mt-6" forceMount style={{ display: activeTab === "splits" ? undefined : "none" }}>
               <StockSplits />
             </TabsContent>
 
