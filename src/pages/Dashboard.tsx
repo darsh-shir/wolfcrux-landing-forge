@@ -313,7 +313,7 @@ const Dashboard = () => {
             </TabsList>
 
             {/* ================= OVERVIEW TAB ================= */}
-            <TabsContent value="overview" className="space-y-6" forceMount style={{ display: activeTab === "overview" ? undefined : "none" }}>
+            <TabsContent value="overview" className="space-y-6">
               <IndexCards
                 data={indices}
                 loading={loadingIndices}
