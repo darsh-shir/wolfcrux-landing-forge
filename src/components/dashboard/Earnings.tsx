@@ -442,7 +442,7 @@ const Earnings = () => {
                         </div>
 
                         {isExpanded && (
-                          <div className="px-4 pb-3 pt-0">
+                          <div className="px-4 pb-3 pt-0 min-h-[60px]">
                             {hasSummary && (
                               <ul className="space-y-1 text-xs text-muted-foreground border-t pt-2">
                                 {e.summary!.map((point, j) => (
