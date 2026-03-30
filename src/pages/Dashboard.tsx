@@ -352,7 +352,7 @@ const Dashboard = () => {
             </TabsContent>
 
             {/* ================= EARNINGS TAB ================= */}
-            <TabsContent value="earnings" className="mt-6" forceMount style={{ display: activeTab === "earnings" ? undefined : "none" }}>
+            <TabsContent value="earnings" className="mt-6">
               <Earnings />
             </TabsContent>
 
