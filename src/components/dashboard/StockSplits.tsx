@@ -112,7 +112,7 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
   /* ================= LOADING PLACEHOLDER ================= */
   if (loading && splits.length === 0) {
     return (
-      <Card className="bg-card border border-border/50 shadow-sm h-full">
+      <Card className="bg-card border border-border/50 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Scissors className="w-4 h-4" />
@@ -168,7 +168,7 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
 
   /* ================= FULL SPLIT TAB (all, ascending by date) ================= */
   return (
-    <Card className="bg-card border border-border/50 shadow-sm h-full">
+    <Card className="bg-card border border-border/50 shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Scissors className="w-4 h-4" />
@@ -178,7 +178,7 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
 
       <CardContent>
         {fullSortedAscending.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No upcoming stock splits</p>
+          <p className="text-sm text-muted-foreground text-left py-8">No upcoming stock splits</p>
         ) : (
           <div className="space-y-3">
             {fullSortedAscending.map((split, idx) => {

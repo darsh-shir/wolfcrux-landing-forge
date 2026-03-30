@@ -313,7 +313,7 @@ const Dashboard = () => {
             </TabsList>
 
             {/* ================= OVERVIEW TAB ================= */}
-            <TabsContent value="overview" className="space-y-6" forceMount style={{ display: activeTab === "overview" ? undefined : "none" }}>
+            <TabsContent value="overview" className="space-y-6">
               <IndexCards
                 data={indices}
                 loading={loadingIndices}
@@ -342,22 +342,22 @@ const Dashboard = () => {
             </TabsContent>
 
             {/* ================= MARKET NEWS TAB ================= */}
-            <TabsContent value="news" className="mt-6" forceMount style={{ display: activeTab === "news" ? undefined : "none" }}>
+            <TabsContent value="news" className="mt-6">
               <MarketNews data={{ posts: newsPosts }} loading={loadingNews} />
             </TabsContent>
 
             {/* ================= FULL STOCK SPLITS TAB ================= */}
-            <TabsContent value="splits" className="mt-6" forceMount style={{ display: activeTab === "splits" ? undefined : "none" }}>
+            <TabsContent value="splits" className="mt-6">
               <StockSplits />
             </TabsContent>
 
             {/* ================= EARNINGS TAB ================= */}
-            <TabsContent value="earnings" className="mt-6" forceMount style={{ display: activeTab === "earnings" ? undefined : "none" }}>
+            <TabsContent value="earnings" className="mt-6">
               <Earnings />
             </TabsContent>
 
             {/* ================= PEERS TAB ================= */}
-            <TabsContent value="peers" className="mt-6" forceMount style={{ display: activeTab === "peers" ? undefined : "none" }}>
+            <TabsContent value="peers" className="mt-6">
               <Peers />
             </TabsContent>
           </Tabs>

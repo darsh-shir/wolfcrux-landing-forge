@@ -178,7 +178,7 @@ const Peers = () => {
 
       {/* Loading */}
       {loading && (
-        <div className="flex justify-center py-12">
+        <div className="flex justify-start py-12 pl-4">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       )}
