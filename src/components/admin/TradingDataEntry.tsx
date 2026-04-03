@@ -362,9 +362,9 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
     setIsSubmitting(true);
 
     try {
-      const t2 = trader2 ? trader2 : null;
-      const t2role = t2 ? trader2Role : null;
-      const t2att = t2 ? trader2Attendance : "present";
+      const t2 = trader2Role === "partner" && trader2 ? trader2 : null;
+      const t2role = trader2Role;
+      const t2att = trader2Attendance;
 
       if (isEditMode && existingEntries.length > 0) {
         if (account1 && existingEntries[0]) {
