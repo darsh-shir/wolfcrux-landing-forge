@@ -3,13 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell } from "recharts";
-import { Landmark, Users, Save } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { formatIndian, formatCurrencyINR } from "@/lib/utils";
+import { Landmark, Users } from "lucide-react";
+import { formatIndian } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -33,12 +31,10 @@ const currentYear = currentDate.getFullYear();
 const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
 const PoolView = ({ users }: PoolViewProps) => {
-  const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [tradingData, setTradingData] = useState<any[]>([]);
   const [traderConfigs, setTraderConfigs] = useState<any[]>([]);
-  const [poolLedger, setPoolLedger] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -48,25 +44,21 @@ const PoolView = ({ users }: PoolViewProps) => {
   const fetchData = async () => {
     setLoading(true);
 
-    // Build date range for the selected month
     const startDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
     const endMonth = selectedMonth === 12 ? 1 : selectedMonth + 1;
     const endYear = selectedMonth === 12 ? selectedYear + 1 : selectedYear;
     const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
 
-    const [tdRes, configRes, poolRes] = await Promise.all([
+    const [tdRes, configRes] = await Promise.all([
       supabase.from("trading_data").select("*")
         .gte("trade_date", startDate)
         .lt("trade_date", endDate),
       supabase.from("trader_config").select("*")
         .eq("month", selectedMonth).eq("year", selectedYear),
-      supabase.from("trainee_pool_ledger").select("*")
-        .eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
     ]);
 
     if (tdRes.data) setTradingData(tdRes.data);
     if (configRes.data) setTraderConfigs(configRes.data);
-    if (poolRes.data) setPoolLedger(poolRes.data);
     setLoading(false);
   };
 
@@ -94,7 +86,7 @@ const PoolView = ({ users }: PoolViewProps) => {
       traderMap.set(td.user_id, existing);
     });
 
-    // Step 3: Calculate net profit and 25% pool contribution
+    // Step 3: Calculate net profit, then STO using payout%, then 25% pool
     const contributions: Array<{
       userId: string;
       traderName: string;
@@ -103,6 +95,8 @@ const PoolView = ({ users }: PoolViewProps) => {
       shareCost: number;
       softwareCost: number;
       netProfit: number;
+      payoutPercent: number;
+      stoAmount: number;
       poolContribution: number;
     }> = [];
 
@@ -112,10 +106,12 @@ const PoolView = ({ users }: PoolViewProps) => {
 
       const config = traderConfigs.find(c => c.user_id === userId);
       const softwareCost = config ? Number(config.software_cost) : 0;
+      const payoutPercent = config ? Number(config.payout_percentage) : 0;
       const shareCost = (data.totalShares / 1000) * 14;
       const netProfit = data.totalPnl - shareCost - softwareCost;
 
-      if (netProfit > 0) {
+      if (netProfit > 0 && payoutPercent > 0) {
+        const stoAmount = netProfit * (payoutPercent / 100);
         contributions.push({
           userId,
           traderName: profile.full_name,
@@ -124,7 +120,9 @@ const PoolView = ({ users }: PoolViewProps) => {
           shareCost,
           softwareCost,
           netProfit,
-          poolContribution: netProfit * 0.25,
+          payoutPercent,
+          stoAmount,
+          poolContribution: stoAmount * 0.25,
         });
       }
     });
@@ -140,7 +138,6 @@ const PoolView = ({ users }: PoolViewProps) => {
     const numTrainees = trainees.length;
     const perTrainee = numTrainees > 0 ? totalPool / numTrainees : 0;
 
-    // List of exempt traders for display
     const exemptTraders = [...partnerExemptSet].map(uid => {
       const p = users.find(u => u.user_id === uid);
       return p?.full_name || "Unknown";
@@ -148,25 +145,6 @@ const PoolView = ({ users }: PoolViewProps) => {
 
     return { contributions, totalPool, numTrainees, perTrainee, exemptTraders };
   }, [tradingData, traderConfigs, users, trainees]);
-
-  const handleSavePoolLedger = async () => {
-    const payload = {
-      month: selectedMonth,
-      year: selectedYear,
-      total_pool_amount: poolData.totalPool,
-      num_trainees: poolData.numTrainees,
-      per_trainee_amount: poolData.perTrainee,
-    };
-
-    if (poolLedger?.id) {
-      await supabase.from("trainee_pool_ledger").update(payload).eq("id", poolLedger.id);
-    } else {
-      await supabase.from("trainee_pool_ledger").insert(payload);
-    }
-
-    toast({ title: "Saved", description: "Pool ledger saved successfully" });
-    fetchData();
-  };
 
   const chartData = poolData.contributions
     .filter(c => c.poolContribution > 0)
@@ -281,9 +259,9 @@ const PoolView = ({ users }: PoolViewProps) => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Trader</TableHead>
-                      <TableHead className="text-right">Gross PnL</TableHead>
-                      <TableHead className="text-right">Share Cost</TableHead>
                       <TableHead className="text-right">Net Profit</TableHead>
+                      <TableHead className="text-right">Payout %</TableHead>
+                      <TableHead className="text-right">STO</TableHead>
                       <TableHead className="text-right">Pool (25%)</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -291,9 +269,9 @@ const PoolView = ({ users }: PoolViewProps) => {
                     {poolData.contributions.map(c => (
                       <TableRow key={c.userId}>
                         <TableCell className="font-medium">{c.traderName}</TableCell>
-                        <TableCell className="text-right">${formatIndian(c.grossPnl, 2)}</TableCell>
-                        <TableCell className="text-right">${formatIndian(c.shareCost, 2)}</TableCell>
                         <TableCell className="text-right">${formatIndian(c.netProfit, 2)}</TableCell>
+                        <TableCell className="text-right">{c.payoutPercent}%</TableCell>
+                        <TableCell className="text-right">${formatIndian(c.stoAmount, 2)}</TableCell>
                         <TableCell className="text-right font-semibold text-primary">
                           ${formatIndian(c.poolContribution, 2)}
                         </TableCell>
@@ -308,11 +286,6 @@ const PoolView = ({ users }: PoolViewProps) => {
                   </TableBody>
                 </Table>
               </div>
-            )}
-            {poolData.contributions.length > 0 && (
-              <Button onClick={handleSavePoolLedger} className="w-full mt-4 gap-2">
-                <Save className="h-4 w-4" /> Save Pool Ledger
-              </Button>
             )}
           </CardContent>
         </Card>
@@ -358,14 +331,6 @@ const PoolView = ({ users }: PoolViewProps) => {
                     <span className="font-medium text-green-600">${formatIndian(poolData.perTrainee, 2)}</span>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {poolLedger && (
-              <div className="mt-4 p-3 rounded-lg bg-muted/30 border text-center">
-                <Badge variant={poolLedger.is_distributed ? "default" : "secondary"}>
-                  {poolLedger.is_distributed ? "Distributed" : "Pending Distribution"}
-                </Badge>
               </div>
             )}
           </CardContent>

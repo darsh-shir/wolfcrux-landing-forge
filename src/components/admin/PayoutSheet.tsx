@@ -214,11 +214,11 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const leaveDeductionAmount = stoAmount * (leaveDeductionPct / 100);
     const stoAfterLeave = stoAmount - leaveDeductionAmount;
 
-    // Trainee pool: check if trader has a trainee
-    const hasTrainee = tradingData.some((t: any) =>
-      t.trader2_id && t.trader2_role?.toLowerCase() === "trainee"
+    // Trainee pool: only traders WITHOUT a partner pay 25% pool
+    const hasPartner = tradingData.some((t: any) =>
+      t.trader2_role?.toLowerCase() === "partner"
     );
-    const traineePoolContribution = hasTrainee ? stoAfterLeave * 0.25 : 0;
+    const traineePoolContribution = !hasPartner && stoAfterLeave > 0 ? stoAfterLeave * 0.25 : 0;
     const finalStoAmount = stoAfterLeave - traineePoolContribution;
 
     // Partner deductions (for partner role - 50% of gross)
