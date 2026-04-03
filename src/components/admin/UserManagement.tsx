@@ -399,7 +399,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                         {user.employee_role === "trader" ? "Trader" : "Trainee"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{getAssignedTraderName(user.assigned_trader_id)}</TableCell>
                     <TableCell>{user.joining_date || "—"}</TableCell>
                     <TableCell>
                       <Badge variant={getUserRole(user.user_id) === "admin" ? "default" : "outline"}>
