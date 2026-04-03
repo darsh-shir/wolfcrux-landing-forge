@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 
 interface DailySummary {
   date: string;
