@@ -74,8 +74,7 @@ const MonthlyPnlBreakdown = ({ dailySummary }: MonthlyPnlBreakdownProps) => {
 
   if (monthlyData.length === 0) return null;
 
-  const fmt = (v: number) =>
-    `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (v: number) => formatCurrencyINR(v);
 
   return (
     <Card>
