@@ -39,7 +39,7 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
     if (poolRes.data) setTraineePool(Number(poolRes.data.total_pool_amount));
   };
 
-  const formatCurrency = formatCurrencyCompact;
+  const formatCurrency = (v: number) => formatCurrencyCompact(v);
 
   const kpis = [
     {

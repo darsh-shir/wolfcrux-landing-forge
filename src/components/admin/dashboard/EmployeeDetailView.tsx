@@ -20,7 +20,7 @@ interface EmployeeDetailViewProps {
 }
 
 const EmployeeDetailView = ({ employee, dailyPnL, onClose }: EmployeeDetailViewProps) => {
-  const formatCurrency = formatCurrencyCompact;
+  const formatCurrency = (v: number) => formatCurrencyCompact(v);
 
   const formatXAxis = (value: string) => {
     return format(parseISO(value), "MMM d");
