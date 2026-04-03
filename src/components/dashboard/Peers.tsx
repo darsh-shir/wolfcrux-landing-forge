@@ -1,3 +1,4 @@
+import { formatIndian } from "@/lib/utils";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,7 @@ const formatMarketCap = (cap: number): string => {
   if (cap >= 1e12) return `$${(cap / 1e12).toFixed(2)}T`;
   if (cap >= 1e9) return `$${(cap / 1e9).toFixed(2)}B`;
   if (cap >= 1e6) return `$${(cap / 1e6).toFixed(2)}M`;
-  return `$${cap.toLocaleString()}`;
+  return `$${formatIndian(cap)}`;
 };
 
 const formatEmployees = (val: string): string => {
@@ -258,11 +259,11 @@ const Peers = () => {
                   </div>
                   <div>
                     <span className="text-muted-foreground block text-xs">Volume</span>
-                    <span className="font-medium font-mono">{quote.volume.toLocaleString()}</span>
+                    <span className="font-medium font-mono">{formatIndian(quote.volume)}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block text-xs">Avg Volume</span>
-                    <span className="font-medium font-mono">{quote.avgVolume.toLocaleString()}</span>
+                    <span className="font-medium font-mono">{formatIndian(quote.avgVolume)}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block text-xs">P/E</span>
