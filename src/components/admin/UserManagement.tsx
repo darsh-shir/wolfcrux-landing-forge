@@ -379,7 +379,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Employee Role</TableHead>
-                  <TableHead>Assigned To</TableHead>
                   <TableHead>Joining Date</TableHead>
                   <TableHead>System Role</TableHead>
                   <TableHead>Actions</TableHead>
