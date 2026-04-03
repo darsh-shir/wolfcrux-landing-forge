@@ -146,8 +146,32 @@ const PoolView = ({ users }: PoolViewProps) => {
 
     return { contributions, totalPool, numTrainees, perTrainee, exemptTraders };
   }, [tradingData, traderConfigs, users, trainees]);
+  // Auto-save pool ledger to DB whenever it recalculates
+  const lastSavedRef = useRef("");
+  useEffect(() => {
+    const key = `${selectedMonth}-${selectedYear}-${poolData.totalPool.toFixed(2)}`;
+    if (key === lastSavedRef.current || loading) return;
+    lastSavedRef.current = key;
 
-  const chartData = poolData.contributions
+    const savePool = async () => {
+      const payload = {
+        month: selectedMonth,
+        year: selectedYear,
+        total_pool_amount: poolData.totalPool,
+        num_trainees: poolData.numTrainees,
+        per_trainee_amount: poolData.perTrainee,
+      };
+      const { data: existing } = await supabase.from("trainee_pool_ledger")
+        .select("id").eq("month", selectedMonth).eq("year", selectedYear).maybeSingle();
+      if (existing?.id) {
+        await supabase.from("trainee_pool_ledger").update(payload).eq("id", existing.id);
+      } else {
+        await supabase.from("trainee_pool_ledger").insert(payload);
+      }
+    };
+    savePool();
+  }, [poolData, selectedMonth, selectedYear, loading]);
+
     .filter(c => c.poolContribution > 0)
     .map((c, i) => ({
       name: c.traderName,
