@@ -9,6 +9,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { PieChart, Pie, Cell } from "recharts";
 import { Landmark, Users, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatIndian, formatCurrencyINR } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -16,6 +17,7 @@ interface Profile {
   full_name: string;
   email: string;
   employee_role?: string;
+  trader_number?: string;
 }
 
 interface PoolViewProps {
@@ -34,7 +36,8 @@ const PoolView = ({ users }: PoolViewProps) => {
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [stoRecords, setStoRecords] = useState<any[]>([]);
+  const [tradingData, setTradingData] = useState<any[]>([]);
+  const [traderConfigs, setTraderConfigs] = useState<any[]>([]);
   const [poolLedger, setPoolLedger] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -45,14 +48,24 @@ const PoolView = ({ users }: PoolViewProps) => {
   const fetchData = async () => {
     setLoading(true);
 
-    const [stoRes, poolRes] = await Promise.all([
-      supabase.from("sto_ledger").select("*")
+    // Build date range for the selected month
+    const startDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+    const endMonth = selectedMonth === 12 ? 1 : selectedMonth + 1;
+    const endYear = selectedMonth === 12 ? selectedYear + 1 : selectedYear;
+    const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
+
+    const [tdRes, configRes, poolRes] = await Promise.all([
+      supabase.from("trading_data").select("*")
+        .gte("trade_date", startDate)
+        .lt("trade_date", endDate),
+      supabase.from("trader_config").select("*")
         .eq("month", selectedMonth).eq("year", selectedYear),
       supabase.from("trainee_pool_ledger").select("*")
         .eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
     ]);
 
-    if (stoRes.data) setStoRecords(stoRes.data);
+    if (tdRes.data) setTradingData(tdRes.data);
+    if (configRes.data) setTraderConfigs(configRes.data);
     if (poolRes.data) setPoolLedger(poolRes.data);
     setLoading(false);
   };
@@ -60,27 +73,81 @@ const PoolView = ({ users }: PoolViewProps) => {
   const trainees = users.filter(u => u.employee_role === "trainee");
 
   const poolData = useMemo(() => {
-    // Get all STO records that have trainee_pool_contribution > 0
-    const contributions = stoRecords
-      .filter(s => Number(s.trainee_pool_contribution) > 0)
-      .map(s => {
-        const trader = users.find(u => u.user_id === s.user_id);
-        return {
-          userId: s.user_id,
-          traderName: trader?.full_name || "Unknown",
-          netProfit: Number(s.net_profit),
-          stoAmount: Number(s.sto_amount),
-          finalSto: Number(s.final_sto_amount),
-          poolContribution: Number(s.trainee_pool_contribution),
-        };
-      });
+    // Step 1: Find all partner pairs (exempt from pool)
+    const partnerExemptSet = new Set<string>();
+    tradingData.forEach(td => {
+      if (td.trader2_role?.toLowerCase() === "partner") {
+        partnerExemptSet.add(td.user_id);
+        if (td.trader2_id) partnerExemptSet.add(td.trader2_id);
+      }
+    });
+
+    // Step 2: Aggregate per trader (non-partner traders only)
+    const traderMap = new Map<string, { totalPnl: number; totalShares: number }>();
+    
+    tradingData.forEach(td => {
+      if (partnerExemptSet.has(td.user_id)) return;
+      
+      const existing = traderMap.get(td.user_id) || { totalPnl: 0, totalShares: 0 };
+      existing.totalPnl += Number(td.net_pnl) || 0;
+      existing.totalShares += Number(td.shares_traded) || 0;
+      traderMap.set(td.user_id, existing);
+    });
+
+    // Step 3: Calculate net profit and 25% pool contribution
+    const contributions: Array<{
+      userId: string;
+      traderName: string;
+      traderNumber: string;
+      grossPnl: number;
+      shareCost: number;
+      softwareCost: number;
+      netProfit: number;
+      poolContribution: number;
+    }> = [];
+
+    traderMap.forEach((data, userId) => {
+      const profile = users.find(u => u.user_id === userId);
+      if (!profile) return;
+
+      const config = traderConfigs.find(c => c.user_id === userId);
+      const softwareCost = config ? Number(config.software_cost) : 0;
+      const shareCost = (data.totalShares / 1000) * 14;
+      const netProfit = data.totalPnl - shareCost - softwareCost;
+
+      if (netProfit > 0) {
+        contributions.push({
+          userId,
+          traderName: profile.full_name,
+          traderNumber: profile.trader_number || "",
+          grossPnl: data.totalPnl,
+          shareCost,
+          softwareCost,
+          netProfit,
+          poolContribution: netProfit * 0.25,
+        });
+      }
+    });
+
+    // Sort by trader number
+    contributions.sort((a, b) => {
+      const numA = parseInt(a.traderNumber.replace(/\D/g, "")) || 999;
+      const numB = parseInt(b.traderNumber.replace(/\D/g, "")) || 999;
+      return numA - numB;
+    });
 
     const totalPool = contributions.reduce((sum, c) => sum + c.poolContribution, 0);
     const numTrainees = trainees.length;
     const perTrainee = numTrainees > 0 ? totalPool / numTrainees : 0;
 
-    return { contributions, totalPool, numTrainees, perTrainee };
-  }, [stoRecords, users, trainees]);
+    // List of exempt traders for display
+    const exemptTraders = [...partnerExemptSet].map(uid => {
+      const p = users.find(u => u.user_id === uid);
+      return p?.full_name || "Unknown";
+    });
+
+    return { contributions, totalPool, numTrainees, perTrainee, exemptTraders };
+  }, [tradingData, traderConfigs, users, trainees]);
 
   const handleSavePoolLedger = async () => {
     const payload = {
@@ -150,7 +217,7 @@ const PoolView = ({ users }: PoolViewProps) => {
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Total Pool</p>
             <p className="text-2xl font-bold text-primary">
-              ${poolData.totalPool.toFixed(2)}
+              ${formatIndian(poolData.totalPool, 2)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               From {poolData.contributions.length} trader(s)
@@ -170,12 +237,26 @@ const PoolView = ({ users }: PoolViewProps) => {
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Per Trainee</p>
             <p className="text-2xl font-bold text-green-600">
-              ${poolData.perTrainee.toFixed(2)}
+              ${formatIndian(poolData.perTrainee, 2)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">Equal distribution</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Exempt Partners Info */}
+      {poolData.exemptTraders.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm font-medium text-muted-foreground mb-2">Partner Pairs — Exempt from Pool</p>
+            <div className="flex flex-wrap gap-2">
+              {poolData.exemptTraders.map((name, i) => (
+                <Badge key={i} variant="secondary">{name}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -192,16 +273,17 @@ const PoolView = ({ users }: PoolViewProps) => {
               </div>
             ) : poolData.contributions.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">
-                No pool contributions for this month. STO records with trainee pool deductions will appear here.
+                No pool contributions for this month.
               </p>
             ) : (
-              <div className="rounded-md border">
+              <div className="rounded-md border overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Trader</TableHead>
+                      <TableHead className="text-right">Gross PnL</TableHead>
+                      <TableHead className="text-right">Share Cost</TableHead>
                       <TableHead className="text-right">Net Profit</TableHead>
-                      <TableHead className="text-right">STO Amount</TableHead>
                       <TableHead className="text-right">Pool (25%)</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -209,17 +291,18 @@ const PoolView = ({ users }: PoolViewProps) => {
                     {poolData.contributions.map(c => (
                       <TableRow key={c.userId}>
                         <TableCell className="font-medium">{c.traderName}</TableCell>
-                        <TableCell className="text-right">${c.netProfit.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">${c.stoAmount.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">${formatIndian(c.grossPnl, 2)}</TableCell>
+                        <TableCell className="text-right">${formatIndian(c.shareCost, 2)}</TableCell>
+                        <TableCell className="text-right">${formatIndian(c.netProfit, 2)}</TableCell>
                         <TableCell className="text-right font-semibold text-primary">
-                          ${c.poolContribution.toFixed(2)}
+                          ${formatIndian(c.poolContribution, 2)}
                         </TableCell>
                       </TableRow>
                     ))}
                     <TableRow className="bg-muted/50 font-bold">
-                      <TableCell colSpan={3} className="text-right">Total Pool</TableCell>
+                      <TableCell colSpan={4} className="text-right">Total Pool</TableCell>
                       <TableCell className="text-right text-primary">
-                        ${poolData.totalPool.toFixed(2)}
+                        ${formatIndian(poolData.totalPool, 2)}
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -253,7 +336,7 @@ const PoolView = ({ users }: PoolViewProps) => {
                     paddingAngle={3}
                     dataKey="value"
                     nameKey="name"
-                    label={({ name, value }) => `${name}: $${value}`}
+                    label={({ name, value }) => `${name}: $${formatIndian(value, 0)}`}
                     labelLine
                   >
                     {chartData.map((entry, index) => (
@@ -272,7 +355,7 @@ const PoolView = ({ users }: PoolViewProps) => {
                 {trainees.map(t => (
                   <div key={t.user_id} className="flex justify-between items-center text-sm">
                     <span>{t.full_name}</span>
-                    <span className="font-medium text-green-600">${poolData.perTrainee.toFixed(2)}</span>
+                    <span className="font-medium text-green-600">${formatIndian(poolData.perTrainee, 2)}</span>
                   </div>
                 ))}
               </div>
