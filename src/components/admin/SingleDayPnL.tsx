@@ -188,7 +188,7 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
               <div className="flex items-center gap-2">
                 {companyPnl >= 0 ? <TrendingUp className="h-5 w-5 text-green-600" /> : <TrendingDown className="h-5 w-5 text-red-600" />}
                 <p className={cn("text-2xl font-bold", companyPnl >= 0 ? "text-green-600" : "text-red-600")}>
-                  ${companyPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  {formatCurrencyINR(companyPnl)}
                 </p>
               </div>
             </div>
@@ -277,10 +277,10 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
                           <TableCell className="text-center">{group.entries.length}</TableCell>
                           <TableCell className="text-right">
                             <span className={cn("font-semibold", group.totalPnl >= 0 ? "text-green-600" : "text-red-600")}>
-                              ${group.totalPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                              {formatCurrencyINR(group.totalPnl)}
                             </span>
                           </TableCell>
-                          <TableCell className="text-right">{group.totalShares.toLocaleString()}</TableCell>
+                          <TableCell className="text-right">{formatIndian(group.totalShares)}</TableCell>
                         </TableRow>
                         {isExpanded &&
                           group.entries.map((entry) => {
@@ -318,7 +318,7 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
                                     />
                                   ) : (
                                     <span className={cn("text-sm", Number(entry.net_pnl) >= 0 ? "text-green-600" : "text-red-600")}>
-                                      ${Number(entry.net_pnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                      {formatCurrencyINR(Number(entry.net_pnl))}
                                     </span>
                                   )}
                                 </TableCell>
@@ -348,7 +348,7 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
                                       </>
                                     ) : (
                                       <>
-                                        <span className="text-sm">{entry.shares_traded.toLocaleString()}</span>
+                                        <span className="text-sm">{formatIndian(entry.shares_traded)}</span>
                                         <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); startEditing(entry); }}>
                                           Edit
                                         </Button>

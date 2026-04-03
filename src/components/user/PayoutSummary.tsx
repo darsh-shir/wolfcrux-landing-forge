@@ -61,7 +61,7 @@ const PayoutSummary = () => {
   const totalLtoUnlocked = ltoHistory.filter(l => !l.is_released && new Date(l.unlock_date) <= new Date())
     .reduce((sum, l) => sum + Number(l.lto_amount), 0);
 
-  const fmt = (val: number) => `$${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (val: number) => formatCurrencyINR(val);
 
   if (loading) {
     return <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />)}</div>;

@@ -403,7 +403,7 @@ const MyData = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Gross P&L</p>
                         <p className={`text-2xl font-bold ${totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          ${totalPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          {formatCurrencyINR(totalPnl)}
                         </p>
                       </div>
                     </div>
@@ -419,7 +419,7 @@ const MyData = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Brokerage</p>
                         <p className="text-2xl font-bold text-orange-600">
-                          -${totalBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          -{formatCurrencyINR(totalBrokerage)}
                         </p>
                       </div>
                     </div>
@@ -439,7 +439,7 @@ const MyData = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Net P&L</p>
                         <p className={`text-2xl font-bold ${netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          ${netAfterBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          {formatCurrencyINR(netAfterBrokerage)}
                         </p>
                       </div>
                     </div>

@@ -1,3 +1,4 @@
+import { formatCurrencyINR } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -100,7 +101,7 @@ const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
   }, [calendarDays, pnlMap]);
 
   const fmt = (v: number) =>
-    `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    formatCurrencyINR(v);
 
   return (
     <Card>
