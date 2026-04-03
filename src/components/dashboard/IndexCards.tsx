@@ -1,3 +1,4 @@
+import { formatIndian } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
@@ -198,10 +199,7 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
 
                 {/* Price */}
                 <p className="text-2xl font-bold text-foreground mt-2">
-                  {index.price.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                  {formatIndian(index.price, 2)}
                 </p>
               </CardContent>
             </Card>
