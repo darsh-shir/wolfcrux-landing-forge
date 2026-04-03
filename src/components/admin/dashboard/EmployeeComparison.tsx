@@ -75,7 +75,7 @@ const EmployeeComparison = ({ employees, getEmployeeDailyPnL }: EmployeeComparis
     return format(parseISO(value), "MMM d");
   };
 
-  const formatCurrency = formatCurrencyCompact;
+  const formatCurrency = (v: number) => formatCurrencyCompact(v);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;

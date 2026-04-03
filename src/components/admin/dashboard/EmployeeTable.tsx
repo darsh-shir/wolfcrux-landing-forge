@@ -26,7 +26,7 @@ const EmployeeTable = ({ employees, onSelectEmployee }: EmployeeTableProps) => {
   const [statusFilter, setStatusFilter] = useState<"all" | "Active" | "Inactive">("all");
   const [performanceFilter, setPerformanceFilter] = useState<"all" | "profit" | "loss">("all");
 
-  const formatCurrency = formatCurrencyCompact;
+  const formatCurrency = (v: number) => formatCurrencyCompact(v);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
