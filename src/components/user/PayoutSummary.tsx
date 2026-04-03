@@ -280,7 +280,7 @@ const PayoutSummary = () => {
                   STO {m.stoPercent}% / LTO {m.ltoPercent}%
                   {m.level > 0 && (
                     <span className="ml-2">
-                      ({m.monthsRequired}mo or {`$${m.profitRequired.toLocaleString()}`})
+                      ({m.monthsRequired}mo or {`$${formatIndian(m.profitRequired)}`})
                     </span>
                   )}
                 </div>

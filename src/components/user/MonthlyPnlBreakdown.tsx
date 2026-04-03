@@ -140,7 +140,7 @@ const MonthlyPnlBreakdown = ({ dailySummary }: MonthlyPnlBreakdownProps) => {
                     {fmt(m.worstDay)}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {m.totalShares.toLocaleString()}
+                    {formatIndian(m.totalShares)}
                   </TableCell>
                 </TableRow>
               ))}
