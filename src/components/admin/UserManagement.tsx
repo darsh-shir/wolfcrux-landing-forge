@@ -385,7 +385,11 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {[...users].sort((a, b) => {
+                  const numA = parseInt((a.trader_number || "999999").replace(/\D/g, "")) || 999999;
+                  const numB = parseInt((b.trader_number || "999999").replace(/\D/g, "")) || 999999;
+                  return numA - numB;
+                }).map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-mono text-sm">{user.trader_number || "—"}</TableCell>
                     <TableCell className="font-medium">{user.full_name}</TableCell>
