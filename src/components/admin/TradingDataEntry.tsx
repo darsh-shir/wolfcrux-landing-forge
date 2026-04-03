@@ -556,72 +556,48 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
           </div>
 
           <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Label className="text-base font-semibold">
-                Trader 2 {traderConfig?.seat_type === "With Trainee" ? "(Trainee)" : traderConfig?.seat_type === "With Partner" ? "(Partner)" : "(Optional)"}
-              </Label>
-              {seatInfo && (
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${seatInfo.color}`}>
-                  {seatInfo.label}
-                </span>
-              )}
+            <Label className="text-base font-semibold">Trader 2</Label>
+            <div className="space-y-1">
+              <Label className="text-sm">Role</Label>
+              <RadioGroup value={trader2Role} onValueChange={(v) => {
+                setTrader2Role(v as "partner" | "trainee");
+                if (v === "trainee") {
+                  setTrader2("");
+                }
+              }} className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="trainee" id="role-trainee" />
+                  <Label htmlFor="role-trainee" className="text-sm font-normal cursor-pointer">Trainee (25% of payout)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="partner" id="role-partner" />
+                  <Label htmlFor="role-partner" className="text-sm font-normal cursor-pointer">Partner (50% split)</Label>
+                </div>
+              </RadioGroup>
             </div>
-            {seatInfo && (
-              <p className="text-xs text-muted-foreground">{seatInfo.detail}</p>
-            )}
-            <div className="flex gap-2">
-              <div className="flex-1">
+            {trader2Role === "partner" && (
+              <div className="space-y-1">
+                <Label className="text-sm">Select Partner</Label>
                 <TraderCombobox
                   users={users}
                   value={trader2}
                   onValueChange={setTrader2}
                   disabledUserId={trader1}
-                  placeholder={traderConfig?.seat_type === "With Trainee" ? "Select Trainee" : traderConfig?.seat_type === "With Partner" ? "Select Partner" : "Select Trader 2"}
+                  placeholder="Select Partner"
                 />
               </div>
-              {trader2 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setTrader2("");
-                    setTrader2Role("trainee");
-                  }}
-                  className="shrink-0"
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
-            {trader2 && trader2 !== "none" && (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-sm">Role</Label>
-                  <RadioGroup value={trader2Role} onValueChange={(v) => setTrader2Role(v as "partner" | "trainee")} className="flex gap-4">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="partner" id="role-partner" />
-                      <Label htmlFor="role-partner" className="text-sm font-normal cursor-pointer">Partner (50% split)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="trainee" id="role-trainee" />
-                      <Label htmlFor="role-trainee" className="text-sm font-normal cursor-pointer">Trainee (25% of payout)</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm">Attendance</Label>
-                  <Select value={trader2Attendance} onValueChange={setTrader2Attendance}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ATTENDANCE_OPTIONS.map(o => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
             )}
+            <div className="space-y-1">
+              <Label className="text-sm">Trader 2 Attendance</Label>
+              <Select value={trader2Attendance} onValueChange={setTrader2Attendance}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ATTENDANCE_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
