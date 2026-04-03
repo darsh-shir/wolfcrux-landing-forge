@@ -12,6 +12,7 @@ import {
   Cell
 } from "recharts";
 import { format, parseISO } from "date-fns";
+import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 
 interface DailySummary {
   date: string;
@@ -139,9 +140,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
     );
   }
 
-  const formatCurrency = (value: number) => {
-    return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
+  const formatCurrency = (value: number) => formatCurrencyINR(value);
 
   return (
     <div className="space-y-6">
@@ -326,7 +325,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
                     tick={{ fontSize: 11 }}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                    tickFormatter={(v) => `$${formatIndian(v)}`}
                   />
                   <Tooltip 
                     content={({ active, payload }) => {
@@ -378,7 +377,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
                     tick={{ fontSize: 11 }}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(v) => `$${v.toLocaleString()}`}
+                    tickFormatter={(v) => `$${formatIndian(v)}`}
                   />
                   <Tooltip 
                     content={({ active, payload }) => {

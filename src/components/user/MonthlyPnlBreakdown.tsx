@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 
 interface DailySummary {
   date: string;
@@ -73,8 +74,7 @@ const MonthlyPnlBreakdown = ({ dailySummary }: MonthlyPnlBreakdownProps) => {
 
   if (monthlyData.length === 0) return null;
 
-  const fmt = (v: number) =>
-    `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (v: number) => formatCurrencyINR(v);
 
   return (
     <Card>
@@ -140,7 +140,7 @@ const MonthlyPnlBreakdown = ({ dailySummary }: MonthlyPnlBreakdownProps) => {
                     {fmt(m.worstDay)}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {m.totalShares.toLocaleString()}
+                    {formatIndian(m.totalShares)}
                   </TableCell>
                 </TableRow>
               ))}

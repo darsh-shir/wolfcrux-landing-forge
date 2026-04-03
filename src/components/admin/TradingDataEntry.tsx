@@ -1,3 +1,4 @@
+import { formatIndian } from "@/lib/utils";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -680,7 +681,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
                   ${summary.totalPnl.toFixed(2)}
                 </span>
                 <span className="text-muted-foreground">Total Shares:</span>
-                <span className="font-medium">{summary.totalShares.toLocaleString()}</span>
+                <span className="font-medium">{formatIndian(summary.totalShares)}</span>
                 <span className="text-muted-foreground">Brokerage ($14/1000 shares):</span>
                 <span className="font-medium text-orange-600">-${summary.brokerage.toFixed(2)}</span>
                 <span className="text-muted-foreground font-semibold">Net After Brokerage:</span>

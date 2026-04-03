@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { EmployeeStats, DailyPnL } from "./types";
 import { format, parseISO } from "date-fns";
+import { formatCurrencyCompact } from "@/lib/utils";
 
 interface EmployeeDetailViewProps {
   employee: EmployeeStats;
@@ -19,13 +20,7 @@ interface EmployeeDetailViewProps {
 }
 
 const EmployeeDetailView = ({ employee, dailyPnL, onClose }: EmployeeDetailViewProps) => {
-  const formatCurrency = (value: number) => {
-    const absValue = Math.abs(value);
-    if (absValue >= 1000) {
-      return `$${(value / 1000).toFixed(1)}K`;
-    }
-    return `$${value.toFixed(0)}`;
-  };
+  const formatCurrency = (v: number) => formatCurrencyCompact(v);
 
   const formatXAxis = (value: string) => {
     return format(parseISO(value), "MMM d");

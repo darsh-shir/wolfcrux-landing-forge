@@ -1,3 +1,4 @@
+import { formatCurrencyCompact } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,12 +75,7 @@ const EmployeeComparison = ({ employees, getEmployeeDailyPnL }: EmployeeComparis
     return format(parseISO(value), "MMM d");
   };
 
-  const formatCurrency = (value: number) => {
-    if (Math.abs(value) >= 1000) {
-      return `$${(value / 1000).toFixed(0)}K`;
-    }
-    return `$${value.toFixed(0)}`;
-  };
+  const formatCurrency = (v: number) => formatCurrencyCompact(v);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;

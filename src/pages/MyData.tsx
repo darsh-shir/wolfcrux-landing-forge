@@ -403,7 +403,7 @@ const MyData = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Gross P&L</p>
                         <p className={`text-2xl font-bold ${totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          ${totalPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          {formatCurrencyINR(totalPnl)}
                         </p>
                       </div>
                     </div>
@@ -419,7 +419,7 @@ const MyData = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Brokerage</p>
                         <p className="text-2xl font-bold text-orange-600">
-                          -${totalBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          -{formatCurrencyINR(totalBrokerage)}
                         </p>
                       </div>
                     </div>
@@ -439,7 +439,7 @@ const MyData = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Net P&L</p>
                         <p className={`text-2xl font-bold ${netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          ${netAfterBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          {formatCurrencyINR(netAfterBrokerage)}
                         </p>
                       </div>
                     </div>
@@ -454,7 +454,7 @@ const MyData = () => {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Shares Traded</p>
-                        <p className="text-2xl font-bold">{totalShares.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">{formatIndian(totalShares)}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -526,16 +526,16 @@ const MyData = () => {
                                     </div>
                                   </TableCell>
                                   <TableCell className={`text-right font-semibold ${day.combinedPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                                    ${day.combinedPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                    {formatCurrencyINR(day.combinedPnl)}
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    {day.totalShares.toLocaleString()}
+                                    {formatIndian(day.totalShares)}
                                   </TableCell>
                                   <TableCell className="text-right text-orange-600">
-                                    -${day.brokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                    -{formatCurrencyINR(day.brokerage)}
                                   </TableCell>
                                   <TableCell className={`text-right font-bold ${day.netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
-                                    ${day.netAfterBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                    {formatCurrencyINR(day.netAfterBrokerage)}
                                   </TableCell>
                                 </TableRow>
                                 {isExpanded && day.entries.map((entry) => {
@@ -550,16 +550,16 @@ const MyData = () => {
                                         </Badge>
                                       </TableCell>
                                       <TableCell className={`text-right text-sm ${Number(entry.net_pnl) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                                        ${Number(entry.net_pnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                        {formatCurrencyINR(Number(entry.net_pnl))}
                                       </TableCell>
                                       <TableCell className="text-right text-sm">
-                                        {entry.shares_traded.toLocaleString()}
+                                        {formatIndian(entry.shares_traded)}
                                       </TableCell>
                                       <TableCell className="text-right text-sm text-orange-600">
-                                        -${entryBrokerage.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                        -{formatCurrencyINR(entryBrokerage)}
                                       </TableCell>
                                       <TableCell className={`text-right text-sm font-semibold ${entryNet >= 0 ? "text-green-600" : "text-red-600"}`}>
-                                        ${entryNet.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                        {formatCurrencyINR(entryNet)}
                                       </TableCell>
                                     </TableRow>
                                   );

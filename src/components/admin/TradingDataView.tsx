@@ -1,3 +1,4 @@
+import { formatIndian, formatCurrencyINR } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -250,11 +251,11 @@ const TradingDataView = ({ users, accounts, tradingData, onRefresh, filterByTrad
                     <div>
                       <h3 className="font-semibold">{label}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {data.length} entries | Total Shares: {totalShares.toLocaleString()}
+                        {data.length} entries | Total Shares: {formatIndian(totalShares)}
                       </p>
                     </div>
                     <div className={`text-lg font-bold ${totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      ${totalPnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      {formatCurrencyINR(totalPnl)}
                     </div>
                   </div>
                   <Table>
@@ -284,9 +285,9 @@ const TradingDataView = ({ users, accounts, tradingData, onRefresh, filterByTrad
                             <TableCell>{getUserName(trade.user_id)}</TableCell>
                           )}
                           <TableCell className={`text-right font-semibold ${Number(trade.net_pnl) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            ${Number(trade.net_pnl).toLocaleString()}
+                            {formatCurrencyINR(Number(trade.net_pnl))}
                           </TableCell>
-                          <TableCell className="text-right">{trade.shares_traded.toLocaleString()}</TableCell>
+                          <TableCell className="text-right">{formatIndian(trade.shares_traded)}</TableCell>
                           <TableCell>
                             {trade.is_holiday ? "Holiday" : "Trading"}
                           </TableCell>

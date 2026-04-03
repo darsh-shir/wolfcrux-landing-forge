@@ -21,6 +21,7 @@ import {
   getLTOUnlockDate,
   monthsBetween,
 } from "@/lib/payoutCalculations";
+import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -411,7 +412,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   };
 
   const formatCurrency = (val: number, prefix = "$") =>
-    `${prefix}${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    formatCurrencyINR(val, prefix);
 
   return (
     <div className="space-y-6">
@@ -519,7 +520,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                       <span className={`font-medium text-right ${calculations.totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                         {calculations.totalPnl >= 0 ? "" : "-"}{formatCurrency(calculations.totalPnl)}
                       </span>
-                      <span className="text-muted-foreground">Share Cost ({calculations.totalShares.toLocaleString()} shares × $14/1000)</span>
+                      <span className="text-muted-foreground">Share Cost ({formatIndian(calculations.totalShares)} shares × $14/1000)</span>
                       <span className="font-medium text-right text-orange-600">-{formatCurrency(calculations.shareCost)}</span>
                       <span className="text-muted-foreground">Software Cost</span>
                       <span className="font-medium text-right text-orange-600 flex items-center justify-end gap-2">
@@ -726,7 +727,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                         <div className="flex justify-between items-center">
                           <span className="text-muted-foreground font-medium">STO Payout (INR)</span>
                           <span className={`text-2xl font-bold ${totalInr >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            ₹{totalInr.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            ₹{formatIndian(totalInr, 2)}
                           </span>
                         </div>
 
@@ -763,7 +764,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                         <div className="flex justify-between items-center border-t pt-3">
                           <span className="font-bold text-base">Outstanding Amount</span>
                           <span className={`text-xl font-bold ${(totalInr - monthlySalaryInput - cashPaidInput - bankPaidInput) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            ₹{(totalInr - monthlySalaryInput - cashPaidInput - bankPaidInput).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            ₹{formatIndian(totalInr - monthlySalaryInput - cashPaidInput - bankPaidInput, 2)}
                           </span>
                         </div>
                       </div>

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Building2 } from "lucide-react";
+import { formatIndian } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -150,7 +151,7 @@ const DeskCost = ({ users }: DeskCostProps) => {
                           onChange={e => handleFieldChange(user.user_id, "total_paid", Number(e.target.value))} />
                       </TableCell>
                       <TableCell className={`font-semibold ${pending > 0 ? "text-destructive" : "text-primary"}`}>
-                        ₹{pending.toLocaleString()}
+                        ₹{formatIndian(pending)}
                       </TableCell>
                       <TableCell>
                         <Input className="w-28" value={row.notes || ""}
@@ -175,10 +176,10 @@ const DeskCost = ({ users }: DeskCostProps) => {
                   return (
                     <TableRow className="bg-muted/50 font-bold border-t-2">
                       <TableCell>Total</TableCell>
-                      <TableCell>₹{totals.cost.toLocaleString()}</TableCell>
-                      <TableCell>₹{totals.paid.toLocaleString()}</TableCell>
+                      <TableCell>₹{formatIndian(totals.cost)}</TableCell>
+                      <TableCell>₹{formatIndian(totals.paid)}</TableCell>
                       <TableCell className={totalPending > 0 ? "text-destructive" : "text-primary"}>
-                        ₹{totalPending.toLocaleString()}
+                        ₹{formatIndian(totalPending)}
                       </TableCell>
                       <TableCell></TableCell>
                       <TableCell></TableCell>

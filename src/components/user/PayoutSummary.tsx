@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, Clock, Lock, Unlock, Target } from "lucide-react";
+import { formatIndian } from "@/lib/utils";
 import {
   MILESTONES,
   getMilestoneLevel,
@@ -60,7 +61,7 @@ const PayoutSummary = () => {
   const totalLtoUnlocked = ltoHistory.filter(l => !l.is_released && new Date(l.unlock_date) <= new Date())
     .reduce((sum, l) => sum + Number(l.lto_amount), 0);
 
-  const fmt = (val: number) => `$${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (val: number) => formatCurrencyINR(val);
 
   if (loading) {
     return <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />)}</div>;
@@ -279,7 +280,7 @@ const PayoutSummary = () => {
                   STO {m.stoPercent}% / LTO {m.ltoPercent}%
                   {m.level > 0 && (
                     <span className="ml-2">
-                      ({m.monthsRequired}mo or {`$${m.profitRequired.toLocaleString()}`})
+                      ({m.monthsRequired}mo or {`$${formatIndian(m.profitRequired)}`})
                     </span>
                   )}
                 </div>

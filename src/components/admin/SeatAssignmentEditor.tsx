@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Loader2, Filter } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { formatIndian } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -328,7 +329,7 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
                                 {format(parseISO(dg.trade_date), "dd MMM")}
                               </TableCell>
                               <TableCell className={dg.total_pnl >= 0 ? "text-green-500" : "text-red-500"}>
-                                ${dg.total_pnl.toLocaleString()}
+                                ${formatIndian(dg.total_pnl)}
                               </TableCell>
                               <TableCell>
                                 <Select
