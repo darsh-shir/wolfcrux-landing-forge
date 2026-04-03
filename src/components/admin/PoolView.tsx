@@ -172,6 +172,7 @@ const PoolView = ({ users }: PoolViewProps) => {
     savePool();
   }, [poolData, selectedMonth, selectedYear, loading]);
 
+  const chartData = poolData.contributions
     .filter(c => c.poolContribution > 0)
     .map((c, i) => ({
       name: c.traderName,
