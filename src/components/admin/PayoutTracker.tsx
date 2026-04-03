@@ -1,3 +1,4 @@
+import { formatIndian } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -132,10 +133,10 @@ const PayoutTracker = ({ users }: PayoutTrackerProps) => {
                 {employeeSummary.map(emp => (
                   <TableRow key={emp.userId}>
                     <TableCell className="font-medium">{emp.name}</TableCell>
-                    <TableCell>₹{emp.totalOwed.toLocaleString()}</TableCell>
-                    <TableCell className="text-green-600">₹{emp.totalPaid.toLocaleString()}</TableCell>
+                    <TableCell>₹{formatIndian(emp.totalOwed)}</TableCell>
+                    <TableCell className="text-green-600">₹{formatIndian(emp.totalPaid)}</TableCell>
                     <TableCell className={emp.unpaid > 0 ? "text-red-600 font-semibold" : "text-muted-foreground"}>
-                      ₹{emp.unpaid.toLocaleString()}
+                      ₹{formatIndian(emp.unpaid)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -200,12 +201,12 @@ const PayoutTracker = ({ users }: PayoutTrackerProps) => {
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{getUserName(r.user_id)}</TableCell>
                       <TableCell>{MONTHS[r.month - 1]} {r.year}</TableCell>
-                      <TableCell>₹{Number(r.salary).toLocaleString()}</TableCell>
-                      <TableCell>₹{Number(r.cash_component).toLocaleString()}</TableCell>
-                      <TableCell>₹{Number(r.bank_transfer).toLocaleString()}</TableCell>
-                      <TableCell>₹{Number(r.advance_cash).toLocaleString()}</TableCell>
-                      <TableCell>₹{Number(r.advance_bank).toLocaleString()}</TableCell>
-                      <TableCell className="font-semibold text-primary">₹{getTotal(r).toLocaleString()}</TableCell>
+                      <TableCell>₹{formatIndian(Number(r.salary))}</TableCell>
+                      <TableCell>₹{formatIndian(Number(r.cash_component))}</TableCell>
+                      <TableCell>₹{formatIndian(Number(r.bank_transfer))}</TableCell>
+                      <TableCell>₹{formatIndian(Number(r.advance_cash))}</TableCell>
+                      <TableCell>₹{formatIndian(Number(r.advance_bank))}</TableCell>
+                      <TableCell className="font-semibold text-primary">₹{formatIndian(getTotal(r))}</TableCell>
                       <TableCell className="text-center">
                         <Checkbox checked={r.paid_cash} onCheckedChange={(v) => togglePaid(r.id, "paid_cash", !!v)} />
                       </TableCell>

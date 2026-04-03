@@ -178,8 +178,8 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
                   return (
                     <TableRow className="bg-muted/50 font-bold border-t-2">
                       <TableCell>Total</TableCell>
-                      <TableCell>₹{totals.salary.toLocaleString()}</TableCell>
-                      <TableCell>₹{totals.backup.toLocaleString()}</TableCell>
+                      <TableCell>₹{formatIndian(totals.salary)}</TableCell>
+                      <TableCell>₹{formatIndian(totals.backup)}</TableCell>
                       <TableCell></TableCell>
                       <TableCell></TableCell>
                     </TableRow>

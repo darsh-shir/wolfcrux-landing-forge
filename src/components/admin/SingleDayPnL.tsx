@@ -9,7 +9,7 @@ import { format, subDays, addDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Save, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Users } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrencyINR, formatIndian } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -205,7 +205,7 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
             </div>
             <div className="rounded-lg p-4 border bg-muted/30">
               <p className="text-sm text-muted-foreground">Total Shares</p>
-              <p className="text-2xl font-bold">{totalShares.toLocaleString()}</p>
+              <p className="text-2xl font-bold">{formatIndian(totalShares)}</p>
             </div>
           </div>
         </CardContent>
@@ -227,11 +227,11 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
                       {acc.number && <p className="text-xs text-muted-foreground">{acc.number}</p>}
                     </div>
                     <p className={cn("font-bold text-sm", acc.pnl >= 0 ? "text-green-600" : "text-red-600")}>
-                      ${acc.pnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      {formatCurrencyINR(acc.pnl)}
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {acc.traders.join(", ")} • {acc.shares.toLocaleString()} shares
+                    {acc.traders.join(", ")} • {formatIndian(acc.shares)} shares
                   </p>
                 </div>
               ))}
