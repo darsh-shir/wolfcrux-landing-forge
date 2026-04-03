@@ -168,6 +168,23 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
                     </TableRow>
                   );
                 })}
+                {(() => {
+                  const totals = users.reduce((acc, user) => {
+                    const row = getRowData(user.user_id);
+                    acc.salary += Number(row.base_salary);
+                    acc.backup += Number(row.backup_amount);
+                    return acc;
+                  }, { salary: 0, backup: 0 });
+                  return (
+                    <TableRow className="bg-muted/50 font-bold border-t-2">
+                      <TableCell>Total</TableCell>
+                      <TableCell>₹{totals.salary.toLocaleString()}</TableCell>
+                      <TableCell>₹{totals.backup.toLocaleString()}</TableCell>
+                      <TableCell></TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  );
+                })()}
               </TableBody>
             </Table>
           </div>

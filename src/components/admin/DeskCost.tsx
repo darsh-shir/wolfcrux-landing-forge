@@ -164,6 +164,27 @@ const DeskCost = ({ users }: DeskCostProps) => {
                     </TableRow>
                   );
                 })}
+                {(() => {
+                  const totals = users.reduce((acc, user) => {
+                    const row = getRowData(user.user_id);
+                    acc.cost += Number(row.total_desk_cost);
+                    acc.paid += Number(row.total_paid);
+                    return acc;
+                  }, { cost: 0, paid: 0 });
+                  const totalPending = totals.cost - totals.paid;
+                  return (
+                    <TableRow className="bg-muted/50 font-bold border-t-2">
+                      <TableCell>Total</TableCell>
+                      <TableCell>₹{totals.cost.toLocaleString()}</TableCell>
+                      <TableCell>₹{totals.paid.toLocaleString()}</TableCell>
+                      <TableCell className={totalPending > 0 ? "text-destructive" : "text-primary"}>
+                        ₹{totalPending.toLocaleString()}
+                      </TableCell>
+                      <TableCell></TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  );
+                })()}
               </TableBody>
             </Table>
           </div>
