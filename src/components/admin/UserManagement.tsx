@@ -379,14 +379,17 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Employee Role</TableHead>
-                  <TableHead>Assigned To</TableHead>
                   <TableHead>Joining Date</TableHead>
                   <TableHead>System Role</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {[...users].sort((a, b) => {
+                  const numA = parseInt((a.trader_number || "999999").replace(/\D/g, "")) || 999999;
+                  const numB = parseInt((b.trader_number || "999999").replace(/\D/g, "")) || 999999;
+                  return numA - numB;
+                }).map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-mono text-sm">{user.trader_number || "—"}</TableCell>
                     <TableCell className="font-medium">{user.full_name}</TableCell>
@@ -396,7 +399,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                         {user.employee_role === "trader" ? "Trader" : "Trainee"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{getAssignedTraderName(user.assigned_trader_id)}</TableCell>
                     <TableCell>{user.joining_date || "—"}</TableCell>
                     <TableCell>
                       <Badge variant={getUserRole(user.user_id) === "admin" ? "default" : "outline"}>
