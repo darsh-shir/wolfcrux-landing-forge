@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { CompanyStats } from "./types";
 import { format, parseISO } from "date-fns";
+import { formatCurrencyCompact } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CompanyKPIsProps {
@@ -38,15 +39,7 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
     if (poolRes.data) setTraineePool(Number(poolRes.data.total_pool_amount));
   };
 
-  const formatCurrency = (value: number) => {
-    const absValue = Math.abs(value);
-    if (absValue >= 1000000) {
-      return `$${(value / 1000000).toFixed(2)}M`;
-    } else if (absValue >= 1000) {
-      return `$${(value / 1000).toFixed(1)}K`;
-    }
-    return `$${value.toFixed(0)}`;
-  };
+  const formatCurrency = formatCurrencyCompact;
 
   const kpis = [
     {
