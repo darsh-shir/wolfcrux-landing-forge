@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, Clock, Lock, Unlock, Target } from "lucide-react";
-import { formatIndian } from "@/lib/utils";
+import { formatIndian, formatCurrencyINR } from "@/lib/utils";
 import {
   MILESTONES,
   getMilestoneLevel,
