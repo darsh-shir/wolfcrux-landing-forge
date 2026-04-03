@@ -587,17 +587,19 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
                 />
               </div>
             )}
-            <div className="space-y-1">
-              <Label className="text-sm">Trader 2 Attendance</Label>
-              <Select value={trader2Attendance} onValueChange={setTrader2Attendance}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ATTENDANCE_OPTIONS.map(o => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {trader2Role === "partner" && (
+              <div className="space-y-1">
+                <Label className="text-sm">Partner Attendance</Label>
+                <Select value={trader2Attendance} onValueChange={setTrader2Attendance}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ATTENDANCE_OPTIONS.map(o => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
