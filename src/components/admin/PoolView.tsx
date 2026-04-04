@@ -42,6 +42,16 @@ const PoolView = ({ users }: PoolViewProps) => {
     fetchData();
   }, [selectedMonth, selectedYear]);
 
+  // Realtime: re-fetch whenever trading_data or trader_config changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('pool-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trading_data' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trader_config' }, () => fetchData())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedMonth, selectedYear]);
+
   const fetchData = async () => {
     setLoading(true);
 
