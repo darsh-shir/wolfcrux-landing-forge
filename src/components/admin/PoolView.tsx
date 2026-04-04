@@ -69,7 +69,22 @@ const PoolView = ({ users }: PoolViewProps) => {
     ]);
 
     if (tdRes.data) setTradingData(tdRes.data);
-    if (configRes.data) setTraderConfigs(configRes.data);
+    
+    // If no config for selected month, fallback to most recent config
+    if (configRes.data && configRes.data.length > 0) {
+      setTraderConfigs(configRes.data);
+    } else {
+      const { data: fallback } = await supabase.from("trader_config").select("*")
+        .order("year", { ascending: false })
+        .order("month", { ascending: false })
+        .limit(100);
+      // Group by user_id, take latest per user
+      const latestPerUser = new Map<string, any>();
+      (fallback || []).forEach(c => {
+        if (!latestPerUser.has(c.user_id)) latestPerUser.set(c.user_id, c);
+      });
+      setTraderConfigs([...latestPerUser.values()]);
+    }
     setLoading(false);
   };
 
