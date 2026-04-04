@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Settings, Copy } from "lucide-react";
+import { Save, Settings } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -42,51 +43,55 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
   const [loading, setLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [isInherited, setIsInherited] = useState(false);
 
   useEffect(() => { fetchConfigs(); }, [selectedMonth, selectedYear]);
 
   const fetchConfigs = async () => {
     setLoading(true);
     setEditing({});
+    setIsInherited(false);
+
     const { data, error } = await supabase
       .from("trader_config")
       .select("*")
       .eq("month", selectedMonth)
       .eq("year", selectedYear);
-    if (!error && data) setConfigs(data as TraderConfigData[]);
-    setLoading(false);
-  };
 
-  const initFromPreviousMonth = async () => {
-    let prevMonth = selectedMonth - 1;
-    let prevYear = selectedYear;
-    if (prevMonth < 1) { prevMonth = 12; prevYear -= 1; }
-
-    const { data: prevData } = await supabase
-      .from("trader_config")
-      .select("*")
-      .eq("month", prevMonth)
-      .eq("year", prevYear);
-
-    if (prevData && prevData.length > 0) {
-      const inserts = prevData.map((cfg: any) => ({
-        user_id: cfg.user_id,
-        payout_percentage: cfg.payout_percentage,
-        software_cost: cfg.software_cost,
-        month: selectedMonth,
-        year: selectedYear,
-      }));
-
-      const { error } = await supabase.from("trader_config").insert(inserts);
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Copied", description: `Config carried forward from ${MONTH_NAMES[prevMonth - 1]} ${prevYear}` });
-        fetchConfigs();
-      }
+    if (!error && data && data.length > 0) {
+      setConfigs(data as TraderConfigData[]);
     } else {
-      toast({ title: "No Data", description: "No previous month config found to copy", variant: "destructive" });
+      // Auto-fallback: find the most recent month's configs
+      const { data: fallback } = await supabase
+        .from("trader_config")
+        .select("*")
+        .order("year", { ascending: false })
+        .order("month", { ascending: false })
+        .limit(100);
+
+      if (fallback && fallback.length > 0) {
+        // Get the latest month/year combo
+        const latestYear = fallback[0].year;
+        const latestMonth = fallback[0].month;
+        const latestConfigs = fallback.filter(
+          (c: any) => c.year === latestYear && c.month === latestMonth
+        );
+        // Show them as inherited (without IDs so save creates new records)
+        setConfigs(
+          latestConfigs.map((c: any) => ({
+            user_id: c.user_id,
+            payout_percentage: c.payout_percentage,
+            software_cost: c.software_cost,
+            month: selectedMonth,
+            year: selectedYear,
+          }))
+        );
+        setIsInherited(true);
+      } else {
+        setConfigs([]);
+      }
     }
+    setLoading(false);
   };
 
   const getConfig = (userId: string): TraderConfigData => {
@@ -103,7 +108,15 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
 
   const saveConfig = async (userId: string) => {
     const cfg = getConfig(userId);
-    const existing = configs.find(c => c.user_id === userId);
+
+    // Check if a real record exists for this month
+    const { data: existing } = await supabase
+      .from("trader_config")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("month", selectedMonth)
+      .eq("year", selectedYear)
+      .maybeSingle();
 
     const payload = {
       user_id: userId,
@@ -114,7 +127,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
     };
 
     if (existing?.id) {
-      const { error } = await supabase.from("trader_config").update(payload).eq("id", (existing as any).id);
+      const { error } = await supabase.from("trader_config").update(payload).eq("id", existing.id);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     } else {
       const { error } = await supabase.from("trader_config").insert(payload);
@@ -122,7 +135,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
     }
 
     await propagateToFutureMonths(userId, payload);
-    toast({ title: "Saved", description: "Trader config saved & propagated to future months" });
+    toast({ title: "Saved", description: "Config saved & propagated to future months" });
     setEditing(prev => { const n = { ...prev }; delete n[userId]; return n; });
     fetchConfigs();
   };
@@ -143,8 +156,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
       }
     }
   };
-
-  const hasConfigsForMonth = configs.length > 0;
 
   return (
     <Card>
@@ -175,17 +186,15 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
                 ))}
               </SelectContent>
             </Select>
-            {!hasConfigsForMonth && (
-              <Button variant="outline" size="sm" onClick={initFromPreviousMonth} className="gap-1">
-                <Copy className="h-4 w-4" />
-                Copy from Previous
-              </Button>
+            {isInherited && (
+              <Badge variant="secondary" className="text-xs">
+                Inherited from previous month
+              </Badge>
             )}
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
-          Set each trader's payout %. Software cost is set per-trader in the Payout Sheet tab.
-          Trainee = 25% of trader's payout, Partner = 50%.
+          Configs auto-carry from the last saved month. Only save when you need to change a value — it will propagate to all future months.
         </p>
       </CardHeader>
       <CardContent>
