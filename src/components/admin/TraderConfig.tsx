@@ -8,21 +8,33 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Settings } from "lucide-react";
+import { getMilestoneLevel, monthsBetween } from "@/lib/payoutCalculations";
 
 interface Profile {
   id: string;
   user_id: string;
   full_name: string;
   email: string;
+  joining_date?: string | null;
 }
 
 interface TraderConfigData {
   id?: string;
   user_id: string;
   payout_percentage: number;
+  sto_percentage: number;
+  lto_percentage: number;
+  config_mode: string;
   software_cost: number;
   month: number;
   year: number;
+}
+
+interface TraderMilestone {
+  user_id: string;
+  account_start_date: string;
+  cumulative_net_profit: number;
+  current_level: number;
 }
 
 interface TraderConfigProps {
@@ -44,6 +56,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [isInherited, setIsInherited] = useState(false);
+  const [milestones, setMilestones] = useState<TraderMilestone[]>([]);
 
   useEffect(() => { fetchConfigs(); }, [selectedMonth, selectedYear]);
 
@@ -52,16 +65,21 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
     setEditing({});
     setIsInherited(false);
 
-    const { data, error } = await supabase
-      .from("trader_config")
-      .select("*")
-      .eq("month", selectedMonth)
-      .eq("year", selectedYear);
+    const [configRes, milestoneRes] = await Promise.all([
+      supabase.from("trader_config").select("*").eq("month", selectedMonth).eq("year", selectedYear),
+      supabase.from("trader_milestones").select("*"),
+    ]);
 
-    if (!error && data && data.length > 0) {
-      setConfigs(data as TraderConfigData[]);
+    setMilestones((milestoneRes.data || []) as TraderMilestone[]);
+
+    if (!configRes.error && configRes.data && configRes.data.length > 0) {
+      setConfigs(configRes.data.map(c => ({
+        ...c,
+        sto_percentage: c.sto_percentage ?? c.payout_percentage ?? 0,
+        lto_percentage: c.lto_percentage ?? 0,
+        config_mode: c.config_mode ?? 'manual',
+      })) as TraderConfigData[]);
     } else {
-      // Auto-fallback: find the most recent month's configs
       const { data: fallback } = await supabase
         .from("trader_config")
         .select("*")
@@ -70,17 +88,18 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
         .limit(100);
 
       if (fallback && fallback.length > 0) {
-        // Get the latest month/year combo
         const latestYear = fallback[0].year;
         const latestMonth = fallback[0].month;
         const latestConfigs = fallback.filter(
           (c: any) => c.year === latestYear && c.month === latestMonth
         );
-        // Show them as inherited (without IDs so save creates new records)
         setConfigs(
           latestConfigs.map((c: any) => ({
             user_id: c.user_id,
             payout_percentage: c.payout_percentage,
+            sto_percentage: c.sto_percentage ?? c.payout_percentage ?? 0,
+            lto_percentage: c.lto_percentage ?? 0,
+            config_mode: c.config_mode ?? 'manual',
             software_cost: c.software_cost,
             month: selectedMonth,
             year: selectedYear,
@@ -96,20 +115,43 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
 
   const getConfig = (userId: string): TraderConfigData => {
     return editing[userId] || configs.find(c => c.user_id === userId) || {
-      user_id: userId, payout_percentage: 0, software_cost: 0,
-      month: selectedMonth, year: selectedYear,
+      user_id: userId, payout_percentage: 0, sto_percentage: 0, lto_percentage: 0,
+      config_mode: 'manual', software_cost: 0, month: selectedMonth, year: selectedYear,
     };
   };
 
+  const getMilestoneForUser = (userId: string) => {
+    const milestone = milestones.find(m => m.user_id === userId);
+    if (!milestone) return null;
+    const monthsActive = monthsBetween(new Date(milestone.account_start_date), new Date(selectedYear, selectedMonth - 1, 1));
+    return getMilestoneLevel(monthsActive, milestone.cumulative_net_profit);
+  };
+
   const handleChange = (userId: string, field: keyof TraderConfigData, value: any) => {
-    const current = { ...(editing[userId] || getConfig(userId)), [field]: value };
+    const current = { ...(editing[userId] || getConfig(userId)) };
+    (current as any)[field] = value;
+
+    // Auto-calculate total payout_percentage
+    if (field === 'sto_percentage' || field === 'lto_percentage') {
+      current.payout_percentage = Number(current.sto_percentage) + Number(current.lto_percentage);
+    }
+
+    // When switching to milestone, auto-fill from milestone
+    if (field === 'config_mode' && value === 'milestone') {
+      const ml = getMilestoneForUser(userId);
+      if (ml) {
+        current.sto_percentage = ml.stoPercent;
+        current.lto_percentage = ml.ltoPercent;
+        current.payout_percentage = ml.stoPercent + ml.ltoPercent;
+      }
+    }
+
     setEditing(prev => ({ ...prev, [userId]: current }));
   };
 
   const saveConfig = async (userId: string) => {
     const cfg = getConfig(userId);
 
-    // Check if a real record exists for this month
     const { data: existing } = await supabase
       .from("trader_config")
       .select("id")
@@ -121,6 +163,9 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
     const payload = {
       user_id: userId,
       payout_percentage: cfg.payout_percentage,
+      sto_percentage: cfg.sto_percentage,
+      lto_percentage: cfg.lto_percentage,
+      config_mode: cfg.config_mode,
       software_cost: cfg.software_cost,
       month: selectedMonth,
       year: selectedYear,
@@ -151,6 +196,9 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
       for (const fc of futureConfigs) {
         await supabase.from("trader_config").update({
           payout_percentage: payload.payout_percentage,
+          sto_percentage: payload.sto_percentage,
+          lto_percentage: payload.lto_percentage,
+          config_mode: payload.config_mode,
           software_cost: payload.software_cost,
         }).eq("id", fc.id);
       }
@@ -194,7 +242,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
-          Configs auto-carry from the last saved month. Only save when you need to change a value — it will propagate to all future months.
+          Choose <strong>Manual</strong> to set STO & LTO % yourself, or <strong>Milestone</strong> to auto-calculate based on tenure & profit.
         </p>
       </CardHeader>
       <CardContent>
@@ -203,23 +251,85 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
             <TableHeader>
               <TableRow>
                 <TableHead>Trader</TableHead>
-                <TableHead>Payout %</TableHead>
+                <TableHead>Mode</TableHead>
+                <TableHead>STO %</TableHead>
+                <TableHead>LTO %</TableHead>
+                <TableHead>Total %</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.map(user => {
                 const cfg = getConfig(user.user_id);
+                const isMilestone = cfg.config_mode === 'milestone';
+                const ml = getMilestoneForUser(user.user_id);
+
                 return (
                   <TableRow key={user.user_id}>
                     <TableCell className="font-medium">{user.full_name}</TableCell>
                     <TableCell>
-                      <Input type="number" className="w-20" step="1" value={cfg.payout_percentage || ""}
-                        onChange={e => handleChange(user.user_id, "payout_percentage", Number(e.target.value))}
-                        placeholder="0" />
+                      <Select
+                        value={cfg.config_mode}
+                        onValueChange={v => handleChange(user.user_id, "config_mode", v)}
+                      >
+                        <SelectTrigger className="w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="manual">Manual</SelectItem>
+                          <SelectItem value="milestone">Milestone</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" onClick={() => saveConfig(user.user_id)}>
+                      {isMilestone ? (
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">{ml?.stoPercent ?? 0}%</span>
+                          {ml && <Badge variant="outline" className="text-[10px]">{ml.label}</Badge>}
+                        </div>
+                      ) : (
+                        <Input type="number" className="w-20" step="1"
+                          value={cfg.sto_percentage || ""}
+                          onChange={e => handleChange(user.user_id, "sto_percentage", Number(e.target.value))}
+                          placeholder="0" />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {isMilestone ? (
+                        <span className="font-medium">{ml?.ltoPercent ?? 0}%</span>
+                      ) : (
+                        <Input type="number" className="w-20" step="1"
+                          value={cfg.lto_percentage || ""}
+                          onChange={e => handleChange(user.user_id, "lto_percentage", Number(e.target.value))}
+                          placeholder="0" />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="font-bold">
+                        {isMilestone
+                          ? `${(ml?.stoPercent ?? 0) + (ml?.ltoPercent ?? 0)}%`
+                          : `${Number(cfg.sto_percentage) + Number(cfg.lto_percentage)}%`
+                        }
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button size="sm" onClick={() => {
+                        if (isMilestone && ml) {
+                          handleChange(user.user_id, "sto_percentage", ml.stoPercent);
+                          handleChange(user.user_id, "lto_percentage", ml.ltoPercent);
+                          // Need to set both then save
+                          const updated = {
+                            ...cfg,
+                            sto_percentage: ml.stoPercent,
+                            lto_percentage: ml.ltoPercent,
+                            payout_percentage: ml.stoPercent + ml.ltoPercent,
+                          };
+                          setEditing(prev => ({ ...prev, [user.user_id]: updated }));
+                          setTimeout(() => saveConfig(user.user_id), 0);
+                          return;
+                        }
+                        saveConfig(user.user_id);
+                      }}>
                         <Save className="h-4 w-4" />
                       </Button>
                     </TableCell>
