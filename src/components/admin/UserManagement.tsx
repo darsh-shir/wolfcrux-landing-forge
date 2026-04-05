@@ -151,7 +151,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
         joining_date: editJoiningDate || null,
         birthdate: editBirthdate || null,
         employee_role: editEmployeeRole,
-        assigned_trader_id: editEmployeeRole === "trainee" && editAssignedTrader ? editAssignedTrader : null,
+        assigned_trader_id: editEmployeeRole === "trainee" && editAssignedTrader && editAssignedTrader !== "none" ? editAssignedTrader : null,
       }).eq("user_id", editingUser.user_id);
       toast({ title: "Success", description: "User updated successfully" });
       setEditingUser(null);
