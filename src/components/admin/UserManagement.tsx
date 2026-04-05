@@ -506,7 +506,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                   <Select value={editAssignedTrader} onValueChange={setEditAssignedTrader}>
                     <SelectTrigger><SelectValue placeholder="Select trader" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {traders.filter(t => t.user_id !== editingUser?.user_id).map(t => (
                         <SelectItem key={t.user_id} value={t.user_id}>{t.full_name}</SelectItem>
                       ))}
