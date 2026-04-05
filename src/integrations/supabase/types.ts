@@ -480,40 +480,49 @@ export type Database = {
       }
       trader_config: {
         Row: {
+          config_mode: string
           created_at: string
           id: string
+          lto_percentage: number
           month: number
           partner_id: string | null
           partner_percentage: number
           payout_percentage: number
           seat_type: string
           software_cost: number
+          sto_percentage: number
           updated_at: string
           user_id: string
           year: number
         }
         Insert: {
+          config_mode?: string
           created_at?: string
           id?: string
+          lto_percentage?: number
           month?: number
           partner_id?: string | null
           partner_percentage?: number
           payout_percentage?: number
           seat_type?: string
           software_cost?: number
+          sto_percentage?: number
           updated_at?: string
           user_id: string
           year?: number
         }
         Update: {
+          config_mode?: string
           created_at?: string
           id?: string
+          lto_percentage?: number
           month?: number
           partner_id?: string | null
           partner_percentage?: number
           payout_percentage?: number
           seat_type?: string
           software_cost?: number
+          sto_percentage?: number
           updated_at?: string
           user_id?: string
           year?: number
