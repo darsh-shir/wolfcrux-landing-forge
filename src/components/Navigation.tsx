@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import logo from "@/assets/wolfcrux-logo.png";
 import BirthdayNotification from "@/components/BirthdayNotification";
+import MilestoneNotification from "@/components/MilestoneNotification";
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -64,7 +65,8 @@ const Navigation = () => {
               </Link>
             ))}
 
-            {/* Birthday Notification */}
+            {/* Notifications */}
+            <MilestoneNotification />
             <BirthdayNotification />
 
             {/* Auth Button */}
@@ -113,6 +115,7 @@ const Navigation = () => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-4">
+            <MilestoneNotification />
             <BirthdayNotification />
             {!loading && user && (
               <DropdownMenu>
