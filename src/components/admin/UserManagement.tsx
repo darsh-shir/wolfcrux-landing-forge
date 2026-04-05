@@ -151,7 +151,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
         joining_date: editJoiningDate || null,
         birthdate: editBirthdate || null,
         employee_role: editEmployeeRole,
-        assigned_trader_id: editEmployeeRole === "trainee" && editAssignedTrader ? editAssignedTrader : null,
+        assigned_trader_id: editEmployeeRole === "trainee" && editAssignedTrader && editAssignedTrader !== "none" ? editAssignedTrader : null,
       }).eq("user_id", editingUser.user_id);
       toast({ title: "Success", description: "User updated successfully" });
       setEditingUser(null);
@@ -506,7 +506,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                   <Select value={editAssignedTrader} onValueChange={setEditAssignedTrader}>
                     <SelectTrigger><SelectValue placeholder="Select trader" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {traders.filter(t => t.user_id !== editingUser?.user_id).map(t => (
                         <SelectItem key={t.user_id} value={t.user_id}>{t.full_name}</SelectItem>
                       ))}
