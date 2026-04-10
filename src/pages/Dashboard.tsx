@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Scissors, Newspaper, Calendar, Users } from "lucide-react";
+import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock } from "lucide-react";
 
 // Dashboard components
 import IndexCards from "@/components/dashboard/IndexCards";
@@ -15,6 +15,8 @@ import MarketSentiment from "@/components/dashboard/MarketSentiment";
 import NewsOverview from "@/components/dashboard/NewsOverview";
 import Earnings from "@/components/dashboard/Earnings";
 import Peers from "@/components/dashboard/Peers";
+import EconomicOverview from "@/components/dashboard/EconomicOverview";
+import EconomicCalendar from "@/components/dashboard/EconomicCalendar";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
@@ -86,6 +88,9 @@ const Dashboard = () => {
   const [earningsData, setEarningsData] = useState<EarningsDay[]>([]);
   const [earningsLoading, setEarningsLoading] = useState(true);
 
+  const [economicEvents, setEconomicEvents] = useState<any[]>([]);
+  const [economicLoading, setEconomicLoading] = useState(true);
+
   /* ===================== FETCH EARNINGS ===================== */
   const fetchEarnings = async () => {
     try {
@@ -114,6 +119,24 @@ const Dashboard = () => {
       console.error("Earnings fetch failed", e);
     } finally {
       setEarningsLoading(false);
+    }
+  };
+
+  /* ===================== FETCH ECONOMIC CALENDAR ===================== */
+  const fetchEconomicCalendar = async () => {
+    try {
+      setEconomicLoading(true);
+      const url = encodeURIComponent(
+        "https://tr-cdn.tipranks.com/calendars/prod/calendars/economic/payload.json"
+      );
+      const response = await fetch(`${PROXY_URL}${url}`);
+      const data = await response.json();
+      const events = data?.EconomicCalenderViewModel?.data?.economicCalenderData?.events || [];
+      setEconomicEvents(events);
+    } catch (e) {
+      console.error("Economic calendar fetch failed", e);
+    } finally {
+      setEconomicLoading(false);
     }
   };
 
@@ -246,6 +269,7 @@ const Dashboard = () => {
       fetchMovers(),
       fetchNews(),
       fetchEarnings(),
+      fetchEconomicCalendar(),
     ]);
     setLastUpdated(new Date());
   }, []);
@@ -310,6 +334,11 @@ const Dashboard = () => {
                 <Users className="w-4 h-4 mr-2" />
                 Peers
               </TabsTrigger>
+
+              <TabsTrigger value="economic">
+                <CalendarClock className="w-4 h-4 mr-2" />
+                Economic Calendar
+              </TabsTrigger>
             </TabsList>
 
             {/* ================= OVERVIEW TAB ================= */}
@@ -335,8 +364,9 @@ const Dashboard = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <NewsOverview data={newsPosts} loading={loadingNews} />
+                <EconomicOverview data={economicEvents} loading={economicLoading} />
                 <StockSplits limit={6} compact />
               </div>
             </TabsContent>
@@ -359,6 +389,11 @@ const Dashboard = () => {
             {/* ================= PEERS TAB ================= */}
             <TabsContent value="peers" className="mt-6">
               <Peers />
+            </TabsContent>
+
+            {/* ================= ECONOMIC CALENDAR TAB ================= */}
+            <TabsContent value="economic" className="mt-6">
+              <EconomicCalendar data={economicEvents} loading={economicLoading} />
             </TabsContent>
           </Tabs>
         </main>
