@@ -39,7 +39,7 @@ const formatTime = (iso: string) => {
 const EconomicOverview = ({ data, loading }: EconomicOverviewProps) => {
   // Filter to today's events only
   const today = new Date().toISOString().slice(0, 10);
-  const todayEvents = data.filter((e) => e.time?.slice(0, 10) === today);
+  const todayEvents = data.filter((e) => e.time?.slice(0, 10) === today && e.country?.toLowerCase() === "us");
 
   if (loading && data.length === 0) {
     return (

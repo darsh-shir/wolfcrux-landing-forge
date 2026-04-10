@@ -48,28 +48,16 @@ const formatDate = (iso: string) => {
 
 const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
   const [impactFilter, setImpactFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [countryFilter, setCountryFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  const categories = useMemo(() => {
-    const set = new Set(data.map((e) => e.category).filter(Boolean));
-    return Array.from(set).sort();
-  }, [data]);
-
-  const countries = useMemo(() => {
-    const set = new Set(data.map((e) => e.country?.toUpperCase()).filter(Boolean));
-    return Array.from(set).sort();
-  }, [data]);
-
   const filtered = useMemo(() => {
-    return data.filter((e) => {
-      if (impactFilter !== "all" && e.impact !== Number(impactFilter)) return false;
-      if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
-      if (countryFilter !== "all" && e.country?.toUpperCase() !== countryFilter) return false;
-      return true;
-    });
-  }, [data, impactFilter, categoryFilter, countryFilter]);
+    return data
+      .filter((e) => e.country?.toLowerCase() === "us")
+      .filter((e) => {
+        if (impactFilter !== "all" && e.impact !== Number(impactFilter)) return false;
+        return true;
+      });
+  }, [data, impactFilter]);
 
   // Group by date
   const grouped = useMemo(() => {
@@ -128,28 +116,6 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
                 <SelectItem value="3">High</SelectItem>
                 <SelectItem value="2">Medium</SelectItem>
                 <SelectItem value="1">Low</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[150px] h-8 text-xs">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={countryFilter} onValueChange={setCountryFilter}>
-              <SelectTrigger className="w-[120px] h-8 text-xs">
-                <SelectValue placeholder="Country" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Countries</SelectItem>
-                {countries.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
               </SelectContent>
             </Select>
           </div>
