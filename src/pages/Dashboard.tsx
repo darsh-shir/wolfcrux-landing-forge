@@ -364,9 +364,10 @@ const Dashboard = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <EconomicOverview data={economicEvents} loading={economicLoading} />
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <NewsOverview data={newsPosts} loading={loadingNews} />
-                <EconomicOverview data={economicEvents} loading={economicLoading} />
                 <StockSplits limit={6} compact />
               </div>
             </TabsContent>
