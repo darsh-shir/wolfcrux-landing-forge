@@ -334,6 +334,11 @@ const Dashboard = () => {
                 <Users className="w-4 h-4 mr-2" />
                 Peers
               </TabsTrigger>
+
+              <TabsTrigger value="economic">
+                <CalendarClock className="w-4 h-4 mr-2" />
+                Economic Calendar
+              </TabsTrigger>
             </TabsList>
 
             {/* ================= OVERVIEW TAB ================= */}
@@ -359,8 +364,9 @@ const Dashboard = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <NewsOverview data={newsPosts} loading={loadingNews} />
+                <EconomicOverview data={economicEvents} loading={economicLoading} />
                 <StockSplits limit={6} compact />
               </div>
             </TabsContent>
@@ -383,6 +389,11 @@ const Dashboard = () => {
             {/* ================= PEERS TAB ================= */}
             <TabsContent value="peers" className="mt-6">
               <Peers />
+            </TabsContent>
+
+            {/* ================= ECONOMIC CALENDAR TAB ================= */}
+            <TabsContent value="economic" className="mt-6">
+              <EconomicCalendar data={economicEvents} loading={economicLoading} />
             </TabsContent>
           </Tabs>
         </main>
