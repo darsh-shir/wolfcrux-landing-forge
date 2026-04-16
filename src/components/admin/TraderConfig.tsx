@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Settings } from "lucide-react";
-import { getMilestoneLevel, monthsBetween } from "@/lib/payoutCalculations";
+import { getMilestoneLevel } from "@/lib/payoutCalculations";
 
 interface Profile {
   id: string;
@@ -32,7 +32,6 @@ interface TraderConfigData {
 
 interface TraderMilestone {
   user_id: string;
-  account_start_date: string;
   cumulative_net_profit: number;
   current_level: number;
 }
@@ -57,6 +56,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [isInherited, setIsInherited] = useState(false);
   const [milestones, setMilestones] = useState<TraderMilestone[]>([]);
+  const [tradingDaysMap, setTradingDaysMap] = useState<Record<string, number>>({});
 
   useEffect(() => { fetchConfigs(); }, [selectedMonth, selectedYear]);
 
@@ -67,10 +67,36 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
 
     const [configRes, milestoneRes] = await Promise.all([
       supabase.from("trader_config").select("*").eq("month", selectedMonth).eq("year", selectedYear),
-      supabase.from("trader_milestones").select("*"),
+      supabase.from("trader_milestones").select("user_id, cumulative_net_profit, current_level"),
     ]);
 
     setMilestones((milestoneRes.data || []) as TraderMilestone[]);
+
+    // Fetch all trading data for day counts (paginated)
+    const allTrades: any[] = [];
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from("trading_data")
+        .select("user_id, trade_date, trader2_id, trader2_role")
+        .range(from, from + 999);
+      if (error || !data || data.length === 0) break;
+      allTrades.push(...data);
+      if (data.length < 1000) break;
+      from += 1000;
+    }
+    const daysMap: Record<string, Set<string>> = {};
+    allTrades.forEach((t) => {
+      if (!daysMap[t.user_id]) daysMap[t.user_id] = new Set();
+      daysMap[t.user_id].add(t.trade_date);
+      if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") {
+        if (!daysMap[t.trader2_id]) daysMap[t.trader2_id] = new Set();
+        daysMap[t.trader2_id].add(t.trade_date);
+      }
+    });
+    const countMap: Record<string, number> = {};
+    Object.entries(daysMap).forEach(([uid, set]) => { countMap[uid] = set.size; });
+    setTradingDaysMap(countMap);
 
     if (!configRes.error && configRes.data && configRes.data.length > 0) {
       setConfigs(configRes.data.map(c => ({
@@ -123,8 +149,8 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
   const getMilestoneForUser = (userId: string) => {
     const milestone = milestones.find(m => m.user_id === userId);
     if (!milestone) return null;
-    const monthsActive = monthsBetween(new Date(milestone.account_start_date), new Date(selectedYear, selectedMonth - 1, 1));
-    return getMilestoneLevel(monthsActive, milestone.cumulative_net_profit);
+    const tradingDays = tradingDaysMap[userId] || 0;
+    return getMilestoneLevel(tradingDays, milestone.cumulative_net_profit);
   };
 
   const handleChange = (userId: string, field: keyof TraderConfigData, value: any) => {
