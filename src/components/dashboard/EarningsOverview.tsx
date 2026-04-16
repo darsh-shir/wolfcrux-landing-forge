@@ -112,9 +112,6 @@ const EarningsOverview = () => {
               className="flex items-center justify-between px-3 py-2 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded bg-muted flex items-center justify-center text-[10px] font-bold">
-                  {s.ticker.slice(0, 2)}
-                </div>
                 <div>
                   <p className="text-sm font-medium">{s.ticker}</p>
                   <p className="text-[11px] text-muted-foreground truncate max-w-[120px]">

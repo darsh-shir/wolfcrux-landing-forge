@@ -231,9 +231,6 @@ const Earnings = () => {
           onClick={() => setExpandedSymbol(isExpanded ? null : key)}
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-bold">
-              {s.ticker.slice(0, 2)}
-            </div>
             <div>
               <p className="font-medium flex items-center gap-2">
                 {s.ticker}
