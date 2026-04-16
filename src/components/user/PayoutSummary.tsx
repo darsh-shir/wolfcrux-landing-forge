@@ -32,17 +32,21 @@ const PayoutSummary = () => {
     if (!user) return;
     setLoading(true);
 
-    const [milestoneRes, stoRes, ltoRes] = await Promise.all([
+    const [milestoneRes, stoRes, ltoRes, tradingDaysRes] = await Promise.all([
       supabase.from("trader_milestones").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("sto_ledger").select("*").eq("user_id", user.id)
         .order("year", { ascending: false }).order("month", { ascending: false }),
       supabase.from("lto_ledger").select("*").eq("user_id", user.id)
         .order("year", { ascending: false }).order("month", { ascending: false }),
+      supabase.from("trading_data").select("trade_date").eq("user_id", user.id),
     ]);
 
     setMilestoneData(milestoneRes.data);
     setStoHistory(stoRes.data || []);
     setLtoHistory(ltoRes.data || []);
+    // Count distinct trading days
+    const uniqueDays = new Set((tradingDaysRes.data || []).map((t: any) => t.trade_date));
+    setTradingDaysCount(uniqueDays.size);
     setLoading(false);
   };
 
