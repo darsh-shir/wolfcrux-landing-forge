@@ -4,33 +4,52 @@ import { Calendar, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Loader2 } f
 
 const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
 
-interface PeerData {
-  symbol: string;
+interface TipRanksStock {
+  ticker: string;
   name: string;
-  price: number;
-  changesPercentage: number;
+  sector: string;
   marketCap: number;
-  image?: string;
+  price: number;
+  change: { percent: number; amount: number };
+  earning: {
+    isConfirm: boolean;
+    reportOnTimeOfDay: string; // "PreMarket" | "AfterHours"
+    value: number; // EPS estimate
+    lastYearValue: number;
+    fiscalPeriod: number;
+    fiscalYear: number;
+    salesEstimate: number;
+    lowEstimateEps: number;
+    highEstimateEps: number;
+    reportedEPS: number | null;
+  };
+  analystRatings: {
+    consensus: {
+      id: string;
+      buy: number;
+      sell: number;
+      hold: number;
+      total: number;
+      priceTarget: { value: number };
+    };
+  };
+  smartScore: { value: number };
 }
 
-interface EarningsItem {
-  symbol: string;
-  name: string;
-  image?: string;
-  quarter: string;
-  time: string;
-  session: string;
-  marketCap?: number;
-  summary?: string[];
-}
-
-interface EarningsDay {
+interface CalendarDay {
   date: string;
-  earnings: EarningsItem[];
+  count: number;
+  topFollowedTickers: string[];
+}
+
+interface EarningsDayData {
+  date: string;
+  count: number;
+  stocks: TipRanksStock[];
 }
 
 const formatDisplayDate = (dateStr: string) => {
-  const d = new Date(dateStr);
+  const d = new Date(dateStr + "T12:00:00");
   return d.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
@@ -39,7 +58,7 @@ const formatDisplayDate = (dateStr: string) => {
 };
 
 const formatHeaderDate = (dateStr: string) => {
-  const d = new Date(dateStr);
+  const d = new Date(dateStr + "T12:00:00");
   return d.toLocaleDateString("en-US", {
     weekday: "long",
     month: "short",
@@ -47,168 +66,269 @@ const formatHeaderDate = (dateStr: string) => {
   });
 };
 
-const getSession = (date: Date) => {
-  const hrs = date.getHours();
-  const mins = date.getMinutes();
-  const total = hrs * 60 + mins;
-
-  if (total < 570) return "PRE-MARKET";
-  if (total >= 570 && total <= 960) return "MARKET HOURS";
-  return "POST-MARKET";
+const formatMarketCap = (mc: number) => {
+  if (mc >= 1e12) return `${(mc / 1e12).toFixed(1)}T`;
+  if (mc >= 1e9) return `${(mc / 1e9).toFixed(1)}B`;
+  if (mc >= 1e6) return `${(mc / 1e6).toFixed(0)}M`;
+  return `${mc}`;
 };
 
-const parseSummary = (raw?: string): string[] => {
-  if (!raw) return [];
-  return raw
-    .split("\n")
-    .map((line) => line.replace(/^-\s*/, "").trim())
-    .filter(Boolean);
+const formatSalesEstimate = (s: number) => {
+  if (s >= 1e9) return `$${(s / 1e9).toFixed(1)}B`;
+  if (s >= 1e6) return `$${(s / 1e6).toFixed(0)}M`;
+  return `$${s}`;
+};
+
+const getSessionLabel = (timeOfDay: string) => {
+  if (timeOfDay === "PreMarket") return "PRE";
+  if (timeOfDay === "AfterHours") return "POST";
+  return "N/A";
+};
+
+const getConsensusColor = (id: string) => {
+  if (id === "strongBuy") return "text-green-600 bg-green-50";
+  if (id === "moderateBuy") return "text-green-500 bg-green-50/50";
+  if (id === "hold") return "text-yellow-600 bg-yellow-50";
+  if (id === "moderateSell" || id === "strongSell") return "text-red-500 bg-red-50";
+  return "text-muted-foreground bg-muted";
+};
+
+const getConsensusLabel = (id: string) => {
+  const map: Record<string, string> = {
+    strongBuy: "Strong Buy",
+    moderateBuy: "Moderate Buy",
+    hold: "Hold",
+    moderateSell: "Moderate Sell",
+    strongSell: "Strong Sell",
+  };
+  return map[id] || id;
 };
 
 const Earnings = () => {
   const [loading, setLoading] = useState(true);
-  const [days, setDays] = useState<EarningsDay[]>([]);
+  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [dayData, setDayData] = useState<TipRanksStock[]>([]);
+  const [dayLoading, setDayLoading] = useState(false);
   const [sortMode, setSortMode] = useState<"marketcap" | "time">("marketcap");
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
-  const [peerCache, setPeerCache] = useState<Record<string, PeerData[]>>({});
-  const [peerLoading, setPeerLoading] = useState<Record<string, boolean>>({});
 
-  const fetchPeers = useCallback(async (sym: string) => {
-    if (peerCache[sym]) return;
-    setPeerLoading(prev => ({ ...prev, [sym]: true }));
-    try {
-      const res = await fetch(`${PROXY}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/peers/${sym}?version=2.18&source=default`)}`);
-      const data = await res.json();
-      const items: PeerData[] = (Array.isArray(data) ? data : [])
-        .sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0))
-        .slice(0, 8);
-      setPeerCache(prev => ({ ...prev, [sym]: items }));
-    } catch {
-      setPeerCache(prev => ({ ...prev, [sym]: [] }));
-    } finally {
-      setPeerLoading(prev => ({ ...prev, [sym]: false }));
-    }
-  }, [peerCache]);
-
-  const handleToggle = useCallback((key: string, symbol: string) => {
-    if (expandedSymbol === key) {
-      setExpandedSymbol(null);
-    } else {
-      setExpandedSymbol(key);
-      fetchPeers(symbol);
-    }
-  }, [expandedSymbol, fetchPeers]);
-
-  const fetchEarnings = async () => {
+  // Fetch calendar overview (dates + counts)
+  const fetchCalendar = async () => {
     try {
       setLoading(true);
+      const today = new Date().toISOString().split("T")[0];
+      const url = `https://www.tipranks.com/calendars/earnings/${today}/payload.json`;
+      const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
+      const json = await resp.json();
+      const days: CalendarDay[] = (json?.data?.calendarData || []).map((d: any) => ({
+        date: d.date.split("T")[0],
+        count: d.count || 0,
+        topFollowedTickers: d.topFollowedTickers || [],
+      }));
+      setCalendarDays(days);
 
-      const today = new Date();
-      const dates: string[] = [];
-
-      for (let i = -5; i <= 5; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
-        const iso = d.toISOString().split("T")[0];
-        dates.push(iso);
+      // Auto-select today
+      const todayEntry = days.find((d) => d.date === today);
+      if (todayEntry) {
+        setSelectedDate(today);
+      } else if (days.length > 0) {
+        // Find nearest future date with earnings
+        const future = days.filter((d) => d.date >= today && d.count > 0);
+        setSelectedDate(future.length > 0 ? future[0].date : days[0].date);
       }
 
-      setSelectedDate(dates[5]); // Select today
-
-      const results: EarningsDay[] = [];
-
-      for (const d of dates) {
-        const encoded = encodeURIComponent(
-          `https://www.perplexity.ai/rest/finance/earnings?date=${d}&timezone=America/New_York&country=US`
-        );
-
-        const resp = await fetch(`${PROXY}${encoded}`);
-        const api = await resp.json();
-
-        const mapped: EarningsItem[] = (api || []).map((e: any) => {
-          const dt = new Date(e.date);
-
-          const estTime = dt.toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-            timeZone: "America/New_York",
-          });
-
-          const localEST = new Date(
-            dt.toLocaleString("en-US", { timeZone: "America/New_York" })
-          );
-
-          return {
-            symbol: e.symbol,
-            name: e.companyName,
-            image: e.image,
-            quarter: `${e.fiscalPeriod} '${String(e.fiscalYear).slice(2)}`,
-            time: estTime,
-            session: getSession(localEST),
-            marketCap: e.marketCap || e.mktCap || 0,
-            summary: parseSummary(e.summary),
-          };
-        });
-
-        results.push({ date: d, earnings: mapped });
-      }
-
-      setDays(results);
+      // Also load tableData from the same response for today
+      const tableData = json?.data?.tableData || [];
+      setDayData(tableData);
     } catch (e) {
-      console.error("Earnings fetch error:", e);
+      console.error("Earnings calendar fetch failed", e);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch specific date's detailed data
+  const fetchDateData = async (date: string) => {
+    try {
+      setDayLoading(true);
+      const url = `https://www.tipranks.com/calendars/earnings/${date}/payload.json`;
+      const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
+      const json = await resp.json();
+      setDayData(json?.data?.tableData || []);
+    } catch (e) {
+      console.error("Earnings date fetch failed", e);
+    } finally {
+      setDayLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchEarnings();
+    fetchCalendar();
   }, []);
 
-  const selectedDay = useMemo(
-    () => days.find((d) => d.date === selectedDate),
-    [days, selectedDate]
-  );
+  // When selected date changes, fetch that date's data
+  useEffect(() => {
+    if (selectedDate) {
+      fetchDateData(selectedDate);
+    }
+  }, [selectedDate]);
 
-  const sortedEarnings = useMemo(() => {
-    if (!selectedDay) return [];
+  // Get nearby dates (2 weeks around today) for the date selector
+  const visibleDates = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    return calendarDays.filter((d) => {
+      const diff = Math.abs(
+        (new Date(d.date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return diff <= 14 && d.count > 0;
+    });
+  }, [calendarDays]);
 
-    let arr = [...selectedDay.earnings];
-
-    // Sort by market cap
+  // Sort stocks
+  const sortedStocks = useMemo(() => {
+    let arr = [...dayData];
     if (sortMode === "marketcap") {
       return arr.sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
     }
-
-    // Sort by session + time
-    const sessionRank: any = {
-      "PRE-MARKET": 1,
-      "MARKET HOURS": 2,
-      "POST-MARKET": 3,
-    };
-
-    return arr.sort(
-      (a, b) =>
-        sessionRank[a.session] - sessionRank[b.session] ||
-        (b.marketCap || 0) - (a.marketCap || 0)
-    );
-  }, [selectedDay, sortMode]);
-
-  const grouped = useMemo(() => {
-    const base = {
-      "PRE-MARKET": [] as EarningsItem[],
-      "MARKET HOURS": [] as EarningsItem[],
-      "POST-MARKET": [] as EarningsItem[],
-    };
-
-    sortedEarnings.forEach((e) => {
-      base[e.session].push(e);
+    // Sort by session: PRE first, then POST
+    return arr.sort((a, b) => {
+      const sessionRank = (s: string) =>
+        s === "PreMarket" ? 1 : s === "AfterHours" ? 2 : 3;
+      const rankDiff =
+        sessionRank(a.earning?.reportOnTimeOfDay) -
+        sessionRank(b.earning?.reportOnTimeOfDay);
+      if (rankDiff !== 0) return rankDiff;
+      return (b.marketCap || 0) - (a.marketCap || 0);
     });
+  }, [dayData, sortMode]);
 
+  // Group by session
+  const grouped = useMemo(() => {
+    const base: Record<string, TipRanksStock[]> = {
+      PreMarket: [],
+      AfterHours: [],
+      Other: [],
+    };
+    sortedStocks.forEach((s) => {
+      const session = s.earning?.reportOnTimeOfDay || "Other";
+      if (base[session]) base[session].push(s);
+      else base.Other.push(s);
+    });
     return base;
-  }, [sortedEarnings]);
+  }, [sortedStocks]);
+
+  const renderStock = (s: TipRanksStock, idx: number, keyPrefix = "") => {
+    const key = `${keyPrefix}${s.ticker}-${idx}`;
+    const isExpanded = expandedSymbol === key;
+    const consensus = s.analystRatings?.consensus;
+    const earning = s.earning;
+
+    return (
+      <div key={key} className="rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+        <div
+          className="flex items-center justify-between px-3 py-3 cursor-pointer"
+          onClick={() => setExpandedSymbol(isExpanded ? null : key)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-bold">
+              {s.ticker.slice(0, 2)}
+            </div>
+            <div>
+              <p className="font-medium flex items-center gap-2">
+                {s.ticker}
+                <span className="px-2 py-0.5 rounded bg-muted text-[10px] font-semibold">
+                  {getSessionLabel(earning?.reportOnTimeOfDay)}
+                </span>
+                {earning?.isConfirm && (
+                  <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-semibold">
+                    Confirmed
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground">{s.name}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="text-right text-xs text-muted-foreground">
+              <span>Q{earning?.fiscalPeriod} '{String(earning?.fiscalYear).slice(2)}</span>
+              <span className="ml-2">• {formatMarketCap(s.marketCap)}</span>
+              <br />
+              <span className={s.change?.percent >= 0 ? "text-green-600" : "text-red-500"}>
+                {s.change?.percent >= 0 ? "+" : ""}
+                {(s.change?.percent * 100).toFixed(2)}%
+              </span>
+              <span className="ml-1">${s.price?.toFixed(2)}</span>
+            </div>
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </div>
+        </div>
+
+        {isExpanded && (
+          <div className="px-4 pb-3 pt-0 border-t">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 text-xs">
+              <div>
+                <p className="text-muted-foreground">EPS Estimate</p>
+                <p className="font-semibold">${earning?.value?.toFixed(2)}</p>
+                <p className="text-muted-foreground">
+                  Range: ${earning?.lowEstimateEps?.toFixed(2)} - ${earning?.highEstimateEps?.toFixed(2)}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Last Year EPS</p>
+                <p className="font-semibold">${earning?.lastYearValue?.toFixed(2)}</p>
+                {earning?.value && earning?.lastYearValue ? (
+                  <p className={earning.value > earning.lastYearValue ? "text-green-600" : "text-red-500"}>
+                    {earning.value > earning.lastYearValue ? "↑" : "↓"}{" "}
+                    {(((earning.value - earning.lastYearValue) / earning.lastYearValue) * 100).toFixed(1)}% YoY
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <p className="text-muted-foreground">Revenue Est.</p>
+                <p className="font-semibold">{formatSalesEstimate(earning?.salesEstimate || 0)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Smart Score</p>
+                <p className="font-semibold">{s.smartScore?.value || "—"}/10</p>
+              </div>
+            </div>
+
+            {/* Analyst Ratings */}
+            {consensus && (
+              <div className="flex items-center gap-3 text-xs pt-2 border-t">
+                <span
+                  className={`px-2 py-1 rounded font-semibold ${getConsensusColor(consensus.id)}`}
+                >
+                  {getConsensusLabel(consensus.id)}
+                </span>
+                <span className="text-muted-foreground">
+                  {consensus.buy}B / {consensus.hold}H / {consensus.sell}S
+                </span>
+                <span className="text-muted-foreground">
+                  Target: ${consensus.priceTarget?.value?.toFixed(2)}
+                </span>
+                {s.price && consensus.priceTarget?.value ? (
+                  <span
+                    className={
+                      consensus.priceTarget.value > s.price ? "text-green-600" : "text-red-500"
+                    }
+                  >
+                    ({((consensus.priceTarget.value / s.price - 1) * 100).toFixed(1)}% upside)
+                  </span>
+                ) : null}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -240,7 +360,7 @@ const Earnings = () => {
       <CardContent className="space-y-6">
         {/* DATE SELECTOR */}
         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-          {days.map((d) => (
+          {visibleDates.map((d) => (
             <button
               key={d.date}
               onClick={() => setSelectedDate(d.date)}
@@ -250,7 +370,7 @@ const Earnings = () => {
                   : "bg-muted text-muted-foreground hover:bg-muted/60"
               }`}
             >
-              {formatDisplayDate(d.date)} ({d.earnings.length})
+              {formatDisplayDate(d.date)} ({d.count})
             </button>
           ))}
         </div>
@@ -263,234 +383,56 @@ const Earnings = () => {
             className="px-3 py-2 border rounded-lg bg-background text-sm"
           >
             <option value="marketcap">Market Cap (Big → Small)</option>
-            <option value="time">Time (PRE → MARKET → POST)</option>
+            <option value="time">Session (PRE → POST)</option>
           </select>
         </div>
 
-        {/* SELECTED DATE HEADER */}
-        {selectedDay && (
-          <h3 className="text-md font-semibold text-muted-foreground border-b pb-2">
-            {formatHeaderDate(selectedDay.date)} — {selectedDay.earnings.length} Earnings
-          </h3>
-        )}
+        {/* HEADER */}
+        <h3 className="text-md font-semibold text-muted-foreground border-b pb-2">
+          {formatHeaderDate(selectedDate)} — {dayData.length} Earnings
+        </h3>
 
-        {/* MARKETCAP MODE → NO SESSION HEADERS */}
-        {sortMode === "marketcap" && (
-          <div className="space-y-2">
-            {sortedEarnings.map((e, i) => {
-              const isExpanded = expandedSymbol === `${e.symbol}-${i}`;
-              const hasSummary = e.summary && e.summary.length > 0;
-              return (
-              <div
-                key={i}
-                className="rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-              >
-                <div
-                  className="flex items-center justify-between px-3 py-3 cursor-pointer"
-                  onClick={() => handleToggle(`${e.symbol}-${i}`, e.symbol)}
-                >
-                <div className="flex items-center gap-3">
-                  {e.image ? (
-                    <img
-                      src={e.image}
-                      className="w-8 h-8 rounded object-contain"
-                      alt={e.symbol}
-                      onError={(ev) =>
-                        ((ev.target as HTMLImageElement).style.display = "none")
-                      }
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-bold">
-                      {e.symbol.slice(0, 2)}
-                    </div>
-                  )}
-
-                  <div>
-                    <p className="font-medium flex items-center gap-2">
-                      {e.symbol}
-                      <span className="px-2 py-0.5 rounded bg-muted text-[10px] font-semibold">
-                        {e.session.replace("-MARKET", "").replace(" HOURS", "")}
-                      </span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">{e.name}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="text-right text-xs text-muted-foreground">
-                    {e.quarter} • {e.time}
-                    <br />
-                    {e.marketCap
-                      ? `${(e.marketCap / 1_000_000_000).toFixed(1)}B`
-                      : "—"}
-                  </div>
-                  {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                </div>
-                </div>
-
-                {isExpanded && (
-                  <div className="px-4 pb-3 pt-0 min-h-[60px]">
-                    {hasSummary && (
-                      <ul className="space-y-1 text-xs text-muted-foreground border-t pt-2">
-                        {e.summary!.map((point, j) => (
-                          <li key={j} className="flex items-start gap-2">
-                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                            <span>{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-
-                    {/* Peers */}
-                    <div className="mt-3 pt-2 border-t">
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Peers</p>
-                      {peerLoading[e.symbol] ? (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Loader2 className="w-3 h-3 animate-spin" /> Loading peers...
-                        </div>
-                      ) : (peerCache[e.symbol] || []).length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {peerCache[e.symbol].map((p) => (
-                            <div key={p.symbol} className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border bg-muted/40 hover:bg-muted/70 transition-colors text-xs">
-                              {p.image && (
-                                <img src={p.image} className="w-4 h-4 rounded object-contain" alt={p.symbol}
-                                  onError={(ev) => ((ev.target as HTMLImageElement).style.display = "none")} />
-                              )}
-                              <span className="font-medium">{p.symbol}</span>
-                              <span className={`flex items-center gap-0.5 ${p.changesPercentage >= 0 ? "text-green-600" : "text-red-500"}`}>
-                                {p.changesPercentage >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                                {Math.abs(p.changesPercentage).toFixed(1)}%
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">No peers found</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              );
-            })}
+        {dayLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        )}
+        ) : (
+          <>
+            {/* MARKETCAP MODE */}
+            {sortMode === "marketcap" && (
+              <div className="space-y-2">
+                {sortedStocks.map((s, i) => renderStock(s, i, "mc-"))}
+              </div>
+            )}
 
-        {/* TIME MODE → GROUPED BY SESSION */}
-        {sortMode === "time" &&
-          ["PRE-MARKET", "MARKET HOURS", "POST-MARKET"].map((session) => (
-            <div key={session}>
-              {grouped[session].length > 0 && (
-                <>
-                  <div className="relative flex items-center py-4">
-                    <div className="flex-grow border-t" />
-                    <span className="mx-4 text-xs font-semibold text-muted-foreground">
-                      {session}
-                    </span>
-                    <div className="flex-grow border-t" />
-                  </div>
-
-                  <div className="space-y-2">
-                    {grouped[session].map((e, i) => {
-                      const key = `${session}-${e.symbol}-${i}`;
-                      const isExpanded = expandedSymbol === key;
-                      const hasSummary = e.summary && e.summary.length > 0;
-                      return (
-                      <div
-                        key={i}
-                        className="rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                      >
-                        <div
-                          className="flex items-center justify-between px-3 py-3 cursor-pointer"
-                          onClick={() => handleToggle(key, e.symbol)}
-                        >
-                        <div className="flex items-center gap-3">
-                          {e.image ? (
-                            <img
-                              src={e.image}
-                              className="w-8 h-8 rounded object-contain"
-                              alt={e.symbol}
-                              onError={(ev) =>
-                                ((ev.target as HTMLImageElement).style.display =
-                                  "none")
-                              }
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-bold">
-                              {e.symbol.slice(0, 2)}
-                            </div>
-                          )}
-
-                          <div>
-                            <p className="font-medium">{e.symbol}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {e.name}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <div className="text-right text-xs text-muted-foreground">
-                            {e.quarter} • {e.time}
-                            <br />
-                            {e.marketCap
-                              ? `${(e.marketCap / 1_000_000_000).toFixed(1)}B`
-                              : "—"}
-                          </div>
-                          {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                        </div>
-                        </div>
-
-                        {isExpanded && (
-                          <div className="px-4 pb-3 pt-0 min-h-[60px]">
-                            {hasSummary && (
-                              <ul className="space-y-1 text-xs text-muted-foreground border-t pt-2">
-                                {e.summary!.map((point, j) => (
-                                  <li key={j} className="flex items-start gap-2">
-                                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                                    <span>{point}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-
-                            {/* Peers */}
-                            <div className="mt-3 pt-2 border-t">
-                              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Peers</p>
-                              {peerLoading[e.symbol] ? (
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <Loader2 className="w-3 h-3 animate-spin" /> Loading peers...
-                                </div>
-                              ) : (peerCache[e.symbol] || []).length > 0 ? (
-                                <div className="flex flex-wrap gap-2">
-                                  {peerCache[e.symbol].map((p) => (
-                                    <div key={p.symbol} className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border bg-muted/40 hover:bg-muted/70 transition-colors text-xs">
-                                      {p.image && (
-                                        <img src={p.image} className="w-4 h-4 rounded object-contain" alt={p.symbol}
-                                          onError={(ev) => ((ev.target as HTMLImageElement).style.display = "none")} />
-                                      )}
-                                      <span className="font-medium">{p.symbol}</span>
-                                      <span className={`flex items-center gap-0.5 ${p.changesPercentage >= 0 ? "text-green-600" : "text-red-500"}`}>
-                                        {p.changesPercentage >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                                        {Math.abs(p.changesPercentage).toFixed(1)}%
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-xs text-muted-foreground">No peers found</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
+            {/* TIME MODE */}
+            {sortMode === "time" &&
+              (["PreMarket", "AfterHours"] as const).map((session) => (
+                <div key={session}>
+                  {grouped[session].length > 0 && (
+                    <>
+                      <div className="relative flex items-center py-4">
+                        <div className="flex-grow border-t" />
+                        <span className="mx-4 text-xs font-semibold text-muted-foreground">
+                          {session === "PreMarket" ? "PRE-MARKET" : "AFTER-HOURS"}
+                        </span>
+                        <div className="flex-grow border-t" />
                       </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
+                      <div className="space-y-2">
+                        {grouped[session].map((s, i) => renderStock(s, i, `${session}-`))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+
+            {sortedStocks.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">
+                No earnings scheduled for this date.
+              </p>
+            )}
+          </>
+        )}
       </CardContent>
     </Card>
   );
