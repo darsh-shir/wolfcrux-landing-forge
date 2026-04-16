@@ -12,6 +12,7 @@ interface Profile {
   user_id: string;
   full_name: string;
   trader_number: string | null;
+  employee_role: string;
 }
 
 interface TraderProgressData {
@@ -30,6 +31,7 @@ interface TraderProgressData {
 const TraderProgress = () => {
   const [data, setData] = useState<TraderProgressData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [companyPnl, setCompanyPnl] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -55,7 +57,7 @@ const TraderProgress = () => {
   const fetchData = async () => {
     setLoading(true);
     const [profilesRes, milestonesRes, tradingData] = await Promise.all([
-      supabase.from("profiles").select("user_id, full_name, trader_number"),
+      supabase.from("profiles").select("user_id, full_name, trader_number, employee_role"),
       supabase.from("trader_milestones").select("user_id, cumulative_net_profit"),
       fetchAllTradingData(),
     ]);
@@ -63,24 +65,33 @@ const TraderProgress = () => {
     const profiles = profilesRes.data || [];
     const milestones = milestonesRes.data || [];
 
+    // Only keep traders (not trainees) — partners are traders with employee_role='trader'
+    const traderProfiles = profiles.filter((p) => p.employee_role === "trader");
+
     // Count distinct trading days and total PnL per user
     const tradingDaysMap: Record<string, Set<string>> = {};
     const totalPnlMap: Record<string, number> = {};
 
     tradingData.forEach((t) => {
-      // Primary trader
+      // Primary trader gets full P&L
       if (!tradingDaysMap[t.user_id]) tradingDaysMap[t.user_id] = new Set();
       tradingDaysMap[t.user_id].add(t.trade_date);
       totalPnlMap[t.user_id] = (totalPnlMap[t.user_id] || 0) + Number(t.net_pnl);
 
-      // Partner counts as trading day too
+      // Partner gets same P&L as the primary trader (mirrored), plus trading day count
+      // But we track company P&L separately (only from primary entries, no double count)
       if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") {
         if (!tradingDaysMap[t.trader2_id]) tradingDaysMap[t.trader2_id] = new Set();
         tradingDaysMap[t.trader2_id].add(t.trade_date);
+        totalPnlMap[t.trader2_id] = (totalPnlMap[t.trader2_id] || 0) + Number(t.net_pnl);
       }
     });
 
-    const result: TraderProgressData[] = profiles.map((p) => {
+    // Company P&L = sum of all primary trader net_pnl (no double counting)
+    const companyTotal = tradingData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
+    setCompanyPnl(companyTotal);
+
+    const result: TraderProgressData[] = traderProfiles.map((p) => {
       const tradingDays = tradingDaysMap[p.user_id]?.size || 0;
       const ms = milestones.find((m) => m.user_id === p.user_id);
       const cumProfit = Number(ms?.cumulative_net_profit || 0);
@@ -116,7 +127,6 @@ const TraderProgress = () => {
 
   const totalTraders = data.length;
   const totalTradingDays = data.reduce((s, d) => s + d.tradingDays, 0);
-  const totalPnl = data.reduce((s, d) => s + d.totalPnl, 0);
 
   if (loading) {
     return (
@@ -166,8 +176,8 @@ const TraderProgress = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Company P&L</p>
-                <p className={`text-2xl font-bold ${totalPnl >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                  ${formatIndian(Math.abs(totalPnl))}
+                <p className={`text-2xl font-bold ${companyPnl >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                  ${formatIndian(Math.abs(companyPnl))}
                 </p>
               </div>
             </div>
