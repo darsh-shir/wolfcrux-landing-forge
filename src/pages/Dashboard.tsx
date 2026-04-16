@@ -75,6 +75,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
 
   const [economicEvents, setEconomicEvents] = useState<any[]>([]);
+  const [economicLoading, setEconomicLoading] = useState(true);
   const fetchEconomicCalendar = async () => {
     try {
       setEconomicLoading(true);
