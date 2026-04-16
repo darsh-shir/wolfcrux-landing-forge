@@ -17,6 +17,7 @@ import Earnings from "@/components/dashboard/Earnings";
 import Peers from "@/components/dashboard/Peers";
 import EconomicOverview from "@/components/dashboard/EconomicOverview";
 import EconomicCalendar from "@/components/dashboard/EconomicCalendar";
+import EarningsOverview from "@/components/dashboard/EarningsOverview";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
@@ -50,18 +51,6 @@ interface SentimentData {
   created: string;
 }
 
-interface EarningsItem {
-  symbol: string;
-  name: string;
-  image?: string;
-  quarter: string;
-  time: string;
-}
-
-interface EarningsDay {
-  date: string;
-  earnings: EarningsItem[];
-}
 
 /* ===================== COMPONENT ===================== */
 
