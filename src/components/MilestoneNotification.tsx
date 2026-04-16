@@ -30,18 +30,35 @@ const MilestoneNotification = () => {
     evaluateMilestones();
   }, [user, isAdmin]);
 
+  const fetchAllTradingData = async () => {
+    const allData: any[] = [];
+    let from = 0;
+    const batchSize = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("trading_data")
+        .select("user_id, trade_date, trader2_id, trader2_role")
+        .range(from, from + batchSize - 1);
+      if (error || !data || data.length === 0) break;
+      allData.push(...data);
+      if (data.length < batchSize) break;
+      from += batchSize;
+    }
+    return allData;
+  };
+
   const evaluateMilestones = async () => {
-    const [profilesRes, milestonesRes, configsRes, tradingDataRes] = await Promise.all([
+    const [profilesRes, milestonesRes, configsRes, tradingData] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, trader_number, joining_date"),
       supabase.from("trader_milestones").select("*"),
       supabase.from("trader_config").select("*").eq("config_mode", "milestone"),
-      supabase.from("trading_data").select("user_id, trade_date, trader2_id, trader2_role"),
+      fetchAllTradingData(),
     ]);
 
     const profiles = profilesRes.data || [];
     const milestones = milestonesRes.data || [];
     const milestoneConfigs = configsRes.data || [];
-    const tradingData = tradingDataRes.data || [];
+    
 
     // Count distinct trading days per user (as primary trader or as partner)
     const tradingDaysMap: Record<string, Set<string>> = {};

@@ -35,16 +35,32 @@ const TraderProgress = () => {
     fetchData();
   }, []);
 
+  const fetchAllTradingData = async () => {
+    const allData: any[] = [];
+    let from = 0;
+    const batchSize = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("trading_data")
+        .select("user_id, trade_date, net_pnl, trader2_id, trader2_role, shares_traded")
+        .range(from, from + batchSize - 1);
+      if (error || !data || data.length === 0) break;
+      allData.push(...data);
+      if (data.length < batchSize) break;
+      from += batchSize;
+    }
+    return allData;
+  };
+
   const fetchData = async () => {
     setLoading(true);
-    const [profilesRes, tradingRes, milestonesRes] = await Promise.all([
+    const [profilesRes, milestonesRes, tradingData] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, trader_number"),
-      supabase.from("trading_data").select("user_id, trade_date, net_pnl, trader2_id, trader2_role, shares_traded"),
       supabase.from("trader_milestones").select("user_id, cumulative_net_profit"),
+      fetchAllTradingData(),
     ]);
 
     const profiles = profilesRes.data || [];
-    const tradingData = tradingRes.data || [];
     const milestones = milestonesRes.data || [];
 
     // Count distinct trading days and total PnL per user
