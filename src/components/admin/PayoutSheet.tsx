@@ -167,8 +167,6 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     setLoading(false);
   };
 
-  // Determine milestone level
-  const [tradingDaysCount, setTradingDaysCount] = useState(0);
 
   const milestone = useMemo(() => {
     if (!milestoneData) return MILESTONES[0];
