@@ -17,6 +17,7 @@ import Earnings from "@/components/dashboard/Earnings";
 import Peers from "@/components/dashboard/Peers";
 import EconomicOverview from "@/components/dashboard/EconomicOverview";
 import EconomicCalendar from "@/components/dashboard/EconomicCalendar";
+import EarningsOverview from "@/components/dashboard/EarningsOverview";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
@@ -50,18 +51,6 @@ interface SentimentData {
   created: string;
 }
 
-interface EarningsItem {
-  symbol: string;
-  name: string;
-  image?: string;
-  quarter: string;
-  time: string;
-}
-
-interface EarningsDay {
-  date: string;
-  earnings: EarningsItem[];
-}
 
 /* ===================== COMPONENT ===================== */
 
@@ -85,44 +74,8 @@ const Dashboard = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
 
-  const [earningsData, setEarningsData] = useState<EarningsDay[]>([]);
-  const [earningsLoading, setEarningsLoading] = useState(true);
-
   const [economicEvents, setEconomicEvents] = useState<any[]>([]);
   const [economicLoading, setEconomicLoading] = useState(true);
-
-  /* ===================== FETCH EARNINGS ===================== */
-  const fetchEarnings = async () => {
-    try {
-      setEarningsLoading(true);
-
-      const url = encodeURIComponent(
-        "https://www.perplexity.ai/rest/finance/earnings/calendar?country=US"
-      );
-
-      const response = await fetch(`${PROXY_URL}${url}`);
-      const data = await response.json();
-
-      const mapped: EarningsDay[] = (data?.days || []).map((d: any) => ({
-        date: d.date,
-        earnings: (d.earnings || []).map((e: any) => ({
-          symbol: e.symbol,
-          name: e.name,
-          image: e.image,
-          quarter: e.quarter || "Q",
-          time: e.time || "N/A",
-        })),
-      }));
-
-      setEarningsData(mapped);
-    } catch (e) {
-      console.error("Earnings fetch failed", e);
-    } finally {
-      setEarningsLoading(false);
-    }
-  };
-
-  /* ===================== FETCH ECONOMIC CALENDAR ===================== */
   const fetchEconomicCalendar = async () => {
     try {
       setEconomicLoading(true);
@@ -268,7 +221,6 @@ const Dashboard = () => {
       fetchSectors(),
       fetchMovers(),
       fetchNews(),
-      fetchEarnings(),
       fetchEconomicCalendar(),
     ]);
     setLastUpdated(new Date());
@@ -368,6 +320,10 @@ const Dashboard = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <NewsOverview data={newsPosts} loading={loadingNews} />
+                <EarningsOverview />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <StockSplits limit={6} compact />
               </div>
             </TabsContent>
