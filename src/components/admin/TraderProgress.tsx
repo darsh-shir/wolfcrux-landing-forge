@@ -65,21 +65,17 @@ const TraderProgress = () => {
     const profiles = profilesRes.data || [];
     const milestones = milestonesRes.data || [];
 
-    // Only keep traders (not trainees) — partners are traders with employee_role='trader'
-    const traderProfiles = profiles.filter((p) => p.employee_role === "trader");
-
     // Count distinct trading days and total PnL per user
     const tradingDaysMap: Record<string, Set<string>> = {};
     const totalPnlMap: Record<string, number> = {};
 
     tradingData.forEach((t) => {
-      // Primary trader gets full P&L
+      // Primary trader
       if (!tradingDaysMap[t.user_id]) tradingDaysMap[t.user_id] = new Set();
       tradingDaysMap[t.user_id].add(t.trade_date);
       totalPnlMap[t.user_id] = (totalPnlMap[t.user_id] || 0) + Number(t.net_pnl);
 
-      // Partner gets same P&L as the primary trader (mirrored), plus trading day count
-      // But we track company P&L separately (only from primary entries, no double count)
+      // Partner gets mirrored P&L and trading day count
       if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") {
         if (!tradingDaysMap[t.trader2_id]) tradingDaysMap[t.trader2_id] = new Set();
         tradingDaysMap[t.trader2_id].add(t.trade_date);
@@ -90,6 +86,14 @@ const TraderProgress = () => {
     // Company P&L = sum of all primary trader net_pnl (no double counting)
     const companyTotal = tradingData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
     setCompanyPnl(companyTotal);
+
+    // Auto-detect traders: anyone with 20+ primary trading days (as user_id or as partner)
+    const qualifiedUserIds = new Set<string>();
+    Object.entries(tradingDaysMap).forEach(([userId, days]) => {
+      if (days.size >= 20) qualifiedUserIds.add(userId);
+    });
+
+    const traderProfiles = profiles.filter((p) => qualifiedUserIds.has(p.user_id));
 
     const result: TraderProgressData[] = traderProfiles.map((p) => {
       const tradingDays = tradingDaysMap[p.user_id]?.size || 0;
