@@ -58,7 +58,7 @@ const MilestoneNotification = () => {
     const profiles = profilesRes.data || [];
     const milestones = milestonesRes.data || [];
     const milestoneConfigs = configsRes.data || [];
-    const tradingData = tradingDataRes.data || [];
+    
 
     // Count distinct trading days per user (as primary trader or as partner)
     const tradingDaysMap: Record<string, Set<string>> = {};
