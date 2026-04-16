@@ -158,10 +158,6 @@ const Admin = () => {
                 <CalendarRange className="h-4 w-4" />
                 Monthly P&L
               </TabsTrigger>
-              <TabsTrigger value="seat-editor" className="gap-2 data-[state=active]:bg-background">
-                <Armchair className="h-4 w-4" />
-                Seat Editor
-              </TabsTrigger>
               <TabsTrigger value="progress" className="gap-2 data-[state=active]:bg-background">
                 <TrendingUp className="h-4 w-4" />
                 Trader Progress
@@ -262,10 +258,6 @@ const Admin = () => {
                 tradingData={tradingData}
                 onRefresh={fetchAllData}
               />
-            </TabsContent>
-            {/* SEAT EDITOR TAB */}
-            <TabsContent value="seat-editor">
-              <SeatAssignmentEditor users={users} />
             </TabsContent>
             {/* TRADER PROGRESS TAB */}
             <TabsContent value="progress">
