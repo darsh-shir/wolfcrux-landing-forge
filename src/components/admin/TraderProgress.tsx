@@ -95,6 +95,18 @@ const TraderProgress = () => {
 
     const traderProfiles = profiles.filter((p) => qualifiedUserIds.has(p.user_id));
 
+    // Auto-promote trainees to trader role when they hit 20+ days
+    const toPromote = traderProfiles.filter(
+      (p) => p.employee_role !== "trader" && qualifiedUserIds.has(p.user_id)
+    );
+    if (toPromote.length > 0) {
+      await Promise.all(
+        toPromote.map((p) =>
+          supabase.from("profiles").update({ employee_role: "trader" }).eq("user_id", p.user_id)
+        )
+      );
+    }
+
     const result: TraderProgressData[] = traderProfiles.map((p) => {
       const tradingDays = tradingDaysMap[p.user_id]?.size || 0;
       const ms = milestones.find((m) => m.user_id === p.user_id);
