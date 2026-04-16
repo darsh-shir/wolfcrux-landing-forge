@@ -7,30 +7,30 @@ export interface MilestoneLevel {
   label: string;
   stoPercent: number;
   ltoPercent: number;
-  monthsRequired: number;      // months from account start
+  daysRequired: number;        // trading days as primary trader
   profitRequired: number;      // cumulative net profit threshold
 }
 
 export const MILESTONES: MilestoneLevel[] = [
-  { level: 0, label: "Start",       stoPercent: 20, ltoPercent: 0,  monthsRequired: 0,  profitRequired: 0 },
-  { level: 1, label: "Level 1",     stoPercent: 25, ltoPercent: 10, monthsRequired: 6,  profitRequired: 50000 },
-  { level: 2, label: "Level 2",     stoPercent: 35, ltoPercent: 15, monthsRequired: 12, profitRequired: 150000 },
-  { level: 3, label: "Level 3",     stoPercent: 45, ltoPercent: 20, monthsRequired: 18, profitRequired: 300000 },
-  { level: 4, label: "Level 4",     stoPercent: 55, ltoPercent: 25, monthsRequired: 24, profitRequired: 500000 },
+  { level: 0, label: "Start",       stoPercent: 20, ltoPercent: 0,  daysRequired: 0,   profitRequired: 0 },
+  { level: 1, label: "Level 1",     stoPercent: 25, ltoPercent: 10, daysRequired: 125, profitRequired: 50000 },
+  { level: 2, label: "Level 2",     stoPercent: 35, ltoPercent: 15, daysRequired: 275, profitRequired: 150000 },
+  { level: 3, label: "Level 3",     stoPercent: 45, ltoPercent: 20, daysRequired: 400, profitRequired: 300000 },
+  { level: 4, label: "Level 4",     stoPercent: 55, ltoPercent: 25, daysRequired: 600, profitRequired: 500000 },
 ];
 
 /**
- * Determine milestone level based on months active and cumulative profit.
- * Whichever milestone is reached first (time OR profit) applies.
+ * Determine milestone level based on trading days and cumulative profit.
+ * Whichever milestone is reached first (days OR profit) applies.
  */
 export function getMilestoneLevel(
-  monthsSinceStart: number,
+  tradingDays: number,
   cumulativeNetProfit: number
 ): MilestoneLevel {
   let currentLevel = MILESTONES[0];
   for (let i = MILESTONES.length - 1; i >= 1; i--) {
     const m = MILESTONES[i];
-    if (monthsSinceStart >= m.monthsRequired || cumulativeNetProfit >= m.profitRequired) {
+    if (tradingDays >= m.daysRequired || cumulativeNetProfit >= m.profitRequired) {
       currentLevel = m;
       break;
     }
@@ -261,7 +261,7 @@ export function calculateMonthlyPayout(params: {
 }
 
 /**
- * Calculate months between two dates.
+ * @deprecated Use trading day counts instead of month calculations.
  */
 export function monthsBetween(startDate: Date, endDate: Date): number {
   return (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
