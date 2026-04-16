@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, UserPlus, Key, Trash2, Edit, Loader2, ArrowUpCircle } from "lucide-react";
+import { Plus, UserPlus, Key, Trash2, Edit, Loader2 } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -73,10 +73,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const [deleteUser, setDeleteUser] = useState<Profile | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Promotion state
-  const [promoteUser, setPromoteUser] = useState<Profile | null>(null);
-  const [promoteAccountStartDate, setPromoteAccountStartDate] = useState("");
-  const [isPromoting, setIsPromoting] = useState(false);
 
   useEffect(() => {
     fetchRoles();
@@ -161,46 +157,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     }
   };
 
-  const handlePromoteToTrader = async () => {
-    if (!promoteUser) return;
-
-    setIsPromoting(true);
-
-    try {
-      // Update profile to trader
-      await supabase.from("profiles").update({
-        employee_role: "trader",
-        assigned_trader_id: null,
-      }).eq("user_id", promoteUser.user_id);
-
-      // Create milestone record
-      const { data: existingMilestone } = await supabase.from("trader_milestones")
-        .select("id").eq("user_id", promoteUser.user_id).maybeSingle();
-
-      if (existingMilestone) {
-        await supabase.from("trader_milestones").update({
-          account_start_date: new Date().toISOString().split("T")[0],
-          current_level: 0,
-          cumulative_net_profit: 0,
-        }).eq("id", existingMilestone.id);
-      } else {
-        await supabase.from("trader_milestones").insert({
-          user_id: promoteUser.user_id,
-          account_start_date: new Date().toISOString().split("T")[0],
-          current_level: 0,
-          cumulative_net_profit: 0,
-        });
-      }
-
-      toast({ title: "Promoted!", description: `${promoteUser.full_name} is now a Trader starting at 20% STO` });
-      setPromoteUser(null);
-      onRefresh();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    }
-
-    setIsPromoting(false);
-  };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -406,14 +362,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                         <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)} title="Edit">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        {user.employee_role !== "trader" && (
-                          <Button variant="ghost" size="sm" onClick={() => {
-                            setPromoteUser(user);
-                            setPromoteAccountStartDate(new Date().toISOString().split("T")[0]);
-                          }} title="Promote to Trader">
-                            <ArrowUpCircle className="h-4 w-4 text-green-600" />
-                          </Button>
-                        )}
                         <Button variant="ghost" size="sm" onClick={() => setResetPasswordUser(user)} title="Reset Password">
                           <Key className="h-4 w-4" />
                         </Button>
@@ -516,26 +464,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
         </DialogContent>
       </Dialog>
 
-      {/* Promote to Trader Dialog */}
-      <Dialog open={!!promoteUser} onOpenChange={() => setPromoteUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Promote {promoteUser?.full_name} to Trader</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              This will set {promoteUser?.full_name} as a Trader with Level 0 (STO 20%, LTO 0%).
-              Trading days will be counted automatically from the first day they appear as a primary trader in trading data.
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setPromoteUser(null)}>Cancel</Button>
-              <Button className="flex-1 gap-2" onClick={handlePromoteToTrader} disabled={isPromoting}>
-                {isPromoting ? <><Loader2 className="h-4 w-4 animate-spin" /> Promoting...</> : <><ArrowUpCircle className="h-4 w-4" /> Promote</>}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Reset Password Dialog */}
       <Dialog open={!!resetPasswordUser} onOpenChange={() => setResetPasswordUser(null)}>
