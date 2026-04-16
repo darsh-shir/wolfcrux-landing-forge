@@ -19,7 +19,6 @@ import {
   calculateLeaveDeduction,
   getSTOPayoutDate,
   getLTOUnlockDate,
-  monthsBetween,
 } from "@/lib/payoutCalculations";
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 
@@ -163,14 +162,13 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   };
 
   // Determine milestone level
+  const [tradingDaysCount, setTradingDaysCount] = useState(0);
+
   const milestone = useMemo(() => {
     if (!milestoneData) return MILESTONES[0];
-    const accountStart = new Date(milestoneData.account_start_date);
-    const currentDate = new Date(selectedYear, selectedMonth - 1, 28);
-    const months = monthsBetween(accountStart, currentDate);
     const cumProfit = Number(milestoneData.cumulative_net_profit || 0);
-    return getMilestoneLevel(months, cumProfit);
-  }, [milestoneData, selectedMonth, selectedYear]);
+    return getMilestoneLevel(tradingDaysCount, cumProfit);
+  }, [milestoneData, tradingDaysCount]);
 
   const nextMilestone = useMemo(() => getNextMilestone(milestone.level), [milestone]);
 
@@ -497,10 +495,10 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">
-                          Time: {monthsBetween(new Date(milestoneData.account_start_date), new Date())}mo / {nextMilestone.monthsRequired}mo
+                          Trading Days: {tradingDaysCount} / {nextMilestone.daysRequired} days
                         </p>
                         <Progress
-                          value={Math.min(100, (monthsBetween(new Date(milestoneData.account_start_date), new Date()) / nextMilestone.monthsRequired) * 100)}
+                          value={Math.min(100, (tradingDaysCount / nextMilestone.daysRequired) * 100)}
                           className="h-2"
                         />
                       </div>

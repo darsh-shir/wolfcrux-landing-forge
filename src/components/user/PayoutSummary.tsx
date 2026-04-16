@@ -10,7 +10,6 @@ import {
   MILESTONES,
   getMilestoneLevel,
   getNextMilestone,
-  monthsBetween,
 } from "@/lib/payoutCalculations";
 
 const MONTHS = [
@@ -47,12 +46,12 @@ const PayoutSummary = () => {
     setLoading(false);
   };
 
+  const [tradingDaysCount, setTradingDaysCount] = useState(0);
+
   const milestone = useMemo(() => {
     if (!milestoneData) return MILESTONES[0];
-    const accountStart = new Date(milestoneData.account_start_date);
-    const months = monthsBetween(accountStart, new Date());
-    return getMilestoneLevel(months, Number(milestoneData.cumulative_net_profit || 0));
-  }, [milestoneData]);
+    return getMilestoneLevel(tradingDaysCount, Number(milestoneData.cumulative_net_profit || 0));
+  }, [milestoneData, tradingDaysCount]);
 
   const nextMilestone = useMemo(() => getNextMilestone(milestone.level), [milestone]);
 
@@ -139,18 +138,18 @@ const PayoutSummary = () => {
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-muted-foreground">Time</span>
+                <span className="text-muted-foreground">Trading Days</span>
                 <span className="font-medium">
-                  {monthsBetween(new Date(milestoneData.account_start_date), new Date())} months / {nextMilestone.monthsRequired} months
+                  {tradingDaysCount} days / {nextMilestone.daysRequired} days
                 </span>
               </div>
               <Progress
-                value={Math.min(100, (monthsBetween(new Date(milestoneData.account_start_date), new Date()) / nextMilestone.monthsRequired) * 100)}
+                value={Math.min(100, (tradingDaysCount / nextMilestone.daysRequired) * 100)}
                 className="h-2"
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Next level unlocks STO {nextMilestone.stoPercent}% / LTO {nextMilestone.ltoPercent}% — whichever milestone is reached first (time or profit)
+              Next level unlocks STO {nextMilestone.stoPercent}% / LTO {nextMilestone.ltoPercent}% — whichever milestone is reached first (days or profit)
             </p>
           </CardContent>
         </Card>
@@ -280,7 +279,7 @@ const PayoutSummary = () => {
                   STO {m.stoPercent}% / LTO {m.ltoPercent}%
                   {m.level > 0 && (
                     <span className="ml-2">
-                      ({m.monthsRequired}mo or {`$${formatIndian(m.profitRequired)}`})
+                      ({m.daysRequired} days or {`$${formatIndian(m.profitRequired)}`})
                     </span>
                   )}
                 </div>
