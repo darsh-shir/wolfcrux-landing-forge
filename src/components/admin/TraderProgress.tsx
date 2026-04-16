@@ -176,8 +176,8 @@ const TraderProgress = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Company P&L</p>
-                <p className={`text-2xl font-bold ${totalPnl >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                  ${formatIndian(Math.abs(totalPnl))}
+                <p className={`text-2xl font-bold ${companyPnl >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                  ${formatIndian(Math.abs(companyPnl))}
                 </p>
               </div>
             </div>
