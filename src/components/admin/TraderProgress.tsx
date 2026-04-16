@@ -31,6 +31,7 @@ interface TraderProgressData {
 const TraderProgress = () => {
   const [data, setData] = useState<TraderProgressData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [companyPnl, setCompanyPnl] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -78,12 +79,17 @@ const TraderProgress = () => {
       totalPnlMap[t.user_id] = (totalPnlMap[t.user_id] || 0) + Number(t.net_pnl);
 
       // Partner gets same P&L as the primary trader (mirrored), plus trading day count
+      // But we track company P&L separately (only from primary entries, no double count)
       if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") {
         if (!tradingDaysMap[t.trader2_id]) tradingDaysMap[t.trader2_id] = new Set();
         tradingDaysMap[t.trader2_id].add(t.trade_date);
         totalPnlMap[t.trader2_id] = (totalPnlMap[t.trader2_id] || 0) + Number(t.net_pnl);
       }
     });
+
+    // Company P&L = sum of all primary trader net_pnl (no double counting)
+    const companyTotal = tradingData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
+    setCompanyPnl(companyTotal);
 
     const result: TraderProgressData[] = traderProfiles.map((p) => {
       const tradingDays = tradingDaysMap[p.user_id]?.size || 0;
@@ -121,7 +127,6 @@ const TraderProgress = () => {
 
   const totalTraders = data.length;
   const totalTradingDays = data.reduce((s, d) => s + d.tradingDays, 0);
-  const totalPnl = data.reduce((s, d) => s + d.totalPnl, 0);
 
   if (loading) {
     return (
