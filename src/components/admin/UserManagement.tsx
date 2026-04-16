@@ -162,10 +162,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   };
 
   const handlePromoteToTrader = async () => {
-    if (!promoteUser || !promoteAccountStartDate) {
-      toast({ title: "Error", description: "Please set the account start date", variant: "destructive" });
-      return;
-    }
+    if (!promoteUser) return;
 
     setIsPromoting(true);
 
@@ -182,14 +179,14 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
 
       if (existingMilestone) {
         await supabase.from("trader_milestones").update({
-          account_start_date: promoteAccountStartDate,
+          account_start_date: new Date().toISOString().split("T")[0],
           current_level: 0,
           cumulative_net_profit: 0,
         }).eq("id", existingMilestone.id);
       } else {
         await supabase.from("trader_milestones").insert({
           user_id: promoteUser.user_id,
-          account_start_date: promoteAccountStartDate,
+          account_start_date: new Date().toISOString().split("T")[0],
           current_level: 0,
           cumulative_net_profit: 0,
         });
@@ -197,7 +194,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
 
       toast({ title: "Promoted!", description: `${promoteUser.full_name} is now a Trader starting at 20% STO` });
       setPromoteUser(null);
-      setPromoteAccountStartDate("");
       onRefresh();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -529,17 +525,8 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               This will set {promoteUser?.full_name} as a Trader with Level 0 (STO 20%, LTO 0%).
-              Milestone tracking will begin from the account start date.
+              Trading days will be counted automatically from the first day they appear as a primary trader in trading data.
             </p>
-            <div className="space-y-2">
-              <Label>Account Start Date *</Label>
-              <Input
-                type="date"
-                value={promoteAccountStartDate}
-                onChange={(e) => setPromoteAccountStartDate(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">This is the date the trader receives their own account. Milestone time tracking starts here.</p>
-            </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setPromoteUser(null)}>Cancel</Button>
               <Button className="flex-1 gap-2" onClick={handlePromoteToTrader} disabled={isPromoting}>
