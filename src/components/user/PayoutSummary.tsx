@@ -38,14 +38,18 @@ const PayoutSummary = () => {
         .order("year", { ascending: false }).order("month", { ascending: false }),
       supabase.from("lto_ledger").select("*").eq("user_id", user.id)
         .order("year", { ascending: false }).order("month", { ascending: false }),
-      supabase.from("trading_data").select("trade_date").eq("user_id", user.id),
+      supabase.from("trading_data").select("trade_date, user_id, trader2_id, trader2_role"),
     ]);
 
     setMilestoneData(milestoneRes.data);
     setStoHistory(stoRes.data || []);
     setLtoHistory(ltoRes.data || []);
-    // Count distinct trading days
-    const uniqueDays = new Set((tradingDaysRes.data || []).map((t: any) => t.trade_date));
+    // Count distinct trading days: as primary trader OR as partner
+    const uniqueDays = new Set<string>();
+    (tradingDaysRes.data || []).forEach((t: any) => {
+      if (t.user_id === user.id) uniqueDays.add(t.trade_date);
+      if (t.trader2_id === user.id && t.trader2_role?.toLowerCase() === "partner") uniqueDays.add(t.trade_date);
+    });
     setTradingDaysCount(uniqueDays.size);
     setLoading(false);
   };

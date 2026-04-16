@@ -114,9 +114,13 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         .eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
     ]);
 
-    // Fetch all trading days for this trader (for milestone calculation)
-    const tradingDaysRes = await supabase.from("trading_data").select("trade_date").eq("user_id", selectedTrader);
-    const uniqueDays = new Set((tradingDaysRes.data || []).map((t: any) => t.trade_date));
+    // Fetch all trading data for this trader's day count (primary or partner)
+    const tradingDaysRes = await supabase.from("trading_data").select("trade_date, user_id, trader2_id, trader2_role");
+    const uniqueDays = new Set<string>();
+    (tradingDaysRes.data || []).forEach((t: any) => {
+      if (t.user_id === selectedTrader) uniqueDays.add(t.trade_date);
+      if (t.trader2_id === selectedTrader && t.trader2_role?.toLowerCase() === "partner") uniqueDays.add(t.trade_date);
+    });
     setTradingDaysCount(uniqueDays.size);
 
     setTradingData(tradesRes.data || []);
