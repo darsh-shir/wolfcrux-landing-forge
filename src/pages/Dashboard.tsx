@@ -74,44 +74,7 @@ const Dashboard = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
 
-  const [earningsData, setEarningsData] = useState<EarningsDay[]>([]);
-  const [earningsLoading, setEarningsLoading] = useState(true);
-
   const [economicEvents, setEconomicEvents] = useState<any[]>([]);
-  const [economicLoading, setEconomicLoading] = useState(true);
-
-  /* ===================== FETCH EARNINGS ===================== */
-  const fetchEarnings = async () => {
-    try {
-      setEarningsLoading(true);
-
-      const url = encodeURIComponent(
-        "https://www.perplexity.ai/rest/finance/earnings/calendar?country=US"
-      );
-
-      const response = await fetch(`${PROXY_URL}${url}`);
-      const data = await response.json();
-
-      const mapped: EarningsDay[] = (data?.days || []).map((d: any) => ({
-        date: d.date,
-        earnings: (d.earnings || []).map((e: any) => ({
-          symbol: e.symbol,
-          name: e.name,
-          image: e.image,
-          quarter: e.quarter || "Q",
-          time: e.time || "N/A",
-        })),
-      }));
-
-      setEarningsData(mapped);
-    } catch (e) {
-      console.error("Earnings fetch failed", e);
-    } finally {
-      setEarningsLoading(false);
-    }
-  };
-
-  /* ===================== FETCH ECONOMIC CALENDAR ===================== */
   const fetchEconomicCalendar = async () => {
     try {
       setEconomicLoading(true);
@@ -257,7 +220,6 @@ const Dashboard = () => {
       fetchSectors(),
       fetchMovers(),
       fetchNews(),
-      fetchEarnings(),
       fetchEconomicCalendar(),
     ]);
     setLastUpdated(new Date());
@@ -357,6 +319,10 @@ const Dashboard = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <NewsOverview data={newsPosts} loading={loadingNews} />
+                <EarningsOverview />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <StockSplits limit={6} compact />
               </div>
             </TabsContent>
