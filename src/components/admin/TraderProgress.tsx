@@ -87,10 +87,10 @@ const TraderProgress = () => {
     const companyTotal = tradingData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
     setCompanyPnl(companyTotal);
 
-    // Auto-detect traders: anyone with 20+ primary trading days (as user_id or as partner)
+    // Auto-detect traders: anyone with at least 1 trading day
     const qualifiedUserIds = new Set<string>();
     Object.entries(tradingDaysMap).forEach(([userId, days]) => {
-      if (days.size >= 20) qualifiedUserIds.add(userId);
+      if (days.size >= 1) qualifiedUserIds.add(userId);
     });
 
     const traderProfiles = profiles.filter((p) => qualifiedUserIds.has(p.user_id));
