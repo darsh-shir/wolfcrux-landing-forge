@@ -62,6 +62,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [loading, setLoading] = useState(false);
   const [existingRecord, setExistingRecord] = useState<any>(null);
   const [milestoneData, setMilestoneData] = useState<any>(null);
+  const [tradingDaysCount, setTradingDaysCount] = useState(0);
   const [existingSto, setExistingSto] = useState<any>(null);
   const [existingLto, setExistingLto] = useState<any>(null);
   const [stoHistory, setStoHistory] = useState<any[]>([]);
@@ -112,6 +113,11 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       supabase.from("monthly_exchange_rates").select("*")
         .eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
     ]);
+
+    // Fetch all trading days for this trader (for milestone calculation)
+    const tradingDaysRes = await supabase.from("trading_data").select("trade_date").eq("user_id", selectedTrader);
+    const uniqueDays = new Set((tradingDaysRes.data || []).map((t: any) => t.trade_date));
+    setTradingDaysCount(uniqueDays.size);
 
     setTradingData(tradesRes.data || []);
     setTrader2TradingData(tradesAsTrader2Res.data || []);
