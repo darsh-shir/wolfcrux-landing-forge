@@ -35,7 +35,7 @@ const MilestoneNotification = () => {
       supabase.from("profiles").select("user_id, full_name, trader_number, joining_date"),
       supabase.from("trader_milestones").select("*"),
       supabase.from("trader_config").select("*").eq("config_mode", "milestone"),
-      supabase.from("trading_data").select("user_id, trade_date"),
+      supabase.from("trading_data").select("user_id, trade_date, trader2_id, trader2_role"),
     ]);
 
     const profiles = profilesRes.data || [];
@@ -43,11 +43,17 @@ const MilestoneNotification = () => {
     const milestoneConfigs = configsRes.data || [];
     const tradingData = tradingDataRes.data || [];
 
-    // Count distinct trading days per user (as primary trader)
+    // Count distinct trading days per user (as primary trader or as partner)
     const tradingDaysMap: Record<string, Set<string>> = {};
     tradingData.forEach((t) => {
+      // Primary trader always counts
       if (!tradingDaysMap[t.user_id]) tradingDaysMap[t.user_id] = new Set();
       tradingDaysMap[t.user_id].add(t.trade_date);
+      // Partner (trader2 with role 'partner') also counts
+      if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") {
+        if (!tradingDaysMap[t.trader2_id]) tradingDaysMap[t.trader2_id] = new Set();
+        tradingDaysMap[t.trader2_id].add(t.trade_date);
+      }
     });
 
     const now = new Date();
