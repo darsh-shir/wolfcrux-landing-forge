@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, Armchair, TrendingUp } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp } from "lucide-react";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
 import TradingDataView from "@/components/admin/TradingDataView";
@@ -20,7 +20,6 @@ import TraderConfig from "@/components/admin/TraderConfig";
 import PoolView from "@/components/admin/PoolView";
 import SingleDayPnL from "@/components/admin/SingleDayPnL";
 import MonthlyPnL from "@/components/admin/MonthlyPnL";
-import SeatAssignmentEditor from "@/components/admin/SeatAssignmentEditor";
 import TraderProgress from "@/components/admin/TraderProgress";
 
 interface Profile {
@@ -158,10 +157,6 @@ const Admin = () => {
                 <CalendarRange className="h-4 w-4" />
                 Monthly P&L
               </TabsTrigger>
-              <TabsTrigger value="seat-editor" className="gap-2 data-[state=active]:bg-background">
-                <Armchair className="h-4 w-4" />
-                Seat Editor
-              </TabsTrigger>
               <TabsTrigger value="progress" className="gap-2 data-[state=active]:bg-background">
                 <TrendingUp className="h-4 w-4" />
                 Trader Progress
@@ -262,10 +257,6 @@ const Admin = () => {
                 tradingData={tradingData}
                 onRefresh={fetchAllData}
               />
-            </TabsContent>
-            {/* SEAT EDITOR TAB */}
-            <TabsContent value="seat-editor">
-              <SeatAssignmentEditor users={users} />
             </TabsContent>
             {/* TRADER PROGRESS TAB */}
             <TabsContent value="progress">
