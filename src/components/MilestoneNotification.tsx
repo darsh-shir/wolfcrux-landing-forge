@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { getMilestoneLevel, MILESTONES, monthsBetween } from "@/lib/payoutCalculations";
+import { getMilestoneLevel, MILESTONES } from "@/lib/payoutCalculations";
 import {
   Popover,
   PopoverContent,
@@ -31,15 +31,24 @@ const MilestoneNotification = () => {
   }, [user, isAdmin]);
 
   const evaluateMilestones = async () => {
-    const [profilesRes, milestonesRes, configsRes] = await Promise.all([
+    const [profilesRes, milestonesRes, configsRes, tradingDataRes] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, trader_number, joining_date"),
       supabase.from("trader_milestones").select("*"),
       supabase.from("trader_config").select("*").eq("config_mode", "milestone"),
+      supabase.from("trading_data").select("user_id, trade_date"),
     ]);
 
     const profiles = profilesRes.data || [];
     const milestones = milestonesRes.data || [];
     const milestoneConfigs = configsRes.data || [];
+    const tradingData = tradingDataRes.data || [];
+
+    // Count distinct trading days per user (as primary trader)
+    const tradingDaysMap: Record<string, Set<string>> = {};
+    tradingData.forEach((t) => {
+      if (!tradingDaysMap[t.user_id]) tradingDaysMap[t.user_id] = new Set();
+      tradingDaysMap[t.user_id].add(t.trade_date);
+    });
 
     const now = new Date();
     const newAlerts: MilestoneAlert[] = [];
@@ -48,12 +57,12 @@ const MilestoneNotification = () => {
       const profile = profiles.find(p => p.user_id === ms.user_id);
       if (!profile) continue;
 
-      const monthsActive = monthsBetween(new Date(ms.account_start_date), now);
-      const newMilestone = getMilestoneLevel(monthsActive, ms.cumulative_net_profit);
+      const tradingDays = tradingDaysMap[ms.user_id]?.size || 0;
+      const newMilestone = getMilestoneLevel(tradingDays, ms.cumulative_net_profit);
 
       // Check if trader leveled up beyond what's stored
       if (newMilestone.level > ms.current_level) {
-        const timeMet = monthsActive >= MILESTONES[newMilestone.level].monthsRequired;
+        const daysMet = tradingDays >= MILESTONES[newMilestone.level].daysRequired;
         const profitMet = ms.cumulative_net_profit >= MILESTONES[newMilestone.level].profitRequired;
 
         newAlerts.push({
@@ -63,7 +72,7 @@ const MilestoneNotification = () => {
           newLabel: newMilestone.label,
           stoPercent: newMilestone.stoPercent,
           ltoPercent: newMilestone.ltoPercent,
-          trigger: timeMet && profitMet ? "both" : timeMet ? "time" : "profit",
+          trigger: daysMet && profitMet ? "both" : daysMet ? "time" : "profit",
         });
 
         // Auto-update the milestone record
@@ -178,7 +187,7 @@ const MilestoneNotification = () => {
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                Reached via {a.trigger === "both" ? "time & profit" : a.trigger === "time" ? "tenure" : "profit target"}
+                Reached via {a.trigger === "both" ? "days & profit" : a.trigger === "time" ? "trading days" : "profit target"}
               </p>
               <div className="flex gap-2 mt-1">
                 <span className="text-xs font-medium text-foreground">STO: {a.stoPercent}%</span>
