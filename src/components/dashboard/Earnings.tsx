@@ -368,18 +368,6 @@ const Earnings = () => {
           ))}
         </div>
 
-        {/* SORTER */}
-        <div className="flex justify-end">
-          <select
-            value={sortMode}
-            onChange={(e) => setSortMode(e.target.value as any)}
-            className="px-3 py-2 border rounded-lg bg-background text-sm"
-          >
-            <option value="marketcap">Market Cap (Big → Small)</option>
-            <option value="time">Session (PRE → POST)</option>
-          </select>
-        </div>
-
         {/* HEADER */}
         <h3 className="text-md font-semibold text-muted-foreground border-b pb-2">
           {formatHeaderDate(selectedDate)} — {dayData.length} Earnings
@@ -391,33 +379,24 @@ const Earnings = () => {
           </div>
         ) : (
           <>
-            {/* MARKETCAP MODE */}
-            {sortMode === "marketcap" && (
-              <div className="space-y-2">
-                {sortedStocks.map((s, i) => renderStock(s, i, "mc-"))}
+            {(["PreMarket", "AfterHours"] as const).map((session) => (
+              <div key={session}>
+                {grouped[session].length > 0 && (
+                  <>
+                    <div className="relative flex items-center py-4">
+                      <div className="flex-grow border-t" />
+                      <span className="mx-4 text-xs font-semibold text-muted-foreground">
+                        {session === "PreMarket" ? "PRE-MARKET" : "AFTER-HOURS"}
+                      </span>
+                      <div className="flex-grow border-t" />
+                    </div>
+                    <div className="space-y-2">
+                      {grouped[session].map((s, i) => renderStock(s, i, `${session}-`))}
+                    </div>
+                  </>
+                )}
               </div>
-            )}
-
-            {/* TIME MODE */}
-            {sortMode === "time" &&
-              (["PreMarket", "AfterHours"] as const).map((session) => (
-                <div key={session}>
-                  {grouped[session].length > 0 && (
-                    <>
-                      <div className="relative flex items-center py-4">
-                        <div className="flex-grow border-t" />
-                        <span className="mx-4 text-xs font-semibold text-muted-foreground">
-                          {session === "PreMarket" ? "PRE-MARKET" : "AFTER-HOURS"}
-                        </span>
-                        <div className="flex-grow border-t" />
-                      </div>
-                      <div className="space-y-2">
-                        {grouped[session].map((s, i) => renderStock(s, i, `${session}-`))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
+            ))}
 
             {sortedStocks.length === 0 && (
               <p className="text-center text-muted-foreground py-8">
