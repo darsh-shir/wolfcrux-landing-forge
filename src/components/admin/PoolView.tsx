@@ -161,37 +161,41 @@ const PoolView = ({ users }: PoolViewProps) => {
     });
 
     const totalPool = contributions.reduce((sum, c) => sum + c.poolContribution, 0);
-    const numTrainees = trainees.length;
-    const perTrainee = numTrainees > 0 ? totalPool / numTrainees : 0;
 
     const exemptTraders = [...partnerExemptSet].map(uid => {
       const p = users.find(u => u.user_id === uid);
       return p?.full_name || "Unknown";
     });
 
-    return { contributions, totalPool, numTrainees, perTrainee, exemptTraders };
-  }, [tradingData, traderConfigs, users, trainees]);
+    return { contributions, totalPool, exemptTraders };
+  }, [tradingData, traderConfigs, users]);
+
   // Auto-save pool ledger to DB whenever it recalculates
   const lastSavedRef = useRef("");
   useEffect(() => {
-    const key = `${selectedMonth}-${selectedYear}-${poolData.totalPool.toFixed(2)}`;
-    if (key === lastSavedRef.current || loading) return;
+    if (loading) return;
+    const key = `${selectedMonth}-${selectedYear}-${poolData.totalPool.toFixed(4)}-${poolData.contributions.length}`;
+    if (key === lastSavedRef.current) return;
     lastSavedRef.current = key;
 
     const savePool = async () => {
-      const payload = {
-        month: selectedMonth,
-        year: selectedYear,
-        total_pool_amount: poolData.totalPool,
-        num_trainees: poolData.numTrainees,
-        per_trainee_amount: poolData.perTrainee,
-      };
       const { data: existing } = await supabase.from("trainee_pool_ledger")
-        .select("id").eq("month", selectedMonth).eq("year", selectedYear).maybeSingle();
+        .select("id, num_trainees, per_trainee_amount")
+        .eq("month", selectedMonth).eq("year", selectedYear).maybeSingle();
+
       if (existing?.id) {
-        await supabase.from("trainee_pool_ledger").update(payload).eq("id", existing.id);
+        // Preserve admin-managed num_trainees / per_trainee_amount
+        await supabase.from("trainee_pool_ledger")
+          .update({ total_pool_amount: poolData.totalPool })
+          .eq("id", existing.id);
       } else {
-        await supabase.from("trainee_pool_ledger").insert(payload);
+        await supabase.from("trainee_pool_ledger").insert({
+          month: selectedMonth,
+          year: selectedYear,
+          total_pool_amount: poolData.totalPool,
+          num_trainees: 0,
+          per_trainee_amount: 0,
+        });
       }
     };
     savePool();
@@ -240,8 +244,8 @@ const PoolView = ({ users }: PoolViewProps) => {
         </CardHeader>
       </Card>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Summary Card */}
+      <div className="grid grid-cols-1 gap-4">
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Total Pool</p>
@@ -251,24 +255,6 @@ const PoolView = ({ users }: PoolViewProps) => {
             <p className="text-xs text-muted-foreground mt-1">
               From {poolData.contributions.length} trader(s)
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Active Trainees</p>
-            <p className="text-2xl font-bold">{poolData.numTrainees}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {trainees.map(t => t.full_name).join(", ") || "None"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Per Trainee</p>
-            <p className="text-2xl font-bold text-green-600">
-              ${formatIndian(poolData.perTrainee, 2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Equal distribution</p>
           </CardContent>
         </Card>
       </div>
@@ -372,18 +358,6 @@ const PoolView = ({ users }: PoolViewProps) => {
               </ChartContainer>
             )}
 
-            {/* Trainee List */}
-            {trainees.length > 0 && poolData.totalPool > 0 && (
-              <div className="mt-4 border rounded-lg p-4 space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Distribution to Trainees</p>
-                {trainees.map(t => (
-                  <div key={t.user_id} className="flex justify-between items-center text-sm">
-                    <span>{t.full_name}</span>
-                    <span className="font-medium text-green-600">${formatIndian(poolData.perTrainee, 2)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
