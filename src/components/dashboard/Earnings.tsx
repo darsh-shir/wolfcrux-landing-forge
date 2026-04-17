@@ -110,7 +110,7 @@ const Earnings = () => {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [dayData, setDayData] = useState<TipRanksStock[]>([]);
   const [dayLoading, setDayLoading] = useState(false);
-  const [sortMode, setSortMode] = useState<"marketcap" | "time">("marketcap");
+  
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
 
   // Fetch calendar overview (dates + counts)
