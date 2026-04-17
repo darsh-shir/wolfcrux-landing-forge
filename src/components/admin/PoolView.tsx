@@ -358,18 +358,6 @@ const PoolView = ({ users }: PoolViewProps) => {
               </ChartContainer>
             )}
 
-            {/* Trainee List */}
-            {trainees.length > 0 && poolData.totalPool > 0 && (
-              <div className="mt-4 border rounded-lg p-4 space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Distribution to Trainees</p>
-                {trainees.map(t => (
-                  <div key={t.user_id} className="flex justify-between items-center text-sm">
-                    <span>{t.full_name}</span>
-                    <span className="font-medium text-green-600">${formatIndian(poolData.perTrainee, 2)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
