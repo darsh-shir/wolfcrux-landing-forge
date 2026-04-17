@@ -185,13 +185,9 @@ const Earnings = () => {
     });
   }, [calendarDays]);
 
-  // Sort stocks
+  // Sort stocks by session: PRE first, then POST, secondary by market cap
   const sortedStocks = useMemo(() => {
-    let arr = [...dayData];
-    if (sortMode === "marketcap") {
-      return arr.sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
-    }
-    // Sort by session: PRE first, then POST
+    const arr = [...dayData];
     return arr.sort((a, b) => {
       const sessionRank = (s: string) =>
         s === "PreMarket" ? 1 : s === "AfterHours" ? 2 : 3;
@@ -201,7 +197,7 @@ const Earnings = () => {
       if (rankDiff !== 0) return rankDiff;
       return (b.marketCap || 0) - (a.marketCap || 0);
     });
-  }, [dayData, sortMode]);
+  }, [dayData]);
 
   // Group by session
   const grouped = useMemo(() => {
