@@ -244,8 +244,8 @@ const PoolView = ({ users }: PoolViewProps) => {
         </CardHeader>
       </Card>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Summary Card */}
+      <div className="grid grid-cols-1 gap-4">
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Total Pool</p>
@@ -255,24 +255,6 @@ const PoolView = ({ users }: PoolViewProps) => {
             <p className="text-xs text-muted-foreground mt-1">
               From {poolData.contributions.length} trader(s)
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Active Trainees</p>
-            <p className="text-2xl font-bold">{poolData.numTrainees}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {trainees.map(t => t.full_name).join(", ") || "None"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Per Trainee</p>
-            <p className="text-2xl font-bold text-green-600">
-              ${formatIndian(poolData.perTrainee, 2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Equal distribution</p>
           </CardContent>
         </Card>
       </div>
