@@ -136,7 +136,9 @@ const PoolView = ({ users }: PoolViewProps) => {
       const shareCost = (data.totalShares / 1000) * 14;
       const netProfit = data.totalPnl - shareCost - softwareCost;
 
-      if (netProfit > 0 && payoutPercent > 0) {
+      // Include every non-partner trader with positive net profit.
+      // If payout% is 0/missing, contribution will be 0 (visible to admin).
+      if (netProfit > 0) {
         const stoAmount = netProfit * (payoutPercent / 100);
         contributions.push({
           userId,
