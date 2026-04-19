@@ -214,7 +214,7 @@ const LtoView = ({ users }: LtoViewProps) => {
                               </TableCell>
                               <TableCell>
                                 {e.is_released ? (
-                                  <Badge className="bg-green-500/10 text-green-700 hover:bg-green-500/20 gap-1">
+                                  <Badge className="bg-success/10 text-success hover:bg-success/20 gap-1">
                                     <Unlock className="h-3 w-3" /> Released
                                   </Badge>
                                 ) : (
