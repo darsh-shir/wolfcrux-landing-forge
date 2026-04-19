@@ -149,7 +149,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       setTraderConfig(config);
     }
 
-    if (config) setSoftwareCostInput(config.software_cost ?? 0);
+    // Default software cost to $1000 unless explicitly set in config
+    setSoftwareCostInput(config?.software_cost ? Number(config.software_cost) : 1000);
 
     if (existingRes.data) {
       setExistingRecord(existingRes.data);
