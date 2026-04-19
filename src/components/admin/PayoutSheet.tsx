@@ -316,7 +316,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
     return result;
   }, [tradingData, trader2TradingData, allAttendanceRecords, carryForwardDays,
-    selectedMonth, selectedYear, users, softwareCostInput, milestone]);
+    selectedMonth, selectedYear, users, softwareCostInput, milestone, traderConfig]);
 
   const traderName = users.find(u => u.user_id === selectedTrader)?.full_name || "";
 
