@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock } from "lucide-react";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
 import TradingDataView from "@/components/admin/TradingDataView";
@@ -21,6 +21,7 @@ import PoolView from "@/components/admin/PoolView";
 import SingleDayPnL from "@/components/admin/SingleDayPnL";
 import MonthlyPnL from "@/components/admin/MonthlyPnL";
 import TraderProgress from "@/components/admin/TraderProgress";
+import LtoView from "@/components/admin/LtoView";
 
 interface Profile {
   id: string;
@@ -149,6 +150,10 @@ const Admin = () => {
                 <Landmark className="h-4 w-4" />
                 Pool
               </TabsTrigger>
+              <TabsTrigger value="lto" className="gap-2 data-[state=active]:bg-background">
+                <Lock className="h-4 w-4" />
+                LTO
+              </TabsTrigger>
               <TabsTrigger value="single-day" className="gap-2 data-[state=active]:bg-background">
                 <ClipboardCheck className="h-4 w-4" />
                 Single Day P&L
@@ -237,6 +242,11 @@ const Admin = () => {
             {/* POOL TAB */}
             <TabsContent value="pool">
               <PoolView users={users} />
+            </TabsContent>
+
+            {/* LTO TAB */}
+            <TabsContent value="lto">
+              <LtoView users={users} />
             </TabsContent>
 
             {/* SINGLE DAY P&L TAB */}
