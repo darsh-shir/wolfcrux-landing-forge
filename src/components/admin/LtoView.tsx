@@ -168,11 +168,11 @@ const LtoView = ({ users }: LtoViewProps) => {
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-muted-foreground">Released</div>
-                          <div className="font-semibold text-green-600">{formatCurrency(summary.released)}</div>
+                          <div className="font-semibold text-success">{formatCurrency(summary.released)}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-muted-foreground">Locked</div>
-                          <div className="font-semibold text-amber-600">{formatCurrency(summary.locked)}</div>
+                          <div className="font-semibold text-warning">{formatCurrency(summary.locked)}</div>
                         </div>
                         <div className="text-right min-w-[100px]">
                           <div className="text-xs text-muted-foreground">Next Unlock</div>
