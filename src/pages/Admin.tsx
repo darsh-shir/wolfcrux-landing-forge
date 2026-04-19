@@ -150,6 +150,10 @@ const Admin = () => {
                 <Landmark className="h-4 w-4" />
                 Pool
               </TabsTrigger>
+              <TabsTrigger value="lto" className="gap-2 data-[state=active]:bg-background">
+                <Lock className="h-4 w-4" />
+                LTO
+              </TabsTrigger>
               <TabsTrigger value="single-day" className="gap-2 data-[state=active]:bg-background">
                 <ClipboardCheck className="h-4 w-4" />
                 Single Day P&L
