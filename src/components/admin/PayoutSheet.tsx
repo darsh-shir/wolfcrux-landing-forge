@@ -149,7 +149,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       setTraderConfig(config);
     }
 
-    if (config) setSoftwareCostInput(config.software_cost ?? 0);
+    // Default software cost to $1000 unless explicitly set in config
+    setSoftwareCostInput(config?.software_cost ? Number(config.software_cost) : 1000);
 
     if (existingRes.data) {
       setExistingRecord(existingRes.data);
@@ -181,9 +182,15 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const nextMilestone = useMemo(() => getNextMilestone(milestone.level), [milestone]);
 
   const calculations = useMemo(() => {
+    // Use trader_config STO/LTO % when configured (manual override), else milestone defaults
+    const configStoPct = traderConfig?.sto_percentage != null ? Number(traderConfig.sto_percentage) : NaN;
+    const configLtoPct = traderConfig?.lto_percentage != null ? Number(traderConfig.lto_percentage) : NaN;
+    const effectiveStoPct = !isNaN(configStoPct) && configStoPct > 0 ? configStoPct : milestone.stoPercent;
+    const effectiveLtoPct = !isNaN(configLtoPct) && configLtoPct > 0 ? configLtoPct : milestone.ltoPercent;
+
     const result = {
       totalPnl: 0, totalShares: 0, shareCost: 0, softwareCost: 0,
-      netProfit: 0, stoPercent: milestone.stoPercent, ltoPercent: milestone.ltoPercent,
+      netProfit: 0, stoPercent: effectiveStoPct, ltoPercent: effectiveLtoPct,
       stoAmount: 0, ltoAmount: 0,
       leaveDeductionPct: 0, leaveDeductionAmount: 0,
       traineePoolContribution: 0, finalStoAmount: 0,
@@ -209,8 +216,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const tradingDays = tradingData.filter((t: any) => !t.is_holiday).length;
 
     // STO and LTO amounts (only on positive net profit)
-    const stoAmount = netProfit > 0 ? netProfit * (milestone.stoPercent / 100) : 0;
-    const ltoAmount = netProfit > 0 ? netProfit * (milestone.ltoPercent / 100) : 0;
+    const stoAmount = netProfit > 0 ? netProfit * (effectiveStoPct / 100) : 0;
+    const ltoAmount = netProfit > 0 ? netProfit * (effectiveLtoPct / 100) : 0;
 
     // Leave deductions
     const leaveResult = calculateLeaveDeduction(
@@ -309,17 +316,33 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
     return result;
   }, [tradingData, trader2TradingData, allAttendanceRecords, carryForwardDays,
-    selectedMonth, selectedYear, users, softwareCostInput, milestone]);
+    selectedMonth, selectedYear, users, softwareCostInput, milestone, traderConfig]);
 
   const traderName = users.find(u => u.user_id === selectedTrader)?.full_name || "";
 
   const handleSaveSoftwareCost = async () => {
-    if (!selectedTrader || !traderConfig?.id) {
-      toast({ title: "Error", description: "No trader config found.", variant: "destructive" });
-      return;
+    if (!selectedTrader) return;
+    if (traderConfig?.id) {
+      const { error } = await supabase.from("trader_config")
+        .update({ software_cost: softwareCostInput }).eq("id", traderConfig.id);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+    } else {
+      const { data, error } = await supabase.from("trader_config").insert({
+        user_id: selectedTrader,
+        month: selectedMonth,
+        year: selectedYear,
+        software_cost: softwareCostInput,
+      }).select().maybeSingle();
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      setTraderConfig(data);
     }
-    const { error } = await supabase.from("trader_config").update({ software_cost: softwareCostInput }).eq("id", traderConfig.id);
-    if (!error) toast({ title: "Saved", description: `Software cost updated to $${softwareCostInput}` });
+    toast({ title: "Saved", description: `Software cost updated to $${softwareCostInput}` });
   };
 
   const handleSaveAll = async () => {
