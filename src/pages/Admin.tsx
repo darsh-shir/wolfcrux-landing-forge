@@ -244,6 +244,11 @@ const Admin = () => {
               <PoolView users={users} />
             </TabsContent>
 
+            {/* LTO TAB */}
+            <TabsContent value="lto">
+              <LtoView users={users} />
+            </TabsContent>
+
             {/* SINGLE DAY P&L TAB */}
             <TabsContent value="single-day">
               <SingleDayPnL
