@@ -182,9 +182,15 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const nextMilestone = useMemo(() => getNextMilestone(milestone.level), [milestone]);
 
   const calculations = useMemo(() => {
+    // Use trader_config STO/LTO % when configured (manual override), else milestone defaults
+    const configStoPct = traderConfig?.sto_percentage != null ? Number(traderConfig.sto_percentage) : NaN;
+    const configLtoPct = traderConfig?.lto_percentage != null ? Number(traderConfig.lto_percentage) : NaN;
+    const effectiveStoPct = !isNaN(configStoPct) && configStoPct > 0 ? configStoPct : milestone.stoPercent;
+    const effectiveLtoPct = !isNaN(configLtoPct) && configLtoPct > 0 ? configLtoPct : milestone.ltoPercent;
+
     const result = {
       totalPnl: 0, totalShares: 0, shareCost: 0, softwareCost: 0,
-      netProfit: 0, stoPercent: milestone.stoPercent, ltoPercent: milestone.ltoPercent,
+      netProfit: 0, stoPercent: effectiveStoPct, ltoPercent: effectiveLtoPct,
       stoAmount: 0, ltoAmount: 0,
       leaveDeductionPct: 0, leaveDeductionAmount: 0,
       traineePoolContribution: 0, finalStoAmount: 0,
@@ -210,8 +216,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const tradingDays = tradingData.filter((t: any) => !t.is_holiday).length;
 
     // STO and LTO amounts (only on positive net profit)
-    const stoAmount = netProfit > 0 ? netProfit * (milestone.stoPercent / 100) : 0;
-    const ltoAmount = netProfit > 0 ? netProfit * (milestone.ltoPercent / 100) : 0;
+    const stoAmount = netProfit > 0 ? netProfit * (effectiveStoPct / 100) : 0;
+    const ltoAmount = netProfit > 0 ? netProfit * (effectiveLtoPct / 100) : 0;
 
     // Leave deductions
     const leaveResult = calculateLeaveDeduction(
