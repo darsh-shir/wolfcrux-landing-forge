@@ -321,12 +321,28 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const traderName = users.find(u => u.user_id === selectedTrader)?.full_name || "";
 
   const handleSaveSoftwareCost = async () => {
-    if (!selectedTrader || !traderConfig?.id) {
-      toast({ title: "Error", description: "No trader config found.", variant: "destructive" });
-      return;
+    if (!selectedTrader) return;
+    if (traderConfig?.id) {
+      const { error } = await supabase.from("trader_config")
+        .update({ software_cost: softwareCostInput }).eq("id", traderConfig.id);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+    } else {
+      const { data, error } = await supabase.from("trader_config").insert({
+        user_id: selectedTrader,
+        month: selectedMonth,
+        year: selectedYear,
+        software_cost: softwareCostInput,
+      }).select().maybeSingle();
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      setTraderConfig(data);
     }
-    const { error } = await supabase.from("trader_config").update({ software_cost: softwareCostInput }).eq("id", traderConfig.id);
-    if (!error) toast({ title: "Saved", description: `Software cost updated to $${softwareCostInput}` });
+    toast({ title: "Saved", description: `Software cost updated to $${softwareCostInput}` });
   };
 
   const handleSaveAll = async () => {
