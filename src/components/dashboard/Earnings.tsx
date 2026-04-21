@@ -112,6 +112,23 @@ const Earnings = () => {
   const [dayLoading, setDayLoading] = useState(false);
   
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
+  const [peersCache, setPeersCache] = useState<Record<string, { loading: boolean; data: any[] }>>({});
+
+  const fetchPeers = useCallback(async (ticker: string) => {
+    if (peersCache[ticker]) return;
+    setPeersCache((p) => ({ ...p, [ticker]: { loading: true, data: [] } }));
+    try {
+      const url = `https://www.perplexity.ai/rest/finance/peers/${ticker}?version=2.18&source=default`;
+      const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
+      const json = await resp.json();
+      const items = Array.isArray(json) ? json : [];
+      items.sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0));
+      setPeersCache((p) => ({ ...p, [ticker]: { loading: false, data: items } }));
+    } catch (e) {
+      console.error("Peers fetch failed", e);
+      setPeersCache((p) => ({ ...p, [ticker]: { loading: false, data: [] } }));
+    }
+  }, [peersCache]);
 
   // Fetch calendar overview (dates + counts)
   const fetchCalendar = async () => {
@@ -224,7 +241,11 @@ const Earnings = () => {
       <div key={key} className="rounded-lg border bg-card hover:bg-muted/50 transition-colors">
         <div
           className="flex items-center justify-between px-3 py-3 cursor-pointer"
-          onClick={() => setExpandedSymbol(isExpanded ? null : key)}
+          onClick={() => {
+            const next = isExpanded ? null : key;
+            setExpandedSymbol(next);
+            if (next) fetchPeers(s.ticker);
+          }}
         >
           <div className="flex items-center gap-3">
             <div>
@@ -317,6 +338,41 @@ const Earnings = () => {
                 ) : null}
               </div>
             )}
+
+            {/* Peers */}
+            <div className="pt-3 mt-3 border-t">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                Peers of {s.ticker}
+              </p>
+              {peersCache[s.ticker]?.loading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Loading peers…
+                </div>
+              ) : peersCache[s.ticker]?.data.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {peersCache[s.ticker].data.slice(0, 12).map((p: any) => {
+                    const pos = (p.changesPercentage ?? 0) >= 0;
+                    return (
+                      <div
+                        key={p.symbol}
+                        className="flex items-center gap-2 px-2 py-1 rounded border bg-muted/40 text-[11px]"
+                      >
+                        <span className="font-mono font-semibold">{p.symbol}</span>
+                        <span className="text-muted-foreground">
+                          ${p.price?.toFixed(2)}
+                        </span>
+                        <span className={pos ? "text-green-600" : "text-red-500"}>
+                          {pos ? "+" : ""}
+                          {p.changesPercentage?.toFixed(2)}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : peersCache[s.ticker] ? (
+                <p className="text-xs text-muted-foreground">No peers found.</p>
+              ) : null}
+            </div>
           </div>
         )}
       </div>
