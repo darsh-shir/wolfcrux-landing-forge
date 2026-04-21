@@ -112,6 +112,23 @@ const Earnings = () => {
   const [dayLoading, setDayLoading] = useState(false);
   
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
+  const [peersCache, setPeersCache] = useState<Record<string, { loading: boolean; data: any[] }>>({});
+
+  const fetchPeers = useCallback(async (ticker: string) => {
+    if (peersCache[ticker]) return;
+    setPeersCache((p) => ({ ...p, [ticker]: { loading: true, data: [] } }));
+    try {
+      const url = `https://www.perplexity.ai/rest/finance/peers/${ticker}?version=2.18&source=default`;
+      const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
+      const json = await resp.json();
+      const items = Array.isArray(json) ? json : [];
+      items.sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0));
+      setPeersCache((p) => ({ ...p, [ticker]: { loading: false, data: items } }));
+    } catch (e) {
+      console.error("Peers fetch failed", e);
+      setPeersCache((p) => ({ ...p, [ticker]: { loading: false, data: [] } }));
+    }
+  }, [peersCache]);
 
   // Fetch calendar overview (dates + counts)
   const fetchCalendar = async () => {
