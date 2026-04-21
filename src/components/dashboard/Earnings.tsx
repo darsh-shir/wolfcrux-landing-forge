@@ -241,7 +241,11 @@ const Earnings = () => {
       <div key={key} className="rounded-lg border bg-card hover:bg-muted/50 transition-colors">
         <div
           className="flex items-center justify-between px-3 py-3 cursor-pointer"
-          onClick={() => setExpandedSymbol(isExpanded ? null : key)}
+          onClick={() => {
+            const next = isExpanded ? null : key;
+            setExpandedSymbol(next);
+            if (next) fetchPeers(s.ticker);
+          }}
         >
           <div className="flex items-center gap-3">
             <div>
