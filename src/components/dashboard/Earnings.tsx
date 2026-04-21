@@ -338,6 +338,41 @@ const Earnings = () => {
                 ) : null}
               </div>
             )}
+
+            {/* Peers */}
+            <div className="pt-3 mt-3 border-t">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                Peers of {s.ticker}
+              </p>
+              {peersCache[s.ticker]?.loading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Loading peers…
+                </div>
+              ) : peersCache[s.ticker]?.data.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {peersCache[s.ticker].data.slice(0, 12).map((p: any) => {
+                    const pos = (p.changesPercentage ?? 0) >= 0;
+                    return (
+                      <div
+                        key={p.symbol}
+                        className="flex items-center gap-2 px-2 py-1 rounded border bg-muted/40 text-[11px]"
+                      >
+                        <span className="font-mono font-semibold">{p.symbol}</span>
+                        <span className="text-muted-foreground">
+                          ${p.price?.toFixed(2)}
+                        </span>
+                        <span className={pos ? "text-green-600" : "text-red-500"}>
+                          {pos ? "+" : ""}
+                          {p.changesPercentage?.toFixed(2)}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : peersCache[s.ticker] ? (
+                <p className="text-xs text-muted-foreground">No peers found.</p>
+              ) : null}
+            </div>
           </div>
         )}
       </div>
