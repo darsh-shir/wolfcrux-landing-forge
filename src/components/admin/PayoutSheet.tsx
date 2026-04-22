@@ -322,16 +322,22 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         const role = trades[0]?.trader2_role || "partner";
         const roleLower = role.toLowerCase();
 
+        // Partner gets HALF of primary trader's STO%, applied to net profit
+        const primaryStoPct = primaryConfigs[primaryUserId]?.stoPct || effectiveStoPct;
+        const partnerSharePct = primaryStoPct / 2;
+
         let earnings = 0;
-        if (roleLower === "partner") {
-          earnings = netProfit2 * 0.50;
+        if (roleLower === "partner" && netProfit2 > 0) {
+          earnings = netProfit2 * (partnerSharePct / 100);
         }
         // Trainees receive from pool, not direct earnings
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
         trader2Earnings.push({
           primaryTraderName: primaryUser?.full_name || "Unknown",
-          pnl: totalPnl2, role, splitPct: roleLower === "partner" ? 50 : 25, earnings,
+          pnl: totalPnl2, role,
+          splitPct: roleLower === "partner" ? partnerSharePct : 25,
+          earnings,
         });
       }
     }
