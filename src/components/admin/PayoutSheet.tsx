@@ -191,10 +191,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
 
   const milestone = useMemo(() => {
-    if (!milestoneData) return MILESTONES[0];
-    const cumProfit = Number(milestoneData.cumulative_net_profit || 0);
-    return getMilestoneLevel(tradingDaysCount, cumProfit);
-  }, [milestoneData, tradingDaysCount]);
+    return getMilestoneLevel(tradingDaysCount, cumulativeNetProfit);
+  }, [cumulativeNetProfit, tradingDaysCount]);
 
   const nextMilestone = useMemo(() => getNextMilestone(milestone.level), [milestone]);
 
