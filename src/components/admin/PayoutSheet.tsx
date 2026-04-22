@@ -251,58 +251,59 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const stoAmount = netProfit > 0 ? netProfit * (effectiveStoPct / 100) : 0;
     const ltoAmount = netProfit > 0 ? netProfit * (effectiveLtoPct / 100) : 0;
 
-    // Leave deductions
+    // Leave deductions for THIS trader
     const leaveResult = calculateLeaveDeduction(
       allAttendanceRecords, selectedMonth, selectedYear, carryForwardDays
     );
     const leaveDeductionPct = leaveResult.deductionPercent;
-    const leaveDeductionAmount = stoAmount * (leaveDeductionPct / 100);
-    const stoAfterLeave = stoAmount - leaveDeductionAmount;
 
-    // Trainee pool: only traders WITHOUT a partner pay 25% pool
-    const hasPartner = tradingData.some((t: any) =>
-      t.trader2_role?.toLowerCase() === "partner"
-    );
-    const traineePoolContribution = !hasPartner && stoAfterLeave > 0 ? stoAfterLeave * 0.25 : 0;
-    const finalStoAmount = stoAfterLeave - traineePoolContribution;
-
-    // Partner deductions (for partner role - 50% of gross)
-    const partnerDeductionMap: Record<string, { name: string; role: string; totalPnl: number; totalShares: number; days: number }> = {};
-
+    // STEP 1: Split STO 50/50 with partner (proportional to days sat together) BEFORE leave deduction
+    const partnerSplitMap: Record<string, { name: string; role: string; days: number }> = {};
     tradingData.forEach((trade: any) => {
       if (trade.trader2_id && trade.trader2_role) {
         const key = trade.trader2_id;
-        if (!partnerDeductionMap[key]) {
+        if (!partnerSplitMap[key]) {
           const trader2User = users.find(u => u.user_id === trade.trader2_id);
-          partnerDeductionMap[key] = {
+          partnerSplitMap[key] = {
             name: trader2User?.full_name || "Unknown",
             role: trade.trader2_role,
-            totalPnl: 0, totalShares: 0, days: 0,
+            days: 0,
           };
         }
-        partnerDeductionMap[key].totalPnl += Number(trade.net_pnl);
-        partnerDeductionMap[key].totalShares += Number(trade.shares_traded);
-        partnerDeductionMap[key].days += 1;
+        partnerSplitMap[key].days += 1;
       }
     });
 
     const partnerDeductions: typeof result.partnerDeductions = [];
     let totalPartnerDeduction = 0;
 
-    for (const [, info] of Object.entries(partnerDeductionMap)) {
+    for (const [, info] of Object.entries(partnerSplitMap)) {
       const roleLower = info.role.toLowerCase();
       if (roleLower === "partner") {
-        // Partner gets HALF of the primary trader's STO%, proportional to days sat together
+        // Partner gets 50% of STO for the days they sat together
         const dayRatio = tradingDays > 0 ? info.days / tradingDays : 0;
-        const proportionalSto = stoAfterLeave * dayRatio;
+        const proportionalSto = stoAmount * dayRatio;
         const deduction = proportionalSto * 0.50;
         partnerDeductions.push({ name: info.name, role: info.role, splitPct: 50, amount: deduction });
         totalPartnerDeduction += deduction;
       }
-      // Trainee deductions are handled via traineePoolContribution above
     }
 
-    const traderKeepsFromPrimary = finalStoAmount - totalPartnerDeduction;
+    // STEP 2: Primary trader's STO share (after partner split)
+    const stoAfterPartnerSplit = stoAmount - totalPartnerDeduction;
+
+    // STEP 3: Apply primary trader's OWN leave deduction on their share
+    const leaveDeductionAmount = stoAfterPartnerSplit * (leaveDeductionPct / 100);
+    const stoAfterLeave = stoAfterPartnerSplit - leaveDeductionAmount;
+
+    // STEP 4: Trainee pool: only traders WITHOUT a partner pay 25% pool
+    const hasPartner = tradingData.some((t: any) =>
+      t.trader2_role?.toLowerCase() === "partner"
+    );
+    const traineePoolContribution = !hasPartner && stoAfterLeave > 0 ? stoAfterLeave * 0.25 : 0;
+    const finalStoAmount = stoAfterLeave - traineePoolContribution;
+
+    const traderKeepsFromPrimary = finalStoAmount;
 
     // Trader2 earnings (where this trader is partner on someone else's account)
     const trader2Earnings: typeof result.trader2Earnings = [];
@@ -317,26 +318,28 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         const totalPnl2 = trades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
         const totalShares2 = trades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
         const shareCost2 = calculateShareCost(totalShares2);
-        const netProfit2 = totalPnl2 - shareCost2;
+        // Same P&L treatment: subtract software cost too
+        const netProfit2 = totalPnl2 - shareCost2 - softwareCost;
 
         const role = trades[0]?.trader2_role || "partner";
         const roleLower = role.toLowerCase();
 
-        // Partner gets HALF of primary trader's STO%, applied to net profit
+        // Use primary trader's STO% to compute the STO pool, then split 50/50
         const primaryStoPct = primaryConfigs[primaryUserId]?.stoPct || effectiveStoPct;
-        const partnerSharePct = primaryStoPct / 2;
+        const stoPool = netProfit2 > 0 ? netProfit2 * (primaryStoPct / 100) : 0;
+        const partnerHalf = stoPool * 0.5; // partner's 50% share before partner's own leave deduction
 
         let earnings = 0;
-        if (roleLower === "partner" && netProfit2 > 0) {
-          earnings = netProfit2 * (partnerSharePct / 100);
+        if (roleLower === "partner" && partnerHalf > 0) {
+          // Apply THIS trader's (partner's) own leave deduction on their share
+          earnings = partnerHalf * (1 - leaveDeductionPct / 100);
         }
-        // Trainees receive from pool, not direct earnings
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
         trader2Earnings.push({
           primaryTraderName: primaryUser?.full_name || "Unknown",
           pnl: totalPnl2, role,
-          splitPct: roleLower === "partner" ? partnerSharePct : 25,
+          splitPct: roleLower === "partner" ? primaryStoPct / 2 : 25,
           earnings,
         });
       }
@@ -615,7 +618,13 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                     <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
                       <span className="text-muted-foreground">STO Amount ({calculations.stoPercent}% of Net Profit)</span>
                       <span className="font-medium text-right text-green-600">{formatCurrency(calculations.stoAmount)}</span>
-                      <span className="text-muted-foreground">Leave Deduction ({calculations.leaveDeductionPct.toFixed(1)}%)</span>
+                      {calculations.partnerDeductions.length > 0 && calculations.partnerDeductions.map((d, idx) => (
+                        <React.Fragment key={idx}>
+                          <span className="text-muted-foreground">Partner Split — 50% to {d.name}</span>
+                          <span className="font-medium text-right text-orange-600">-{formatCurrency(d.amount)}</span>
+                        </React.Fragment>
+                      ))}
+                      <span className="text-muted-foreground">Your Leave Deduction ({calculations.leaveDeductionPct.toFixed(1)}%)</span>
                       <span className="font-medium text-right text-red-600">-{formatCurrency(calculations.leaveDeductionAmount)}</span>
                       {calculations.traineePoolContribution > 0 && (
                         <>
@@ -623,12 +632,6 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                           <span className="font-medium text-right text-blue-600">-{formatCurrency(calculations.traineePoolContribution)}</span>
                         </>
                       )}
-                      {calculations.partnerDeductions.length > 0 && calculations.partnerDeductions.map((d, idx) => (
-                        <React.Fragment key={idx}>
-                          <span className="text-muted-foreground">Partner Share (½ of {calculations.stoPercent}% STO = {(calculations.stoPercent / 2).toFixed(1)}%) — {d.name}</span>
-                          <span className="font-medium text-right text-orange-600">-{formatCurrency(d.amount)}</span>
-                        </React.Fragment>
-                      ))}
                       <span className="text-muted-foreground font-semibold border-t pt-2">Final STO</span>
                       <span className="font-bold text-right text-green-600 border-t pt-2">
                         {formatCurrency(calculations.traderKeepsFromPrimary)}
