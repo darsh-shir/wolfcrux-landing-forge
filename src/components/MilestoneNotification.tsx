@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { TrendingUp, CheckCircle, XCircle, Target } from "lucide-react";
+import { TrendingUp, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getMilestoneLevel, getNextMilestone, MILESTONES } from "@/lib/payoutCalculations";
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+
 
 interface MilestoneAlert {
   milestoneId: string;
@@ -49,7 +49,7 @@ const MilestoneNotification = () => {
   const { user, isAdmin } = useAuth();
   const [alerts, setAlerts] = useState<MilestoneAlert[]>([]);
   const [upcoming, setUpcoming] = useState<UpcomingTrader[]>([]);
-  const [processing, setProcessing] = useState<string | null>(null);
+  
 
   useEffect(() => {
     if (!user || !isAdmin) return;
@@ -198,92 +198,6 @@ const MilestoneNotification = () => {
     setUpcoming(upcomingList.slice(0, 3));
   };
 
-  const handleUpgrade = async (alert: MilestoneAlert) => {
-    setProcessing(alert.milestoneId);
-    try {
-      // Update milestone record
-      await supabase.from("trader_milestones")
-        .update({
-          current_level: alert.newLevel,
-          cumulative_net_profit: alert.cumulativeProfit,
-          last_evaluated_at: new Date().toISOString(),
-        })
-        .eq("id", alert.milestoneId);
-
-      // Update trader_config for next month
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1;
-      const currentYear = now.getFullYear();
-      let nextMonth = currentMonth + 1;
-      let nextYear = currentYear;
-      if (nextMonth > 12) { nextMonth = 1; nextYear++; }
-
-      const newPayload = {
-        sto_percentage: alert.stoPercent,
-        lto_percentage: alert.ltoPercent,
-        payout_percentage: alert.stoPercent + alert.ltoPercent,
-        config_mode: "milestone",
-      };
-
-      const { data: nextConfig } = await supabase
-        .from("trader_config")
-        .select("id")
-        .eq("user_id", alert.userId)
-        .eq("month", nextMonth)
-        .eq("year", nextYear)
-        .maybeSingle();
-
-      if (nextConfig?.id) {
-        await supabase.from("trader_config").update(newPayload).eq("id", nextConfig.id);
-      } else {
-        const { data: latestCfg } = await supabase
-          .from("trader_config")
-          .select("*")
-          .eq("user_id", alert.userId)
-          .order("year", { ascending: false })
-          .order("month", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        await supabase.from("trader_config").insert({
-          user_id: alert.userId,
-          month: nextMonth,
-          year: nextYear,
-          software_cost: latestCfg?.software_cost ?? 0,
-          ...newPayload,
-        });
-      }
-
-      // Update future milestone configs
-      const { data: futureConfigs } = await supabase
-        .from("trader_config")
-        .select("id")
-        .eq("user_id", alert.userId)
-        .eq("config_mode", "milestone")
-        .or(`year.gt.${nextYear},and(year.eq.${nextYear},month.gt.${nextMonth})`);
-
-      if (futureConfigs) {
-        for (const fc of futureConfigs) {
-          await supabase.from("trader_config").update({
-            sto_percentage: alert.stoPercent,
-            lto_percentage: alert.ltoPercent,
-            payout_percentage: alert.stoPercent + alert.ltoPercent,
-          }).eq("id", fc.id);
-        }
-      }
-
-      toast.success(`${alert.full_name} upgraded to ${alert.newLabel}!`);
-      setAlerts((prev) => prev.filter((a) => a.milestoneId !== alert.milestoneId));
-    } catch (err) {
-      toast.error("Failed to upgrade milestone");
-    } finally {
-      setProcessing(null);
-    }
-  };
-
-  const handleDismiss = (milestoneId: string) => {
-    setAlerts((prev) => prev.filter((a) => a.milestoneId !== milestoneId));
-  };
 
   if (!user || !isAdmin || (alerts.length === 0 && upcoming.length === 0)) return null;
 
@@ -335,27 +249,9 @@ const MilestoneNotification = () => {
                 <span className="font-medium text-foreground">LTO: {a.ltoPercent}%</span>
                 <span className="font-bold text-primary">Total: {a.stoPercent + a.ltoPercent}%</span>
               </div>
-              <div className="flex gap-2 mt-2">
-                <Button
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                  disabled={processing === a.milestoneId}
-                  onClick={() => handleUpgrade(a)}
-                >
-                  <CheckCircle className="h-3 w-3" />
-                  {processing === a.milestoneId ? "Upgrading..." : "Upgrade"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs gap-1"
-                  disabled={processing === a.milestoneId}
-                  onClick={() => handleDismiss(a.milestoneId)}
-                >
-                  <XCircle className="h-3 w-3" />
-                  Dismiss
-                </Button>
-              </div>
+              <p className="text-[10px] text-muted-foreground mt-2 italic">
+                Upgrade from the Trader Progress tab.
+              </p>
             </div>
           ))}
         </div>
