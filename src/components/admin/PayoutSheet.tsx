@@ -156,6 +156,22 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       setInrRate(Number(exchangeRateRes.data.usd_to_inr));
     }
 
+    // Fetch STO% for each primary trader where this user is a partner
+    const primaryUserIds = Array.from(new Set((tradesAsTrader2Res.data || []).map((t: any) => t.user_id)));
+    if (primaryUserIds.length > 0) {
+      const { data: primaryCfgs } = await supabase.from("trader_config")
+        .select("user_id, sto_percentage, month, year")
+        .in("user_id", primaryUserIds)
+        .eq("month", selectedMonth).eq("year", selectedYear);
+      const cfgMap: Record<string, { stoPct: number }> = {};
+      (primaryCfgs || []).forEach((c: any) => {
+        cfgMap[c.user_id] = { stoPct: Number(c.sto_percentage) || 0 };
+      });
+      setPrimaryConfigs(cfgMap);
+    } else {
+      setPrimaryConfigs({});
+    }
+
     // Fallback config if no month-specific one
     let config = configRes.data;
     if (!config) {
