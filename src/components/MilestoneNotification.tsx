@@ -335,27 +335,9 @@ const MilestoneNotification = () => {
                 <span className="font-medium text-foreground">LTO: {a.ltoPercent}%</span>
                 <span className="font-bold text-primary">Total: {a.stoPercent + a.ltoPercent}%</span>
               </div>
-              <div className="flex gap-2 mt-2">
-                <Button
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                  disabled={processing === a.milestoneId}
-                  onClick={() => handleUpgrade(a)}
-                >
-                  <CheckCircle className="h-3 w-3" />
-                  {processing === a.milestoneId ? "Upgrading..." : "Upgrade"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs gap-1"
-                  disabled={processing === a.milestoneId}
-                  onClick={() => handleDismiss(a.milestoneId)}
-                >
-                  <XCircle className="h-3 w-3" />
-                  Dismiss
-                </Button>
-              </div>
+              <p className="text-[10px] text-muted-foreground mt-2 italic">
+                Upgrade from the Trader Progress tab.
+              </p>
             </div>
           ))}
         </div>
