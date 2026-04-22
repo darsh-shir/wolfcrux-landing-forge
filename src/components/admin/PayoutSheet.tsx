@@ -318,26 +318,28 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         const totalPnl2 = trades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
         const totalShares2 = trades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
         const shareCost2 = calculateShareCost(totalShares2);
-        const netProfit2 = totalPnl2 - shareCost2;
+        // Same P&L treatment: subtract software cost too
+        const netProfit2 = totalPnl2 - shareCost2 - softwareCost;
 
         const role = trades[0]?.trader2_role || "partner";
         const roleLower = role.toLowerCase();
 
-        // Partner gets HALF of primary trader's STO%, applied to net profit
+        // Use primary trader's STO% to compute the STO pool, then split 50/50
         const primaryStoPct = primaryConfigs[primaryUserId]?.stoPct || effectiveStoPct;
-        const partnerSharePct = primaryStoPct / 2;
+        const stoPool = netProfit2 > 0 ? netProfit2 * (primaryStoPct / 100) : 0;
+        const partnerHalf = stoPool * 0.5; // partner's 50% share before partner's own leave deduction
 
         let earnings = 0;
-        if (roleLower === "partner" && netProfit2 > 0) {
-          earnings = netProfit2 * (partnerSharePct / 100);
+        if (roleLower === "partner" && partnerHalf > 0) {
+          // Apply THIS trader's (partner's) own leave deduction on their share
+          earnings = partnerHalf * (1 - leaveDeductionPct / 100);
         }
-        // Trainees receive from pool, not direct earnings
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
         trader2Earnings.push({
           primaryTraderName: primaryUser?.full_name || "Unknown",
           pnl: totalPnl2, role,
-          splitPct: roleLower === "partner" ? partnerSharePct : 25,
+          splitPct: roleLower === "partner" ? primaryStoPct / 2 : 25,
           earnings,
         });
       }
