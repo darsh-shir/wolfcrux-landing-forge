@@ -174,6 +174,102 @@ const TraderProgress = () => {
     setLoading(false);
   };
 
+  const handleUpgrade = async (trader: TraderProgressData) => {
+    if (trader.milestoneLevel <= trader.storedLevel) return;
+    const targetLevel = trader.milestoneLevel;
+    const target = MILESTONES[targetLevel];
+    setUpgrading(trader.userId);
+    try {
+      // 1. Upsert milestone record
+      if (trader.milestoneId) {
+        await supabase
+          .from("trader_milestones")
+          .update({
+            current_level: targetLevel,
+            cumulative_net_profit: trader.totalPnl,
+            last_evaluated_at: new Date().toISOString(),
+          })
+          .eq("id", trader.milestoneId);
+      } else {
+        await supabase.from("trader_milestones").insert({
+          user_id: trader.userId,
+          account_start_date: trader.firstTradeDate || new Date().toISOString().slice(0, 10),
+          current_level: targetLevel,
+          cumulative_net_profit: trader.totalPnl,
+        });
+      }
+
+      // 2. Apply new STO/LTO % from NEXT month onward
+      const now = new Date();
+      let nextMonth = now.getMonth() + 2; // current month is +1, next is +2
+      let nextYear = now.getFullYear();
+      if (nextMonth > 12) { nextMonth -= 12; nextYear++; }
+
+      const newPayload = {
+        sto_percentage: target.stoPercent,
+        lto_percentage: target.ltoPercent,
+        payout_percentage: target.stoPercent + target.ltoPercent,
+        config_mode: "milestone",
+      };
+
+      const { data: nextConfig } = await supabase
+        .from("trader_config")
+        .select("id")
+        .eq("user_id", trader.userId)
+        .eq("month", nextMonth)
+        .eq("year", nextYear)
+        .maybeSingle();
+
+      if (nextConfig?.id) {
+        await supabase.from("trader_config").update(newPayload).eq("id", nextConfig.id);
+      } else {
+        const { data: latestCfg } = await supabase
+          .from("trader_config")
+          .select("software_cost, seat_type")
+          .eq("user_id", trader.userId)
+          .order("year", { ascending: false })
+          .order("month", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        await supabase.from("trader_config").insert({
+          user_id: trader.userId,
+          month: nextMonth,
+          year: nextYear,
+          software_cost: latestCfg?.software_cost ?? 0,
+          seat_type: latestCfg?.seat_type ?? "Alone",
+          ...newPayload,
+        });
+      }
+
+      // 3. Cascade to any future milestone-mode configs already created
+      const { data: futureConfigs } = await supabase
+        .from("trader_config")
+        .select("id")
+        .eq("user_id", trader.userId)
+        .eq("config_mode", "milestone")
+        .or(`year.gt.${nextYear},and(year.eq.${nextYear},month.gt.${nextMonth})`);
+
+      if (futureConfigs && futureConfigs.length > 0) {
+        await Promise.all(
+          futureConfigs.map((fc) =>
+            supabase.from("trader_config").update(newPayload).eq("id", fc.id)
+          )
+        );
+      }
+
+      toast.success(
+        `${trader.name} upgraded to ${target.label}. New % apply from ${nextMonth}/${nextYear}.`
+      );
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to upgrade trader");
+    } finally {
+      setUpgrading(null);
+    }
+  };
+
   const totalTraders = data.length;
   const totalTradingDays = data.reduce((s, d) => s + d.tradingDays, 0);
 
@@ -270,6 +366,7 @@ const TraderProgress = () => {
                   <TableHead>Days Progress</TableHead>
                   <TableHead>Profit Progress</TableHead>
                   <TableHead className="text-center">Next Level</TableHead>
+                  {isAdmin && <TableHead className="text-center">Action</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -332,6 +429,25 @@ const TraderProgress = () => {
                         <Badge className="bg-primary/20 text-primary text-xs">MAX</Badge>
                       )}
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-center">
+                        {trader.milestoneLevel > trader.storedLevel ? (
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs gap-1"
+                            disabled={upgrading === trader.userId}
+                            onClick={() => handleUpgrade(trader)}
+                          >
+                            <ArrowUpCircle className="h-3 w-3" />
+                            {upgrading === trader.userId
+                              ? "Upgrading..."
+                              : `Upgrade → ${MILESTONES[trader.milestoneLevel].label}`}
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
