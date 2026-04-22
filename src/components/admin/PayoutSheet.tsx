@@ -690,51 +690,6 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                   </div>
                 )}
 
-                {/* Combined Total */}
-                <div className="border-2 border-primary rounded-lg p-4 bg-primary/10">
-                  <div className="grid grid-cols-2 gap-y-2 text-sm">
-                    <span className="font-bold text-base">COMBINED STO PAYOUT (USD)</span>
-                    <span className={`font-bold text-right text-xl ${calculations.combinedFinalSto >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {formatCurrency(calculations.combinedFinalSto)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* STO History */}
-                {stoHistory.length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-                      <Clock className="h-4 w-4" /> STO Payout Schedule
-                    </h3>
-                    <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/50">
-                          <tr>
-                            <th className="text-left p-2">Period</th>
-                            <th className="text-right p-2">STO Amount</th>
-                            <th className="text-right p-2">Due Date</th>
-                            <th className="text-center p-2">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {stoHistory.map((s: any) => (
-                            <tr key={s.id} className="border-t">
-                              <td className="p-2">{MONTHS[(s.month || 1) - 1]} {s.year}</td>
-                              <td className="p-2 text-right font-medium">{formatCurrency(Number(s.final_sto_amount))}</td>
-                              <td className="p-2 text-right text-muted-foreground">{s.payout_due_date}</td>
-                              <td className="p-2 text-center">
-                                <Badge variant={s.is_paid ? "default" : "secondary"} className="text-xs">
-                                  {s.is_paid ? "Paid" : "Pending"}
-                                </Badge>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
                 {/* LTO History */}
                 {ltoHistory.length > 0 && (
                   <div className="space-y-2">
