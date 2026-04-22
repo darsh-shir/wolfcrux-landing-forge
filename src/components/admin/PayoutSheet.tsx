@@ -831,9 +831,15 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                   <span>Trading Days: {calculations.tradingDays}</span>
                 </div>
 
-                <Button onClick={handleSaveAll} className="w-full gap-2">
-                  <Save className="h-4 w-4" /> Save Payout Record
-                </Button>
+                {hasPaymentEntry ? (
+                  <Button onClick={handleSavePayment} className="w-full gap-2">
+                    <Save className="h-4 w-4" /> Save Payment Record
+                  </Button>
+                ) : (
+                  <p className="text-xs text-center text-muted-foreground italic">
+                    Calculations auto-save. Enter Salary / Cash / Bank amount to save the payment record.
+                  </p>
+                )}
               </>
             )}
           </CardContent>
