@@ -292,9 +292,10 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     for (const [, info] of Object.entries(partnerDeductionMap)) {
       const roleLower = info.role.toLowerCase();
       if (roleLower === "partner") {
-        const dayRatio = info.days / tradingDays;
-        const proportionalGross = netProfit * dayRatio;
-        const deduction = proportionalGross * 0.50;
+        // Partner gets HALF of the primary trader's STO%, proportional to days sat together
+        const dayRatio = tradingDays > 0 ? info.days / tradingDays : 0;
+        const proportionalSto = stoAfterLeave * dayRatio;
+        const deduction = proportionalSto * 0.50;
         partnerDeductions.push({ name: info.name, role: info.role, splitPct: 50, amount: deduction });
         totalPartnerDeduction += deduction;
       }
