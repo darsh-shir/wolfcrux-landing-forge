@@ -69,6 +69,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
   const [traderConfig, setTraderConfig] = useState<any>(null);
   const [cumulativeNetProfit, setCumulativeNetProfit] = useState(0);
+  const [primaryConfigs, setPrimaryConfigs] = useState<Record<string, { stoPct: number }>>({});
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
@@ -153,6 +154,22 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
     if (exchangeRateRes.data) {
       setInrRate(Number(exchangeRateRes.data.usd_to_inr));
+    }
+
+    // Fetch STO% for each primary trader where this user is a partner
+    const primaryUserIds = Array.from(new Set((tradesAsTrader2Res.data || []).map((t: any) => t.user_id)));
+    if (primaryUserIds.length > 0) {
+      const { data: primaryCfgs } = await supabase.from("trader_config")
+        .select("user_id, sto_percentage, month, year")
+        .in("user_id", primaryUserIds)
+        .eq("month", selectedMonth).eq("year", selectedYear);
+      const cfgMap: Record<string, { stoPct: number }> = {};
+      (primaryCfgs || []).forEach((c: any) => {
+        cfgMap[c.user_id] = { stoPct: Number(c.sto_percentage) || 0 };
+      });
+      setPrimaryConfigs(cfgMap);
+    } else {
+      setPrimaryConfigs({});
     }
 
     // Fallback config if no month-specific one
@@ -275,9 +292,10 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     for (const [, info] of Object.entries(partnerDeductionMap)) {
       const roleLower = info.role.toLowerCase();
       if (roleLower === "partner") {
-        const dayRatio = info.days / tradingDays;
-        const proportionalGross = netProfit * dayRatio;
-        const deduction = proportionalGross * 0.50;
+        // Partner gets HALF of the primary trader's STO%, proportional to days sat together
+        const dayRatio = tradingDays > 0 ? info.days / tradingDays : 0;
+        const proportionalSto = stoAfterLeave * dayRatio;
+        const deduction = proportionalSto * 0.50;
         partnerDeductions.push({ name: info.name, role: info.role, splitPct: 50, amount: deduction });
         totalPartnerDeduction += deduction;
       }
@@ -304,16 +322,22 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         const role = trades[0]?.trader2_role || "partner";
         const roleLower = role.toLowerCase();
 
+        // Partner gets HALF of primary trader's STO%, applied to net profit
+        const primaryStoPct = primaryConfigs[primaryUserId]?.stoPct || effectiveStoPct;
+        const partnerSharePct = primaryStoPct / 2;
+
         let earnings = 0;
-        if (roleLower === "partner") {
-          earnings = netProfit2 * 0.50;
+        if (roleLower === "partner" && netProfit2 > 0) {
+          earnings = netProfit2 * (partnerSharePct / 100);
         }
         // Trainees receive from pool, not direct earnings
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
         trader2Earnings.push({
           primaryTraderName: primaryUser?.full_name || "Unknown",
-          pnl: totalPnl2, role, splitPct: roleLower === "partner" ? 50 : 25, earnings,
+          pnl: totalPnl2, role,
+          splitPct: roleLower === "partner" ? partnerSharePct : 25,
+          earnings,
         });
       }
     }
@@ -331,7 +355,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
     return result;
   }, [tradingData, trader2TradingData, allAttendanceRecords, carryForwardDays,
-    selectedMonth, selectedYear, users, softwareCostInput, milestone, traderConfig]);
+    selectedMonth, selectedYear, users, softwareCostInput, milestone, traderConfig, primaryConfigs]);
 
   const traderName = users.find(u => u.user_id === selectedTrader)?.full_name || "";
 
@@ -601,7 +625,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                       )}
                       {calculations.partnerDeductions.length > 0 && calculations.partnerDeductions.map((d, idx) => (
                         <React.Fragment key={idx}>
-                          <span className="text-muted-foreground">Partner Share 50% — {d.name}</span>
+                          <span className="text-muted-foreground">Partner Share (½ of {calculations.stoPercent}% STO = {(calculations.stoPercent / 2).toFixed(1)}%) — {d.name}</span>
                           <span className="font-medium text-right text-orange-600">-{formatCurrency(d.amount)}</span>
                         </React.Fragment>
                       ))}
