@@ -108,8 +108,37 @@ const PayoutTracker = ({ users }: PayoutTrackerProps) => {
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
+  // Grand totals across all employees (till date)
+  const grandTotalOwed = employeeSummary.reduce((s, e) => s + e.totalOwed, 0);
+  const grandTotalPaid = employeeSummary.reduce((s, e) => s + e.totalPaid, 0);
+  const grandTotalPending = employeeSummary.reduce((s, e) => s + e.unpaid, 0);
+  const pendingEmployeesCount = employeeSummary.filter(e => e.unpaid > 0).length;
+
   return (
     <div className="space-y-6">
+      {/* Grand Total Pending Card */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="border-l-4 border-l-primary">
+          <CardContent className="p-5">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Total Owed (Till Date)</div>
+            <div className="text-2xl font-bold mt-1">₹{formatIndian(grandTotalOwed)}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="p-5">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Total Paid</div>
+            <div className="text-2xl font-bold mt-1 text-emerald-600">₹{formatIndian(grandTotalPaid)}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-red-500">
+          <CardContent className="p-5">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Pending to Pay (Till Date)</div>
+            <div className="text-2xl font-bold mt-1 text-red-600">₹{formatIndian(grandTotalPending)}</div>
+            <div className="text-xs text-muted-foreground mt-1">{pendingEmployeesCount} employee{pendingEmployeesCount !== 1 ? "s" : ""} with dues</div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Summary: Total owed per employee */}
       <Card>
         <CardHeader>
