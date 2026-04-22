@@ -251,58 +251,59 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const stoAmount = netProfit > 0 ? netProfit * (effectiveStoPct / 100) : 0;
     const ltoAmount = netProfit > 0 ? netProfit * (effectiveLtoPct / 100) : 0;
 
-    // Leave deductions
+    // Leave deductions for THIS trader
     const leaveResult = calculateLeaveDeduction(
       allAttendanceRecords, selectedMonth, selectedYear, carryForwardDays
     );
     const leaveDeductionPct = leaveResult.deductionPercent;
-    const leaveDeductionAmount = stoAmount * (leaveDeductionPct / 100);
-    const stoAfterLeave = stoAmount - leaveDeductionAmount;
 
-    // Trainee pool: only traders WITHOUT a partner pay 25% pool
-    const hasPartner = tradingData.some((t: any) =>
-      t.trader2_role?.toLowerCase() === "partner"
-    );
-    const traineePoolContribution = !hasPartner && stoAfterLeave > 0 ? stoAfterLeave * 0.25 : 0;
-    const finalStoAmount = stoAfterLeave - traineePoolContribution;
-
-    // Partner deductions (for partner role - 50% of gross)
-    const partnerDeductionMap: Record<string, { name: string; role: string; totalPnl: number; totalShares: number; days: number }> = {};
-
+    // STEP 1: Split STO 50/50 with partner (proportional to days sat together) BEFORE leave deduction
+    const partnerSplitMap: Record<string, { name: string; role: string; days: number }> = {};
     tradingData.forEach((trade: any) => {
       if (trade.trader2_id && trade.trader2_role) {
         const key = trade.trader2_id;
-        if (!partnerDeductionMap[key]) {
+        if (!partnerSplitMap[key]) {
           const trader2User = users.find(u => u.user_id === trade.trader2_id);
-          partnerDeductionMap[key] = {
+          partnerSplitMap[key] = {
             name: trader2User?.full_name || "Unknown",
             role: trade.trader2_role,
-            totalPnl: 0, totalShares: 0, days: 0,
+            days: 0,
           };
         }
-        partnerDeductionMap[key].totalPnl += Number(trade.net_pnl);
-        partnerDeductionMap[key].totalShares += Number(trade.shares_traded);
-        partnerDeductionMap[key].days += 1;
+        partnerSplitMap[key].days += 1;
       }
     });
 
     const partnerDeductions: typeof result.partnerDeductions = [];
     let totalPartnerDeduction = 0;
 
-    for (const [, info] of Object.entries(partnerDeductionMap)) {
+    for (const [, info] of Object.entries(partnerSplitMap)) {
       const roleLower = info.role.toLowerCase();
       if (roleLower === "partner") {
-        // Partner gets HALF of the primary trader's STO%, proportional to days sat together
+        // Partner gets 50% of STO for the days they sat together
         const dayRatio = tradingDays > 0 ? info.days / tradingDays : 0;
-        const proportionalSto = stoAfterLeave * dayRatio;
+        const proportionalSto = stoAmount * dayRatio;
         const deduction = proportionalSto * 0.50;
         partnerDeductions.push({ name: info.name, role: info.role, splitPct: 50, amount: deduction });
         totalPartnerDeduction += deduction;
       }
-      // Trainee deductions are handled via traineePoolContribution above
     }
 
-    const traderKeepsFromPrimary = finalStoAmount - totalPartnerDeduction;
+    // STEP 2: Primary trader's STO share (after partner split)
+    const stoAfterPartnerSplit = stoAmount - totalPartnerDeduction;
+
+    // STEP 3: Apply primary trader's OWN leave deduction on their share
+    const leaveDeductionAmount = stoAfterPartnerSplit * (leaveDeductionPct / 100);
+    const stoAfterLeave = stoAfterPartnerSplit - leaveDeductionAmount;
+
+    // STEP 4: Trainee pool: only traders WITHOUT a partner pay 25% pool
+    const hasPartner = tradingData.some((t: any) =>
+      t.trader2_role?.toLowerCase() === "partner"
+    );
+    const traineePoolContribution = !hasPartner && stoAfterLeave > 0 ? stoAfterLeave * 0.25 : 0;
+    const finalStoAmount = stoAfterLeave - traineePoolContribution;
+
+    const traderKeepsFromPrimary = finalStoAmount;
 
     // Trader2 earnings (where this trader is partner on someone else's account)
     const trader2Earnings: typeof result.trader2Earnings = [];
