@@ -69,22 +69,37 @@ const TraderProgress = () => {
     const tradingDaysMap: Record<string, Set<string>> = {};
     const totalPnlMap: Record<string, number> = {};
 
+    // Brokerage = $14 per 1000 shares; Software cost = $1000 flat per trader
+    const SOFTWARE_COST = 1000;
     tradingData.forEach((t) => {
+      const shares = Number(t.shares_traded || 0);
+      const brokerage = (shares / 1000) * 14;
+      const netAfterBrokerage = Number(t.net_pnl) - brokerage;
+
       // Primary trader
       if (!tradingDaysMap[t.user_id]) tradingDaysMap[t.user_id] = new Set();
       tradingDaysMap[t.user_id].add(t.trade_date);
-      totalPnlMap[t.user_id] = (totalPnlMap[t.user_id] || 0) + Number(t.net_pnl);
+      totalPnlMap[t.user_id] = (totalPnlMap[t.user_id] || 0) + netAfterBrokerage;
 
       // Partner gets mirrored P&L and trading day count
       if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") {
         if (!tradingDaysMap[t.trader2_id]) tradingDaysMap[t.trader2_id] = new Set();
         tradingDaysMap[t.trader2_id].add(t.trade_date);
-        totalPnlMap[t.trader2_id] = (totalPnlMap[t.trader2_id] || 0) + Number(t.net_pnl);
+        totalPnlMap[t.trader2_id] = (totalPnlMap[t.trader2_id] || 0) + netAfterBrokerage;
       }
     });
 
-    // Company P&L = sum of all primary trader net_pnl (no double counting)
-    const companyTotal = tradingData.reduce((sum, t) => sum + Number(t.net_pnl), 0);
+    // Subtract flat software cost per trader who has any trading activity
+    Object.keys(totalPnlMap).forEach((uid) => {
+      totalPnlMap[uid] -= SOFTWARE_COST;
+    });
+
+    // Company P&L = sum of all primary trader net (after brokerage), minus software per active trader
+    const companyTotal =
+      tradingData.reduce((sum, t) => {
+        const shares = Number(t.shares_traded || 0);
+        return sum + Number(t.net_pnl) - (shares / 1000) * 14;
+      }, 0) - Object.keys(tradingDaysMap).length * SOFTWARE_COST;
     setCompanyPnl(companyTotal);
 
     // Auto-detect traders: anyone with at least 1 trading day
