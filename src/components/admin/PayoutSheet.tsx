@@ -495,7 +495,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
               <span>{traderName} — {MONTHS[selectedMonth - 1]} {selectedYear}</span>
               <Badge variant="outline" className="gap-1">
                 <TrendingUp className="h-3 w-3" />
-                {milestone.label} — STO {milestone.stoPercent}% / LTO {milestone.ltoPercent}%
+                STO {calculations.stoPercent}% / LTO {calculations.ltoPercent}%
               </Badge>
             </CardTitle>
           </CardHeader>
