@@ -618,7 +618,13 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                     <div className="grid grid-cols-2 gap-y-2 text-sm border rounded-lg p-4 bg-muted/20">
                       <span className="text-muted-foreground">STO Amount ({calculations.stoPercent}% of Net Profit)</span>
                       <span className="font-medium text-right text-green-600">{formatCurrency(calculations.stoAmount)}</span>
-                      <span className="text-muted-foreground">Leave Deduction ({calculations.leaveDeductionPct.toFixed(1)}%)</span>
+                      {calculations.partnerDeductions.length > 0 && calculations.partnerDeductions.map((d, idx) => (
+                        <React.Fragment key={idx}>
+                          <span className="text-muted-foreground">Partner Split — 50% to {d.name}</span>
+                          <span className="font-medium text-right text-orange-600">-{formatCurrency(d.amount)}</span>
+                        </React.Fragment>
+                      ))}
+                      <span className="text-muted-foreground">Your Leave Deduction ({calculations.leaveDeductionPct.toFixed(1)}%)</span>
                       <span className="font-medium text-right text-red-600">-{formatCurrency(calculations.leaveDeductionAmount)}</span>
                       {calculations.traineePoolContribution > 0 && (
                         <>
@@ -626,12 +632,6 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                           <span className="font-medium text-right text-blue-600">-{formatCurrency(calculations.traineePoolContribution)}</span>
                         </>
                       )}
-                      {calculations.partnerDeductions.length > 0 && calculations.partnerDeductions.map((d, idx) => (
-                        <React.Fragment key={idx}>
-                          <span className="text-muted-foreground">Partner Share (½ of {calculations.stoPercent}% STO = {(calculations.stoPercent / 2).toFixed(1)}%) — {d.name}</span>
-                          <span className="font-medium text-right text-orange-600">-{formatCurrency(d.amount)}</span>
-                        </React.Fragment>
-                      ))}
                       <span className="text-muted-foreground font-semibold border-t pt-2">Final STO</span>
                       <span className="font-bold text-right text-green-600 border-t pt-2">
                         {formatCurrency(calculations.traderKeepsFromPrimary)}
