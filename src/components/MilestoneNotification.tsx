@@ -63,7 +63,7 @@ const MilestoneNotification = () => {
     while (true) {
       const { data, error } = await supabase
         .from("trading_data")
-        .select("user_id, trade_date, trader2_id, trader2_role, net_pnl")
+        .select("user_id, trade_date, trader2_id, trader2_role, net_pnl, shares_traded")
         .range(from, from + batchSize - 1);
       if (error || !data || data.length === 0) break;
       allData.push(...data);
@@ -83,21 +83,59 @@ const MilestoneNotification = () => {
     const profiles = profilesRes.data || [];
     const milestones = milestonesRes.data || [];
 
-    // Count distinct trading days per user
+    // Count distinct trading days + compute NET P&L (gross - brokerage - software)
+    // matching TraderProgress logic: brokerage = $14/1000 shares, software = $1000 flat
+    const SOFTWARE_COST = 1000;
     const tradingDaysMap: Record<string, Set<string>> = {};
     const totalPnlMap: Record<string, number> = {};
+    const firstTradeDateMap: Record<string, string> = {};
 
     tradingData.forEach((t) => {
+      const shares = Number(t.shares_traded || 0);
+      const brokerage = (shares / 1000) * 14;
+      const netAfterBrokerage = Number(t.net_pnl) - brokerage;
+
       if (!tradingDaysMap[t.user_id]) tradingDaysMap[t.user_id] = new Set();
       tradingDaysMap[t.user_id].add(t.trade_date);
-      totalPnlMap[t.user_id] = (totalPnlMap[t.user_id] || 0) + Number(t.net_pnl);
+      totalPnlMap[t.user_id] = (totalPnlMap[t.user_id] || 0) + netAfterBrokerage;
+      if (!firstTradeDateMap[t.user_id] || t.trade_date < firstTradeDateMap[t.user_id]) {
+        firstTradeDateMap[t.user_id] = t.trade_date;
+      }
 
       if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") {
         if (!tradingDaysMap[t.trader2_id]) tradingDaysMap[t.trader2_id] = new Set();
         tradingDaysMap[t.trader2_id].add(t.trade_date);
-        totalPnlMap[t.trader2_id] = (totalPnlMap[t.trader2_id] || 0) + Number(t.net_pnl);
+        totalPnlMap[t.trader2_id] = (totalPnlMap[t.trader2_id] || 0) + netAfterBrokerage;
+        if (!firstTradeDateMap[t.trader2_id] || t.trade_date < firstTradeDateMap[t.trader2_id]) {
+          firstTradeDateMap[t.trader2_id] = t.trade_date;
+        }
       }
     });
+
+    // Subtract flat software cost per trader who has any trading activity
+    Object.keys(totalPnlMap).forEach((uid) => {
+      totalPnlMap[uid] -= SOFTWARE_COST;
+    });
+
+    // Auto-create missing milestone rows for any trader with activity
+    const existingMilestoneUserIds = new Set(milestones.map((m) => m.user_id));
+    const missingTraderIds = Object.keys(tradingDaysMap).filter(
+      (uid) => !existingMilestoneUserIds.has(uid) && profiles.some((p) => p.user_id === uid)
+    );
+
+    if (missingTraderIds.length > 0) {
+      const inserts = missingTraderIds.map((uid) => ({
+        user_id: uid,
+        account_start_date: firstTradeDateMap[uid] || new Date().toISOString().slice(0, 10),
+        current_level: 0,
+        cumulative_net_profit: 0,
+      }));
+      const { data: inserted } = await supabase
+        .from("trader_milestones")
+        .insert(inserts)
+        .select("*");
+      if (inserted) milestones.push(...inserted);
+    }
 
     const newAlerts: MilestoneAlert[] = [];
     const upcomingList: UpcomingTrader[] = [];
@@ -107,7 +145,8 @@ const MilestoneNotification = () => {
       if (!profile) continue;
 
       const tradingDays = tradingDaysMap[ms.user_id]?.size || 0;
-      const cumulativeProfit = Number(ms.cumulative_net_profit || 0);
+      // Use actual computed net P&L (not stale stored value) for level evaluation
+      const cumulativeProfit = totalPnlMap[ms.user_id] ?? Number(ms.cumulative_net_profit || 0);
       const computed = getMilestoneLevel(tradingDays, cumulativeProfit);
 
       if (computed.level > ms.current_level) {
@@ -130,7 +169,6 @@ const MilestoneNotification = () => {
           cumulativeProfit,
         });
       } else {
-        // Build upcoming list — traders close to next level
         const next = getNextMilestone(computed.level);
         if (next) {
           const daysProgress = Math.min(100, (tradingDays / next.daysRequired) * 100);
@@ -165,7 +203,11 @@ const MilestoneNotification = () => {
     try {
       // Update milestone record
       await supabase.from("trader_milestones")
-        .update({ current_level: alert.newLevel, last_evaluated_at: new Date().toISOString() })
+        .update({
+          current_level: alert.newLevel,
+          cumulative_net_profit: alert.cumulativeProfit,
+          last_evaluated_at: new Date().toISOString(),
+        })
         .eq("id", alert.milestoneId);
 
       // Update trader_config for next month
