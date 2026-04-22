@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { TrendingUp, CheckCircle, XCircle, Target } from "lucide-react";
+import { TrendingUp, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getMilestoneLevel, getNextMilestone, MILESTONES } from "@/lib/payoutCalculations";
