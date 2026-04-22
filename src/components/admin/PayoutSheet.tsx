@@ -387,11 +387,9 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     toast({ title: "Saved", description: `Software cost updated to $${softwareCostInput}` });
   };
 
-  const handleSaveAll = async () => {
+  // Auto-save calculations (STO, LTO, exchange rate, milestone) — runs silently
+  const autoSaveCalculations = async () => {
     if (!selectedTrader) return;
-
-    const finalUsd = calculations.combinedFinalSto;
-    const totalInr = finalUsd * inrRate;
 
     // Save exchange rate
     const { data: existingRate } = await supabase.from("monthly_exchange_rates")
@@ -456,8 +454,18 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         .update({ cumulative_net_profit: newCumulative, current_level: milestone.level })
         .eq("id", milestoneData.id);
     }
+  };
 
-    // Save payout record
+  // Manual save — only for the payment record (salary / cash / bank)
+  const handleSavePayment = async () => {
+    if (!selectedTrader) return;
+
+    // Make sure latest calculations are persisted too
+    await autoSaveCalculations();
+
+    const finalUsd = calculations.combinedFinalSto;
+    const totalInr = finalUsd * inrRate;
+
     const payoutPayload = {
       user_id: selectedTrader,
       month: selectedMonth,
@@ -478,9 +486,30 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       await supabase.from("payout_records").insert(payoutPayload);
     }
 
-    toast({ title: "Saved", description: "All payout records saved successfully" });
+    toast({ title: "Saved", description: "Payment record saved successfully" });
     fetchPayoutData();
   };
+
+  // Auto-save calculations whenever they change (debounced)
+  useEffect(() => {
+    if (!selectedTrader || loading) return;
+    if (!calculations || calculations.totalPnl === undefined) return;
+    const t = setTimeout(() => {
+      autoSaveCalculations().catch(() => {});
+    }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    selectedTrader, selectedMonth, selectedYear,
+    calculations?.netProfit, calculations?.stoAmount, calculations?.ltoAmount,
+    calculations?.finalStoAmount, inrRate,
+  ]);
+
+  // Show manual Save button only when admin has entered a payment amount
+  const hasPaymentEntry =
+    Number(monthlySalaryInput) > 0 ||
+    Number(cashPaidInput) > 0 ||
+    Number(bankPaidInput) > 0;
 
   const formatCurrency = (val: number, prefix = "$") =>
     formatCurrencyINR(val, prefix);
