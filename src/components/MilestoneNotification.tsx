@@ -203,7 +203,11 @@ const MilestoneNotification = () => {
     try {
       // Update milestone record
       await supabase.from("trader_milestones")
-        .update({ current_level: alert.newLevel, last_evaluated_at: new Date().toISOString() })
+        .update({
+          current_level: alert.newLevel,
+          cumulative_net_profit: alert.cumulativeProfit,
+          last_evaluated_at: new Date().toISOString(),
+        })
         .eq("id", alert.milestoneId);
 
       // Update trader_config for next month
