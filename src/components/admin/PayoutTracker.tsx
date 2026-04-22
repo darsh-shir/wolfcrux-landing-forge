@@ -31,6 +31,19 @@ interface PayoutRecord {
   paid_online: boolean;
 }
 
+interface StoLedgerRow {
+  user_id: string;
+  month: number;
+  year: number;
+  final_sto_amount: number;
+}
+
+interface ExchangeRate {
+  month: number;
+  year: number;
+  usd_to_inr: number;
+}
+
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
@@ -50,6 +63,8 @@ const PayoutTracker = ({ users }: PayoutTrackerProps) => {
   const [viewMode, setViewMode] = useState<"month" | "year" | "all">("month");
   const [records, setRecords] = useState<PayoutRecord[]>([]);
   const [allRecords, setAllRecords] = useState<PayoutRecord[]>([]);
+  const [stoRows, setStoRows] = useState<StoLedgerRow[]>([]);
+  const [rates, setRates] = useState<ExchangeRate[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -58,10 +73,17 @@ const PayoutTracker = ({ users }: PayoutTrackerProps) => {
 
   const fetchRecords = async () => {
     setLoading(true);
-    // Always fetch all for totals
-    const allRes = await supabase.from("payout_records").select("*")
-      .order("year", { ascending: false }).order("month", { ascending: false });
+
+    const [allRes, stoRes, ratesRes] = await Promise.all([
+      supabase.from("payout_records").select("*")
+        .order("year", { ascending: false }).order("month", { ascending: false }),
+      supabase.from("sto_ledger").select("user_id,month,year,final_sto_amount"),
+      supabase.from("monthly_exchange_rates").select("month,year,usd_to_inr"),
+    ]);
+
     if (allRes.data) setAllRecords(allRes.data as PayoutRecord[]);
+    if (stoRes.data) setStoRows(stoRes.data as StoLedgerRow[]);
+    if (ratesRes.data) setRates(ratesRes.data as ExchangeRate[]);
 
     let query = supabase.from("payout_records").select("*");
     if (viewMode === "month") {
@@ -93,22 +115,36 @@ const PayoutTracker = ({ users }: PayoutTrackerProps) => {
 
   const getUserName = (userId: string) => users.find(u => u.user_id === userId)?.full_name || "Unknown";
 
-  // Compute total paid & owed per employee (all time)
+  // INR rate lookup with fallback
+  const getRate = (month: number, year: number) => {
+    const r = rates.find(x => x.month === month && x.year === year);
+    return r ? Number(r.usd_to_inr) : 84;
+  };
+
+  // Outstanding = total STO earned (INR) - total paid (salary+cash+bank+advances)
   const employeeSummary = users.map(user => {
     const userRecords = allRecords.filter(r => r.user_id === user.user_id);
-    const totalOwed = userRecords.reduce((sum, r) => sum + getTotal(r), 0);
-    const totalPaid = userRecords
-      .filter(r => r.paid_cash || r.paid_online)
-      .reduce((sum, r) => sum + getTotal(r), 0);
-    const unpaid = userRecords
-      .filter(r => !r.paid_cash && !r.paid_online)
-      .reduce((sum, r) => sum + getTotal(r), 0);
-    return { userId: user.user_id, name: user.full_name, totalOwed, totalPaid, unpaid };
-  });
+    const userSto = stoRows.filter(s => s.user_id === user.user_id);
+
+    const totalEarnedInr = userSto.reduce(
+      (sum, s) => sum + Number(s.final_sto_amount) * getRate(s.month, s.year),
+      0
+    );
+    const totalPaid = userRecords.reduce((sum, r) => sum + getTotal(r), 0);
+    const outstanding = totalEarnedInr - totalPaid;
+
+    return {
+      userId: user.user_id,
+      name: user.full_name,
+      totalOwed: totalEarnedInr,
+      totalPaid,
+      unpaid: outstanding,
+    };
+  }).filter(e => e.totalOwed > 0 || e.totalPaid > 0)
+    .sort((a, b) => b.unpaid - a.unpaid);
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
-  // Grand totals across all employees (till date)
   const grandTotalOwed = employeeSummary.reduce((s, e) => s + e.totalOwed, 0);
   const grandTotalPaid = employeeSummary.reduce((s, e) => s + e.totalPaid, 0);
   const grandTotalPending = employeeSummary.reduce((s, e) => s + e.unpaid, 0);
