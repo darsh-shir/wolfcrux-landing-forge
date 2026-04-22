@@ -68,6 +68,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [stoHistory, setStoHistory] = useState<any[]>([]);
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
   const [traderConfig, setTraderConfig] = useState<any>(null);
+  const [cumulativeNetProfit, setCumulativeNetProfit] = useState(0);
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
@@ -114,14 +115,30 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         .eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
     ]);
 
-    // Fetch all trading data for this trader's day count (primary or partner)
-    const tradingDaysRes = await supabase.from("trading_data").select("trade_date, user_id, trader2_id, trader2_role");
+    // Fetch all trading data for this trader's day count + cumulative net profit (primary or partner)
+    const tradingDaysRes = await supabase.from("trading_data").select("trade_date, user_id, trader2_id, trader2_role, net_pnl, shares_traded");
     const uniqueDays = new Set<string>();
+    let cumProfit = 0;
+    let hasActivity = false;
+    const SOFTWARE_COST_FLAT = 1000;
     (tradingDaysRes.data || []).forEach((t: any) => {
-      if (t.user_id === selectedTrader) uniqueDays.add(t.trade_date);
-      if (t.trader2_id === selectedTrader && t.trader2_role?.toLowerCase() === "partner") uniqueDays.add(t.trade_date);
+      const shares = Number(t.shares_traded || 0);
+      const brokerage = (shares / 1000) * 14;
+      const netAfterBrokerage = Number(t.net_pnl) - brokerage;
+      if (t.user_id === selectedTrader) {
+        uniqueDays.add(t.trade_date);
+        cumProfit += netAfterBrokerage;
+        hasActivity = true;
+      }
+      if (t.trader2_id === selectedTrader && t.trader2_role?.toLowerCase() === "partner") {
+        uniqueDays.add(t.trade_date);
+        cumProfit += netAfterBrokerage;
+        hasActivity = true;
+      }
     });
+    if (hasActivity) cumProfit -= SOFTWARE_COST_FLAT;
     setTradingDaysCount(uniqueDays.size);
+    setCumulativeNetProfit(cumProfit);
 
     setTradingData(tradesRes.data || []);
     setTrader2TradingData(tradesAsTrader2Res.data || []);
@@ -174,10 +191,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
 
 
   const milestone = useMemo(() => {
-    if (!milestoneData) return MILESTONES[0];
-    const cumProfit = Number(milestoneData.cumulative_net_profit || 0);
-    return getMilestoneLevel(tradingDaysCount, cumProfit);
-  }, [milestoneData, tradingDaysCount]);
+    return getMilestoneLevel(tradingDaysCount, cumulativeNetProfit);
+  }, [cumulativeNetProfit, tradingDaysCount]);
 
   const nextMilestone = useMemo(() => getNextMilestone(milestone.level), [milestone]);
 
@@ -509,7 +524,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
             ) : (
               <>
                 {/* Milestone Progress */}
-                {nextMilestone && milestoneData && (Number(milestoneData.cumulative_net_profit) > 0 || tradingDaysCount > 0 || milestone.level > 0) && (
+                {nextMilestone && (cumulativeNetProfit > 0 || tradingDaysCount > 0 || milestone.level > 0) && (
                   <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
                     <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
                       <TrendingUp className="h-4 w-4" /> Milestone Progress → {nextMilestone.label}
@@ -517,10 +532,10 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">
-                          Profit: {formatCurrency(Number(milestoneData.cumulative_net_profit))} / {formatCurrency(nextMilestone.profitRequired)}
+                          Profit: {formatCurrency(cumulativeNetProfit)} / {formatCurrency(nextMilestone.profitRequired)}
                         </p>
                         <Progress
-                          value={Math.min(100, (Number(milestoneData.cumulative_net_profit) / nextMilestone.profitRequired) * 100)}
+                          value={Math.min(100, (cumulativeNetProfit / nextMilestone.profitRequired) * 100)}
                           className="h-2"
                         />
                       </div>
