@@ -509,7 +509,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
             ) : (
               <>
                 {/* Milestone Progress */}
-                {nextMilestone && milestoneData && (
+                {nextMilestone && milestoneData && (Number(milestoneData.cumulative_net_profit) > 0 || tradingDaysCount > 0 || milestone.level > 0) && (
                   <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
                     <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
                       <TrendingUp className="h-4 w-4" /> Milestone Progress → {nextMilestone.label}
