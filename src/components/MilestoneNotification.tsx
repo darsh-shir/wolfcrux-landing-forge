@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { TrendingUp, CheckCircle, XCircle } from "lucide-react";
+import { TrendingUp, CheckCircle, XCircle, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { getMilestoneLevel, MILESTONES } from "@/lib/payoutCalculations";
+import { getMilestoneLevel, getNextMilestone, MILESTONES } from "@/lib/payoutCalculations";
+import { Progress } from "@/components/ui/progress";
+import { formatIndian } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
@@ -27,9 +29,26 @@ interface MilestoneAlert {
   cumulativeProfit: number;
 }
 
+interface UpcomingTrader {
+  userId: string;
+  full_name: string;
+  trader_number: string | null;
+  currentLabel: string;
+  nextLabel: string;
+  tradingDays: number;
+  cumulativeProfit: number;
+  daysRequired: number;
+  profitRequired: number;
+  daysProgress: number;
+  profitProgress: number;
+  bestProgress: number;
+  closestBy: "days" | "profit";
+}
+
 const MilestoneNotification = () => {
   const { user, isAdmin } = useAuth();
   const [alerts, setAlerts] = useState<MilestoneAlert[]>([]);
+  const [upcoming, setUpcoming] = useState<UpcomingTrader[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
 
   useEffect(() => {
@@ -81,6 +100,7 @@ const MilestoneNotification = () => {
     });
 
     const newAlerts: MilestoneAlert[] = [];
+    const upcomingList: UpcomingTrader[] = [];
 
     for (const ms of milestones) {
       const profile = profiles.find((p) => p.user_id === ms.user_id);
@@ -109,10 +129,35 @@ const MilestoneNotification = () => {
           tradingDays,
           cumulativeProfit,
         });
+      } else {
+        // Build upcoming list — traders close to next level
+        const next = getNextMilestone(computed.level);
+        if (next) {
+          const daysProgress = Math.min(100, (tradingDays / next.daysRequired) * 100);
+          const profitProgress = Math.min(100, (cumulativeProfit / next.profitRequired) * 100);
+          const bestProgress = Math.max(daysProgress, profitProgress);
+          upcomingList.push({
+            userId: ms.user_id,
+            full_name: profile.full_name,
+            trader_number: profile.trader_number,
+            currentLabel: computed.label,
+            nextLabel: next.label,
+            tradingDays,
+            cumulativeProfit,
+            daysRequired: next.daysRequired,
+            profitRequired: next.profitRequired,
+            daysProgress,
+            profitProgress,
+            bestProgress,
+            closestBy: daysProgress >= profitProgress ? "days" : "profit",
+          });
+        }
       }
     }
 
+    upcomingList.sort((a, b) => b.bestProgress - a.bestProgress);
     setAlerts(newAlerts);
+    setUpcoming(upcomingList.slice(0, 3));
   };
 
   const handleUpgrade = async (alert: MilestoneAlert) => {
@@ -198,26 +243,34 @@ const MilestoneNotification = () => {
     setAlerts((prev) => prev.filter((a) => a.milestoneId !== milestoneId));
   };
 
-  if (!user || !isAdmin || alerts.length === 0) return null;
+  if (!user || !isAdmin || (alerts.length === 0 && upcoming.length === 0)) return null;
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="icon" className="relative">
           <TrendingUp className="h-4 w-4 text-primary" />
-          <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold animate-pulse">
-            {alerts.length}
-          </span>
+          {alerts.length > 0 ? (
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold animate-pulse">
+              {alerts.length}
+            </span>
+          ) : (
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-muted text-muted-foreground text-[10px] flex items-center justify-center font-bold border border-border">
+              {upcoming.length}
+            </span>
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-96 p-0">
-        <div className="p-3 border-b border-border">
-          <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            Milestone Upgrades Pending 🎯
-          </h4>
-          <p className="text-xs text-muted-foreground mt-1">Approve or dismiss upgrades</p>
-        </div>
+        {alerts.length > 0 && (
+          <div className="p-3 border-b border-border">
+            <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Milestone Upgrades Pending 🎯
+            </h4>
+            <p className="text-xs text-muted-foreground mt-1">Approve or dismiss upgrades</p>
+          </div>
+        )}
         <div className="max-h-80 overflow-y-auto">
           {alerts.map((a) => (
             <div
