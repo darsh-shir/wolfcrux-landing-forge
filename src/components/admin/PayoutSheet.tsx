@@ -625,7 +625,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                       )}
                       {calculations.partnerDeductions.length > 0 && calculations.partnerDeductions.map((d, idx) => (
                         <React.Fragment key={idx}>
-                          <span className="text-muted-foreground">Partner Share 50% — {d.name}</span>
+                          <span className="text-muted-foreground">Partner Share (½ of {calculations.stoPercent}% STO = {(calculations.stoPercent / 2).toFixed(1)}%) — {d.name}</span>
                           <span className="font-medium text-right text-orange-600">-{formatCurrency(d.amount)}</span>
                         </React.Fragment>
                       ))}
