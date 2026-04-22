@@ -66,16 +66,17 @@ const TraderProgress = () => {
     setLoading(true);
     const [profilesRes, milestonesRes, tradingData] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, trader_number, employee_role"),
-      supabase.from("trader_milestones").select("user_id, cumulative_net_profit"),
+      supabase.from("trader_milestones").select("id, user_id, current_level, cumulative_net_profit"),
       fetchAllTradingData(),
     ]);
 
     const profiles = profilesRes.data || [];
     const milestones = milestonesRes.data || [];
 
-    // Count distinct trading days and total PnL per user
+    // Count distinct trading days, total PnL and earliest trade date per user
     const tradingDaysMap: Record<string, Set<string>> = {};
     const totalPnlMap: Record<string, number> = {};
+    const firstTradeDateMap: Record<string, string> = {};
 
     // Brokerage = $14 per 1000 shares; Software cost = $1000 flat per trader
     const SOFTWARE_COST = 1000;
@@ -88,12 +89,18 @@ const TraderProgress = () => {
       if (!tradingDaysMap[t.user_id]) tradingDaysMap[t.user_id] = new Set();
       tradingDaysMap[t.user_id].add(t.trade_date);
       totalPnlMap[t.user_id] = (totalPnlMap[t.user_id] || 0) + netAfterBrokerage;
+      if (!firstTradeDateMap[t.user_id] || t.trade_date < firstTradeDateMap[t.user_id]) {
+        firstTradeDateMap[t.user_id] = t.trade_date;
+      }
 
       // Partner gets mirrored P&L and trading day count
       if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") {
         if (!tradingDaysMap[t.trader2_id]) tradingDaysMap[t.trader2_id] = new Set();
         tradingDaysMap[t.trader2_id].add(t.trade_date);
         totalPnlMap[t.trader2_id] = (totalPnlMap[t.trader2_id] || 0) + netAfterBrokerage;
+        if (!firstTradeDateMap[t.trader2_id] || t.trade_date < firstTradeDateMap[t.trader2_id]) {
+          firstTradeDateMap[t.trader2_id] = t.trade_date;
+        }
       }
     });
 
@@ -133,9 +140,9 @@ const TraderProgress = () => {
     const result: TraderProgressData[] = traderProfiles.map((p) => {
       const tradingDays = tradingDaysMap[p.user_id]?.size || 0;
       const ms = milestones.find((m) => m.user_id === p.user_id);
-      const cumProfit = Number(ms?.cumulative_net_profit || 0);
       const totalPnl = totalPnlMap[p.user_id] || 0;
-      const milestone = getMilestoneLevel(tradingDays, cumProfit);
+      // Use computed totalPnl for level eligibility (same source as table)
+      const milestone = getMilestoneLevel(tradingDays, totalPnl);
       const next = getNextMilestone(milestone.level);
 
       return {
@@ -146,9 +153,12 @@ const TraderProgress = () => {
         totalPnl,
         milestoneLevel: milestone.level,
         milestoneLabel: milestone.label,
+        storedLevel: ms?.current_level ?? 0,
+        milestoneId: ms?.id ?? null,
+        firstTradeDate: firstTradeDateMap[p.user_id] || null,
         nextLevel: next,
         daysProgress: next ? Math.min(100, (tradingDays / next.daysRequired) * 100) : 100,
-        profitProgress: next ? Math.min(100, (cumProfit / next.profitRequired) * 100) : 100,
+        profitProgress: next ? Math.min(100, (Math.max(0, totalPnl) / next.profitRequired) * 100) : 100,
       };
     });
 
