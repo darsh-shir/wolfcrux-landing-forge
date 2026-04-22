@@ -317,6 +317,52 @@ const MilestoneNotification = () => {
             </div>
           ))}
         </div>
+
+        {upcoming.length > 0 && (
+          <>
+            <div className="p-3 border-b border-t border-border bg-muted/30">
+              <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                Top 3 Closest to Next Level
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1">By days or profit — whichever is closer</p>
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {upcoming.map((u, i) => (
+                <div key={u.userId} className="px-3 py-3 border-b border-border/50 last:border-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      <span className="text-muted-foreground mr-1">#{i + 1}</span>
+                      {u.trader_number ? `${u.trader_number} - ` : ""}{u.full_name}
+                    </p>
+                    <Badge variant="outline" className="text-[10px]">
+                      {u.currentLabel} → {u.nextLabel}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1.5 mt-2">
+                    <div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5">
+                        <span>Days: {u.tradingDays} / {u.daysRequired}</span>
+                        <span>{u.daysProgress.toFixed(0)}%</span>
+                      </div>
+                      <Progress value={u.daysProgress} className="h-1.5" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5">
+                        <span>Profit: ${formatIndian(Math.max(0, Math.round(u.cumulativeProfit)))} / ${formatIndian(u.profitRequired)}</span>
+                        <span>{u.profitProgress.toFixed(0)}%</span>
+                      </div>
+                      <Progress value={u.profitProgress} className="h-1.5" />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-primary mt-1.5 font-medium">
+                    Closest by {u.closestBy} ({u.bestProgress.toFixed(0)}%)
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </PopoverContent>
     </Popover>
   );
