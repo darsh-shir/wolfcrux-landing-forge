@@ -3,10 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrendingUp, Calendar, DollarSign, Users } from "lucide-react";
+import { TrendingUp, Calendar, DollarSign, Users, ArrowUpCircle } from "lucide-react";
 import { formatIndian } from "@/lib/utils";
 import { MILESTONES, getMilestoneLevel, getNextMilestone } from "@/lib/payoutCalculations";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface Profile {
   user_id: string;
@@ -21,17 +24,22 @@ interface TraderProgressData {
   traderNumber: string | null;
   tradingDays: number;
   totalPnl: number;
-  milestoneLevel: number;
+  milestoneLevel: number;       // computed (eligible) level
   milestoneLabel: string;
+  storedLevel: number;          // current confirmed level in DB
+  milestoneId: string | null;
+  firstTradeDate: string | null;
   nextLevel: typeof MILESTONES[0] | null;
   daysProgress: number;
   profitProgress: number;
 }
 
 const TraderProgress = () => {
+  const { isAdmin } = useAuth();
   const [data, setData] = useState<TraderProgressData[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyPnl, setCompanyPnl] = useState(0);
+  const [upgrading, setUpgrading] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
