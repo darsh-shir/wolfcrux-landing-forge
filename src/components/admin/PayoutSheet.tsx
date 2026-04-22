@@ -115,14 +115,30 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         .eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
     ]);
 
-    // Fetch all trading data for this trader's day count (primary or partner)
-    const tradingDaysRes = await supabase.from("trading_data").select("trade_date, user_id, trader2_id, trader2_role");
+    // Fetch all trading data for this trader's day count + cumulative net profit (primary or partner)
+    const tradingDaysRes = await supabase.from("trading_data").select("trade_date, user_id, trader2_id, trader2_role, net_pnl, shares_traded");
     const uniqueDays = new Set<string>();
+    let cumProfit = 0;
+    let hasActivity = false;
+    const SOFTWARE_COST_FLAT = 1000;
     (tradingDaysRes.data || []).forEach((t: any) => {
-      if (t.user_id === selectedTrader) uniqueDays.add(t.trade_date);
-      if (t.trader2_id === selectedTrader && t.trader2_role?.toLowerCase() === "partner") uniqueDays.add(t.trade_date);
+      const shares = Number(t.shares_traded || 0);
+      const brokerage = (shares / 1000) * 14;
+      const netAfterBrokerage = Number(t.net_pnl) - brokerage;
+      if (t.user_id === selectedTrader) {
+        uniqueDays.add(t.trade_date);
+        cumProfit += netAfterBrokerage;
+        hasActivity = true;
+      }
+      if (t.trader2_id === selectedTrader && t.trader2_role?.toLowerCase() === "partner") {
+        uniqueDays.add(t.trade_date);
+        cumProfit += netAfterBrokerage;
+        hasActivity = true;
+      }
     });
+    if (hasActivity) cumProfit -= SOFTWARE_COST_FLAT;
     setTradingDaysCount(uniqueDays.size);
+    setCumulativeNetProfit(cumProfit);
 
     setTradingData(tradesRes.data || []);
     setTrader2TradingData(tradesAsTrader2Res.data || []);
