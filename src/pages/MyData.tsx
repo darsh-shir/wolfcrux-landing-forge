@@ -338,6 +338,7 @@ const MyData = () => {
                   tradingDays={tradingDays}
                   allTradingData={tradingData}
                   allDailySummary={allDailySummary}
+                  softwareCosts={softwareCosts}
                 />
               )}
             </TabsContent>
