@@ -123,7 +123,7 @@ const LtoLoyaltyView = () => {
             </div>
 
             <Button
-              onClick={() => setShowWelcome(false)}
+              onClick={() => { setAcknowledged(true); setShowWelcome(false); }}
               className="w-full mt-2 animate-fade-in bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/30"
               style={{ animationDelay: "0.6s", animationFillMode: "both" }}
               size="lg"
