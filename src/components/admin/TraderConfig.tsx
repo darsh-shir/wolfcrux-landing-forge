@@ -142,9 +142,11 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
   const getConfig = (userId: string): TraderConfigData => {
     return editing[userId] || configs.find(c => c.user_id === userId) || {
       user_id: userId, payout_percentage: 0, sto_percentage: 0, lto_percentage: 0,
-      config_mode: 'manual', software_cost: 0, month: selectedMonth, year: selectedYear,
+      config_mode: 'manual', software_cost: 1000, month: selectedMonth, year: selectedYear,
     };
   };
+
+  const isEdited = (userId: string) => Boolean(editing[userId]);
 
   const getMilestoneForUser = (userId: string) => {
     const milestone = milestones.find(m => m.user_id === userId);
