@@ -69,7 +69,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
   const [traderConfig, setTraderConfig] = useState<any>(null);
   const [cumulativeNetProfit, setCumulativeNetProfit] = useState(0);
-  const [primaryConfigs, setPrimaryConfigs] = useState<Record<string, { stoPct: number }>>({});
+  const [primaryConfigs, setPrimaryConfigs] = useState<Record<string, { stoPct: number; softwareCost: number }>>({});
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
@@ -160,12 +160,12 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const primaryUserIds = Array.from(new Set((tradesAsTrader2Res.data || []).map((t: any) => t.user_id)));
     if (primaryUserIds.length > 0) {
       const { data: primaryCfgs } = await supabase.from("trader_config")
-        .select("user_id, sto_percentage, month, year")
+        .select("user_id, sto_percentage, software_cost, month, year")
         .in("user_id", primaryUserIds)
         .eq("month", selectedMonth).eq("year", selectedYear);
-      const cfgMap: Record<string, { stoPct: number }> = {};
+      const cfgMap: Record<string, { stoPct: number; softwareCost: number }> = {};
       (primaryCfgs || []).forEach((c: any) => {
-        cfgMap[c.user_id] = { stoPct: Number(c.sto_percentage) || 0 };
+        cfgMap[c.user_id] = { stoPct: Number(c.sto_percentage) || 0, softwareCost: Number(c.software_cost) || 1000 };
       });
       setPrimaryConfigs(cfgMap);
     } else {
@@ -233,12 +233,83 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       partnerDeductions: [] as { name: string; role: string; splitPct: number; amount: number }[],
       totalPartnerDeduction: 0,
       traderKeepsFromPrimary: 0,
-      trader2Earnings: [] as { primaryTraderName: string; pnl: number; role: string; splitPct: number; earnings: number }[],
+      trader2Earnings: [] as {
+        primaryTraderName: string;
+        pnl: number;
+        totalShares: number;
+        shareCost: number;
+        softwareCost: number;
+        netProfit: number;
+        stoPct: number;
+        stoPool: number;
+        partnerHalf: number;
+        leaveDeductionPct: number;
+        leaveDeductionAmount: number;
+        role: string;
+        splitPct: number;
+        earnings: number;
+      }[],
       trader2Total: 0,
       combinedFinalSto: 0,
     };
 
-    if (tradingData.length === 0) return result;
+    // Compute leave deduction once (used for both primary and partner shares)
+    const leaveResultEarly = calculateLeaveDeduction(
+      allAttendanceRecords, selectedMonth, selectedYear, carryForwardDays
+    );
+    const leaveDeductionPctEarly = leaveResultEarly.deductionPercent;
+    result.leaveDeductionPct = leaveDeductionPctEarly;
+
+    // Skip primary-trader sections if no primary trading data, but still process partner earnings below.
+    if (tradingData.length === 0) {
+      // Process partner earnings only
+      const trader2EarningsOnly: typeof result.trader2Earnings = [];
+      if (trader2TradingData.length > 0) {
+        const byPrimary: Record<string, any[]> = {};
+        trader2TradingData.forEach((t: any) => {
+          if (!byPrimary[t.user_id]) byPrimary[t.user_id] = [];
+          byPrimary[t.user_id].push(t);
+        });
+        for (const [primaryUserId, trades] of Object.entries(byPrimary)) {
+          const totalPnl2 = trades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
+          const totalShares2 = trades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
+          const shareCost2 = calculateShareCost(totalShares2);
+          const softwareCost2 = Number(softwareCostInput) || 0;
+          const netProfit2 = totalPnl2 - shareCost2 - softwareCost2;
+          const role = trades[0]?.trader2_role || "partner";
+          const roleLower = role.toLowerCase();
+          const primaryStoPct = primaryConfigs[primaryUserId]?.stoPct || milestone.stoPercent;
+          const stoPool = netProfit2 > 0 ? netProfit2 * (primaryStoPct / 100) : 0;
+          const partnerHalf = stoPool * 0.5;
+          const leaveDeductionAmount2 = roleLower === "partner" ? partnerHalf * (leaveDeductionPctEarly / 100) : 0;
+          const earnings = roleLower === "partner" ? partnerHalf - leaveDeductionAmount2 : 0;
+          const primaryUser = users.find(u => u.user_id === primaryUserId);
+          trader2EarningsOnly.push({
+            primaryTraderName: primaryUser?.full_name || "Unknown",
+            pnl: totalPnl2,
+            totalShares: totalShares2,
+            shareCost: shareCost2,
+            softwareCost: softwareCost2,
+            netProfit: netProfit2,
+            stoPct: primaryStoPct,
+            stoPool,
+            partnerHalf,
+            leaveDeductionPct: leaveDeductionPctEarly,
+            leaveDeductionAmount: leaveDeductionAmount2,
+            role,
+            splitPct: roleLower === "partner" ? primaryStoPct / 2 : 25,
+            earnings,
+          });
+        }
+      }
+      const trader2TotalOnly = trader2EarningsOnly.reduce((sum, e) => sum + e.earnings, 0);
+      Object.assign(result, {
+        trader2Earnings: trader2EarningsOnly,
+        trader2Total: trader2TotalOnly,
+        combinedFinalSto: trader2TotalOnly,
+      });
+      return result;
+    }
 
     const totalPnl = tradingData.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
     const totalShares = tradingData.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
@@ -318,27 +389,36 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         const totalPnl2 = trades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
         const totalShares2 = trades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
         const shareCost2 = calculateShareCost(totalShares2);
-        // Same P&L treatment: subtract software cost too
-        const netProfit2 = totalPnl2 - shareCost2 - softwareCost;
+        const softwareCost2 = primaryConfigs[primaryUserId]?.softwareCost ?? softwareCost;
+        const netProfit2 = totalPnl2 - shareCost2 - softwareCost2;
 
         const role = trades[0]?.trader2_role || "partner";
         const roleLower = role.toLowerCase();
 
-        // Use primary trader's STO% to compute the STO pool, then split 50/50
         const primaryStoPct = primaryConfigs[primaryUserId]?.stoPct || effectiveStoPct;
         const stoPool = netProfit2 > 0 ? netProfit2 * (primaryStoPct / 100) : 0;
-        const partnerHalf = stoPool * 0.5; // partner's 50% share before partner's own leave deduction
+        const partnerHalf = stoPool * 0.5;
 
+        const leaveDeductionAmount2 = roleLower === "partner" ? partnerHalf * (leaveDeductionPct / 100) : 0;
         let earnings = 0;
         if (roleLower === "partner" && partnerHalf > 0) {
-          // Apply THIS trader's (partner's) own leave deduction on their share
-          earnings = partnerHalf * (1 - leaveDeductionPct / 100);
+          earnings = partnerHalf - leaveDeductionAmount2;
         }
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
         trader2Earnings.push({
           primaryTraderName: primaryUser?.full_name || "Unknown",
-          pnl: totalPnl2, role,
+          pnl: totalPnl2,
+          totalShares: totalShares2,
+          shareCost: shareCost2,
+          softwareCost: softwareCost2,
+          netProfit: netProfit2,
+          stoPct: primaryStoPct,
+          stoPool,
+          partnerHalf,
+          leaveDeductionPct,
+          leaveDeductionAmount: leaveDeductionAmount2,
+          role,
           splitPct: roleLower === "partner" ? primaryStoPct / 2 : 25,
           earnings,
         });
@@ -690,31 +770,57 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                   </div>
                 )}
 
-                {/* Partner Earnings */}
+                {/* Partner Earnings — full breakdown per primary */}
                 {calculations.trader2Earnings.length > 0 && (
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
                       Earnings as Partner
                     </h3>
-                    <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
-                      {calculations.trader2Earnings.map((earning, idx) => (
-                        <div key={idx} className="grid grid-cols-2 gap-y-1 text-sm">
-                          <span className="text-muted-foreground">From: {earning.primaryTraderName}</span>
-                          <span className={`font-medium text-right ${earning.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            P&L: {formatCurrency(earning.pnl)}
+                    {calculations.trader2Earnings.map((e, idx) => (
+                      <div key={idx} className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold">Sitting with: {e.primaryTraderName}</span>
+                          <Badge variant="outline">{e.role} • split 50/50 of {e.stoPct}% STO</Badge>
+                        </div>
+
+                        {/* P&L Breakdown (same as primary) */}
+                        <div className="grid grid-cols-2 gap-y-2 text-sm">
+                          <span className="text-muted-foreground">Gross Profit (Total P&L)</span>
+                          <span className={`font-medium text-right ${e.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {e.pnl >= 0 ? "" : "-"}{formatCurrency(Math.abs(e.pnl))}
                           </span>
-                          <span className="text-muted-foreground">Role: {earning.role} ({earning.splitPct}%)</span>
-                          <span className={`font-bold text-right ${earning.earnings >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            {formatCurrency(earning.earnings)}
+                          <span className="text-muted-foreground">Share Cost ({formatIndian(e.totalShares)} shares × $14/1000)</span>
+                          <span className="font-medium text-right text-orange-600">-{formatCurrency(e.shareCost)}</span>
+                          <span className="text-muted-foreground">Software Cost</span>
+                          <span className="font-medium text-right text-orange-600">-{formatCurrency(e.softwareCost)}</span>
+                          <span className="text-muted-foreground font-semibold border-t pt-2">Net Trading Profit</span>
+                          <span className={`font-bold text-right border-t pt-2 ${e.netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {e.netProfit >= 0 ? "" : "-"}{formatCurrency(Math.abs(e.netProfit))}
                           </span>
                         </div>
-                      ))}
-                      <div className="flex justify-between items-center border-t pt-2">
-                        <span className="font-bold">Total Partner Earnings</span>
-                        <span className={`font-bold ${calculations.trader2Total >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {formatCurrency(calculations.trader2Total)}
-                        </span>
+
+                        {/* STO split */}
+                        {e.netProfit > 0 && (
+                          <div className="grid grid-cols-2 gap-y-2 text-sm border-t pt-2">
+                            <span className="text-muted-foreground">STO Pool ({e.stoPct}% of Net Profit)</span>
+                            <span className="font-medium text-right text-green-600">{formatCurrency(e.stoPool)}</span>
+                            <span className="text-muted-foreground">Your Share (50% of pool)</span>
+                            <span className="font-medium text-right text-green-600">{formatCurrency(e.partnerHalf)}</span>
+                            <span className="text-muted-foreground">Your Leave Deduction ({e.leaveDeductionPct.toFixed(1)}%)</span>
+                            <span className="font-medium text-right text-red-600">-{formatCurrency(e.leaveDeductionAmount)}</span>
+                            <span className="text-muted-foreground font-semibold border-t pt-2">Final Partner STO</span>
+                            <span className={`font-bold text-right border-t pt-2 ${e.earnings >= 0 ? "text-green-600" : "text-red-600"}`}>
+                              {formatCurrency(e.earnings)}
+                            </span>
+                          </div>
+                        )}
                       </div>
+                    ))}
+                    <div className="flex justify-between items-center border rounded-lg p-3 bg-muted/30">
+                      <span className="font-bold">Total Partner Earnings</span>
+                      <span className={`font-bold ${calculations.trader2Total >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {formatCurrency(calculations.trader2Total)}
+                      </span>
                     </div>
                   </div>
                 )}
