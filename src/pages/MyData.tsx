@@ -10,11 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, TrendingDown, Calendar, BarChart3, Key, DollarSign, LineChart, ChevronDown, ChevronRight, Wallet } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar, BarChart3, Key, DollarSign, LineChart, ChevronDown, ChevronRight, Wallet, Heart } from "lucide-react";
 import ChangePassword from "@/components/user/ChangePassword";
 import LeaveApplication from "@/components/user/LeaveApplication";
 import TradingAnalytics from "@/components/user/TradingAnalytics";
 import PayoutSummary from "@/components/user/PayoutSummary";
+import LtoLoyaltyView from "@/components/user/LtoLoyaltyView";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, parseISO } from "date-fns";
 
 interface TradingAccount {
@@ -294,6 +295,10 @@ const MyData = () => {
               <TabsTrigger value="payout" className="gap-2">
                 <Wallet className="h-4 w-4" />
                 Payout
+              </TabsTrigger>
+              <TabsTrigger value="lto" className="gap-2">
+                <Heart className="h-4 w-4" />
+                LTO
               </TabsTrigger>
               <TabsTrigger value="settings" className="gap-2">
                 <Key className="h-4 w-4" />
@@ -645,6 +650,11 @@ const MyData = () => {
             {/* PAYOUT TAB */}
             <TabsContent value="payout">
               <PayoutSummary />
+            </TabsContent>
+
+            {/* LTO TAB */}
+            <TabsContent value="lto">
+              <LtoLoyaltyView />
             </TabsContent>
 
             {/* SETTINGS TAB */}
