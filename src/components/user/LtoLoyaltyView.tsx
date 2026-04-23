@@ -76,13 +76,6 @@ const LtoLoyaltyView = () => {
             ))}
           </div>
 
-          <button
-            onClick={() => setShowWelcome(false)}
-            className="absolute top-3 right-3 z-20 p-1.5 rounded-full hover:bg-muted/80 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4 text-muted-foreground" />
-          </button>
 
           <div className="relative z-10 p-8 text-center space-y-5">
             {/* Animated heart icon */}
