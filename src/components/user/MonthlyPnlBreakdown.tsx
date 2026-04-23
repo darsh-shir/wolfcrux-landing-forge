@@ -49,7 +49,7 @@ const MonthlyPnlBreakdown = ({ dailySummary, softwareCosts = {} }: MonthlyPnlBre
       .map(([month, days]) => {
         const grossPnl = days.reduce((s, d) => s + d.combinedPnl, 0);
         const brokerage = days.reduce((s, d) => s + d.brokerage, 0);
-        const softwareCost = softwareCosts[month] || 0;
+        const softwareCost = softwareCosts[month] !== undefined ? softwareCosts[month] : 1000;
         const netPnl = days.reduce((s, d) => s + d.netAfterBrokerage, 0) - softwareCost;
         const totalShares = days.reduce((s, d) => s + d.totalShares, 0);
         const winningDays = days.filter((d) => d.netAfterBrokerage > 0).length;
