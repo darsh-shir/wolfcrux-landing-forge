@@ -132,7 +132,8 @@ const PayoutSummary = () => {
 
   const nextMilestone = useMemo(() => getNextMilestone(milestone.level), [milestone]);
 
-  const totalStoPending = stoHistory.filter(s => !s.is_paid).reduce((sum, s) => sum + Number(s.final_sto_amount), 0);
+  const partnerSharesPending = partnerShares.reduce((sum, p) => sum + p.final_amount, 0);
+  const totalStoPending = stoHistory.filter(s => !s.is_paid).reduce((sum, s) => sum + Number(s.final_sto_amount), 0) + partnerSharesPending;
   const totalLtoLocked = ltoHistory.filter(l => !l.is_released).reduce((sum, l) => sum + Number(l.lto_amount), 0);
   const totalLtoUnlocked = ltoHistory.filter(l => !l.is_released && new Date(l.unlock_date) <= new Date())
     .reduce((sum, l) => sum + Number(l.lto_amount), 0);
