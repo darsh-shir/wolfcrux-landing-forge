@@ -480,6 +480,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       }
       setTraderConfig(data);
     }
+    setSavedSoftwareCost(softwareCostInput);
     toast({ title: "Saved", description: `Software cost updated to $${softwareCostInput}` });
   };
 
