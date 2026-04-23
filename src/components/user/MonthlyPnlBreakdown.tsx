@@ -16,6 +16,7 @@ interface DailySummary {
 
 interface MonthlyPnlBreakdownProps {
   dailySummary: DailySummary[];
+  softwareCosts?: Record<string, number>;
 }
 
 interface MonthlyData {
@@ -23,6 +24,7 @@ interface MonthlyData {
   label: string;
   grossPnl: number;
   brokerage: number;
+  softwareCost: number;
   netPnl: number;
   tradingDays: number;
   winningDays: number;
@@ -33,7 +35,7 @@ interface MonthlyData {
   worstDay: number;
 }
 
-const MonthlyPnlBreakdown = ({ dailySummary }: MonthlyPnlBreakdownProps) => {
+const MonthlyPnlBreakdown = ({ dailySummary, softwareCosts = {} }: MonthlyPnlBreakdownProps) => {
   const monthlyData = useMemo((): MonthlyData[] => {
     const grouped: Record<string, DailySummary[]> = {};
 
@@ -47,7 +49,8 @@ const MonthlyPnlBreakdown = ({ dailySummary }: MonthlyPnlBreakdownProps) => {
       .map(([month, days]) => {
         const grossPnl = days.reduce((s, d) => s + d.combinedPnl, 0);
         const brokerage = days.reduce((s, d) => s + d.brokerage, 0);
-        const netPnl = days.reduce((s, d) => s + d.netAfterBrokerage, 0);
+        const softwareCost = softwareCosts[month] || 0;
+        const netPnl = days.reduce((s, d) => s + d.netAfterBrokerage, 0) - softwareCost;
         const totalShares = days.reduce((s, d) => s + d.totalShares, 0);
         const winningDays = days.filter((d) => d.netAfterBrokerage > 0).length;
         const losingDays = days.filter((d) => d.netAfterBrokerage < 0).length;
@@ -59,6 +62,7 @@ const MonthlyPnlBreakdown = ({ dailySummary }: MonthlyPnlBreakdownProps) => {
           label: format(parseISO(`${month}-01`), "MMM yyyy"),
           grossPnl,
           brokerage,
+          softwareCost,
           netPnl,
           tradingDays: days.length,
           winningDays,
@@ -70,7 +74,7 @@ const MonthlyPnlBreakdown = ({ dailySummary }: MonthlyPnlBreakdownProps) => {
         };
       })
       .sort((a, b) => b.month.localeCompare(a.month));
-  }, [dailySummary]);
+  }, [dailySummary, softwareCosts]);
 
   if (monthlyData.length === 0) return null;
 
