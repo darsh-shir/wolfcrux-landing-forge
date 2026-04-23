@@ -189,7 +189,22 @@ const MyData = () => {
   const totalPnl = dailySummary.reduce((sum, d) => sum + d.combinedPnl, 0);
   const totalShares = dailySummary.reduce((sum, d) => sum + d.totalShares, 0);
   const totalBrokerage = (totalShares / 1000) * 14;
-  const netAfterBrokerage = totalPnl - totalBrokerage;
+
+  // Sum software cost for every month covered by the selected date range
+  const totalSoftwareCost = useMemo(() => {
+    let sum = 0;
+    const start = new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), 1);
+    const end = new Date(dateRange.end.getFullYear(), dateRange.end.getMonth(), 1);
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+      sum += softwareCosts[key] || 0;
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return sum;
+  }, [dateRange, softwareCosts]);
+
+  const netAfterBrokerage = totalPnl - totalBrokerage - totalSoftwareCost;
   const tradingDays = dailySummary.length;
 
   // Generate months for dropdown
