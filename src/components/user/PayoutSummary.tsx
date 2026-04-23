@@ -286,6 +286,54 @@ const PayoutSummary = () => {
         </Card>
       )}
 
+      {/* Partner Shares (joint-session payouts) */}
+      {partnerShares.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" /> Partner Share Payouts
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Your share from joint sessions where you partnered with another trader. You receive {partnerShares[0]?.share_percent || 50}% of their STO, with your own leave deductions applied.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left p-3">Period</th>
+                    <th className="text-left p-3">Primary Trader</th>
+                    <th className="text-right p-3">Primary STO</th>
+                    <th className="text-right p-3">Your Share %</th>
+                    <th className="text-right p-3">Your Share</th>
+                    <th className="text-right p-3">Leave Deduction</th>
+                    <th className="text-right p-3">Final</th>
+                    <th className="text-right p-3">Due Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {partnerShares.map((p) => (
+                    <tr key={`${p.primary_user_id}-${p.year}-${p.month}`} className="border-t">
+                      <td className="p-3 font-medium">{MONTHS[(p.month || 1) - 1]} {p.year}</td>
+                      <td className="p-3">{p.primary_name}</td>
+                      <td className="p-3 text-right">{fmt(p.primary_sto_amount)}</td>
+                      <td className="p-3 text-right">{p.share_percent}%</td>
+                      <td className="p-3 text-right">{fmt(p.share_amount)}</td>
+                      <td className="p-3 text-right text-red-600">
+                        {p.leave_deduction_amount > 0 ? `-${fmt(p.leave_deduction_amount)} (${p.leave_deduction_percent}%)` : "-"}
+                      </td>
+                      <td className="p-3 text-right font-medium">{fmt(p.final_amount)}</td>
+                      <td className="p-3 text-right text-muted-foreground">{p.payout_due_date || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* LTO History */}
       {ltoHistory.length > 0 && (
         <Card>
