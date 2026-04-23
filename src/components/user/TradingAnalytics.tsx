@@ -189,7 +189,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
                 <p className={`text-xl font-bold ${lifetimeNet >= 0 ? "text-green-600" : "text-red-600"}`}>
                   {formatCurrency(lifetimeNet)}
                 </p>
-                <p className="text-xs text-muted-foreground">Lifetime net after brokerage</p>
+                <p className="text-xs text-muted-foreground">Net after brokerage & software</p>
               </div>
             </div>
           </CardContent>
