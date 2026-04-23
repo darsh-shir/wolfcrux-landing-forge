@@ -770,31 +770,57 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                   </div>
                 )}
 
-                {/* Partner Earnings */}
+                {/* Partner Earnings — full breakdown per primary */}
                 {calculations.trader2Earnings.length > 0 && (
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
                       Earnings as Partner
                     </h3>
-                    <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
-                      {calculations.trader2Earnings.map((earning, idx) => (
-                        <div key={idx} className="grid grid-cols-2 gap-y-1 text-sm">
-                          <span className="text-muted-foreground">From: {earning.primaryTraderName}</span>
-                          <span className={`font-medium text-right ${earning.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            P&L: {formatCurrency(earning.pnl)}
+                    {calculations.trader2Earnings.map((e, idx) => (
+                      <div key={idx} className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold">Sitting with: {e.primaryTraderName}</span>
+                          <Badge variant="outline">{e.role} • split 50/50 of {e.stoPct}% STO</Badge>
+                        </div>
+
+                        {/* P&L Breakdown (same as primary) */}
+                        <div className="grid grid-cols-2 gap-y-2 text-sm">
+                          <span className="text-muted-foreground">Gross Profit (Total P&L)</span>
+                          <span className={`font-medium text-right ${e.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {e.pnl >= 0 ? "" : "-"}{formatCurrency(Math.abs(e.pnl))}
                           </span>
-                          <span className="text-muted-foreground">Role: {earning.role} ({earning.splitPct}%)</span>
-                          <span className={`font-bold text-right ${earning.earnings >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            {formatCurrency(earning.earnings)}
+                          <span className="text-muted-foreground">Share Cost ({formatIndian(e.totalShares)} shares × $14/1000)</span>
+                          <span className="font-medium text-right text-orange-600">-{formatCurrency(e.shareCost)}</span>
+                          <span className="text-muted-foreground">Software Cost</span>
+                          <span className="font-medium text-right text-orange-600">-{formatCurrency(e.softwareCost)}</span>
+                          <span className="text-muted-foreground font-semibold border-t pt-2">Net Trading Profit</span>
+                          <span className={`font-bold text-right border-t pt-2 ${e.netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {e.netProfit >= 0 ? "" : "-"}{formatCurrency(Math.abs(e.netProfit))}
                           </span>
                         </div>
-                      ))}
-                      <div className="flex justify-between items-center border-t pt-2">
-                        <span className="font-bold">Total Partner Earnings</span>
-                        <span className={`font-bold ${calculations.trader2Total >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {formatCurrency(calculations.trader2Total)}
-                        </span>
+
+                        {/* STO split */}
+                        {e.netProfit > 0 && (
+                          <div className="grid grid-cols-2 gap-y-2 text-sm border-t pt-2">
+                            <span className="text-muted-foreground">STO Pool ({e.stoPct}% of Net Profit)</span>
+                            <span className="font-medium text-right text-green-600">{formatCurrency(e.stoPool)}</span>
+                            <span className="text-muted-foreground">Your Share (50% of pool)</span>
+                            <span className="font-medium text-right text-green-600">{formatCurrency(e.partnerHalf)}</span>
+                            <span className="text-muted-foreground">Your Leave Deduction ({e.leaveDeductionPct.toFixed(1)}%)</span>
+                            <span className="font-medium text-right text-red-600">-{formatCurrency(e.leaveDeductionAmount)}</span>
+                            <span className="text-muted-foreground font-semibold border-t pt-2">Final Partner STO</span>
+                            <span className={`font-bold text-right border-t pt-2 ${e.earnings >= 0 ? "text-green-600" : "text-red-600"}`}>
+                              {formatCurrency(e.earnings)}
+                            </span>
+                          </div>
+                        )}
                       </div>
+                    ))}
+                    <div className="flex justify-between items-center border rounded-lg p-3 bg-muted/30">
+                      <span className="font-bold">Total Partner Earnings</span>
+                      <span className={`font-bold ${calculations.trader2Total >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {formatCurrency(calculations.trader2Total)}
+                      </span>
                     </div>
                   </div>
                 )}
