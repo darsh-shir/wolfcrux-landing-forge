@@ -135,6 +135,7 @@ const LtoLoyaltyView = () => {
         </DialogContent>
       </Dialog>
 
+      {acknowledged ? (
       <div className="space-y-6">
         {/* Hero Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
