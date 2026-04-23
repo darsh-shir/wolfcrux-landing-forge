@@ -190,19 +190,17 @@ const MyData = () => {
   const totalShares = dailySummary.reduce((sum, d) => sum + d.totalShares, 0);
   const totalBrokerage = (totalShares / 1000) * 14;
 
-  // Sum software cost for every month covered by the selected date range
+  // Sum software cost only for months with trading activity in selected range.
+  // Default $1000/month if no override exists in trader_config.
   const totalSoftwareCost = useMemo(() => {
+    const monthsWithTrades = new Set<string>();
+    dailySummary.forEach(d => monthsWithTrades.add(d.date.substring(0, 7)));
     let sum = 0;
-    const start = new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), 1);
-    const end = new Date(dateRange.end.getFullYear(), dateRange.end.getMonth(), 1);
-    const cursor = new Date(start);
-    while (cursor <= end) {
-      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
-      sum += softwareCosts[key] || 0;
-      cursor.setMonth(cursor.getMonth() + 1);
-    }
+    monthsWithTrades.forEach(key => {
+      sum += softwareCosts[key] !== undefined ? softwareCosts[key] : 1000;
+    });
     return sum;
-  }, [dateRange, softwareCosts]);
+  }, [dailySummary, softwareCosts]);
 
   const netAfterBrokerage = totalPnl - totalBrokerage - totalSoftwareCost;
   const tradingDays = dailySummary.length;
