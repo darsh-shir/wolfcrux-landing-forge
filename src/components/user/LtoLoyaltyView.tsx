@@ -18,14 +18,18 @@ const LtoLoyaltyView = () => {
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [acknowledged, setAcknowledged] = useState(false);
 
   useEffect(() => {
     if (user) fetchData();
   }, [user]);
 
   useEffect(() => {
-    // Always show popup when component mounts
-    if (user) setShowWelcome(true);
+    // Require acknowledgment every time
+    if (user) {
+      setShowWelcome(true);
+      setAcknowledged(false);
+    }
   }, [user]);
 
   const fetchData = async () => {
@@ -54,7 +58,7 @@ const LtoLoyaltyView = () => {
   return (
     <>
       {/* Animated Loyalty Welcome Popup */}
-      <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
+      <Dialog open={showWelcome} onOpenChange={(open) => { if (!open && acknowledged) setShowWelcome(false); }}>
         <DialogContent className="max-w-lg p-0 overflow-hidden border-0 bg-gradient-to-br from-primary/5 via-background to-primary/10">
           {/* Floating sparkles background */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -72,13 +76,6 @@ const LtoLoyaltyView = () => {
             ))}
           </div>
 
-          <button
-            onClick={() => setShowWelcome(false)}
-            className="absolute top-3 right-3 z-20 p-1.5 rounded-full hover:bg-muted/80 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4 text-muted-foreground" />
-          </button>
 
           <div className="relative z-10 p-8 text-center space-y-5">
             {/* Animated heart icon */}
@@ -126,7 +123,7 @@ const LtoLoyaltyView = () => {
             </div>
 
             <Button
-              onClick={() => setShowWelcome(false)}
+              onClick={() => { setAcknowledged(true); setShowWelcome(false); }}
               className="w-full mt-2 animate-fade-in bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/30"
               style={{ animationDelay: "0.6s", animationFillMode: "both" }}
               size="lg"
@@ -138,6 +135,7 @@ const LtoLoyaltyView = () => {
         </DialogContent>
       </Dialog>
 
+      {acknowledged ? (
       <div className="space-y-6">
         {/* Hero Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -242,6 +240,19 @@ const LtoLoyaltyView = () => {
           </CardContent>
         </Card>
       </div>
+      ) : (
+        <div className="text-center py-16 text-muted-foreground">
+          <Heart className="h-10 w-10 mx-auto mb-3 text-primary/40 animate-pulse" />
+          <p className="text-sm">Please read the loyalty message to view your LTO details.</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => setShowWelcome(true)}
+          >
+            <Sparkles className="h-4 w-4 mr-2" /> Show Message
+          </Button>
+        </div>
+      )}
     </>
   );
 };
