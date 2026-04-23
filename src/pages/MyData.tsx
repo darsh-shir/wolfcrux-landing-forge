@@ -99,13 +99,10 @@ const MyData = () => {
 
     if (accountsRes.data) setAccounts(accountsRes.data);
 
-    // Merge own + partner trades, dedupe by id, and split shares/PnL 50/50 for partner rows
+    // Merge own + partner trades. Show full P&L/shares to the partner — same as the primary trader.
     const ownRows = ownTradesRes.data || [];
     const partnerRows = (partnerTradesRes.data || []).map((t: any) => ({
       ...t,
-      // For partner sessions, attribute half of P&L and half of shares to this user
-      net_pnl: Number(t.net_pnl) / 2,
-      shares_traded: Math.round(Number(t.shares_traded) / 2),
       user_id: user.id, // normalize so downstream grouping treats it as the partner's row
     }));
 
