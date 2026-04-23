@@ -145,12 +145,15 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
   const formatCurrency = (value: number) => formatCurrencyINR(value);
 
   // Lifetime + current month summary (independent of selected filter)
-  const lifetimeNet = allDailySummary.reduce((s, d) => s + d.netAfterBrokerage, 0);
+  // Net = P&L - brokerage - software cost (per month)
+  const totalSoftwareCostLifetime = Object.values(softwareCosts).reduce((s, v) => s + v, 0);
+  const lifetimeNet = allDailySummary.reduce((s, d) => s + d.netAfterBrokerage, 0) - totalSoftwareCostLifetime;
   const lifetimeDays = allDailySummary.length;
   const currentMonthKey = format(new Date(), "yyyy-MM");
+  const currentMonthSoftwareCost = softwareCosts[currentMonthKey] || 0;
   const currentMonthNet = allDailySummary
     .filter((d) => d.date.startsWith(currentMonthKey))
-    .reduce((s, d) => s + d.netAfterBrokerage, 0);
+    .reduce((s, d) => s + d.netAfterBrokerage, 0) - currentMonthSoftwareCost;
 
   return (
     <div className="space-y-6">
