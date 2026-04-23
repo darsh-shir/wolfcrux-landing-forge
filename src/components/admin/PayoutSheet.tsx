@@ -233,12 +233,83 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       partnerDeductions: [] as { name: string; role: string; splitPct: number; amount: number }[],
       totalPartnerDeduction: 0,
       traderKeepsFromPrimary: 0,
-      trader2Earnings: [] as { primaryTraderName: string; pnl: number; role: string; splitPct: number; earnings: number }[],
+      trader2Earnings: [] as {
+        primaryTraderName: string;
+        pnl: number;
+        totalShares: number;
+        shareCost: number;
+        softwareCost: number;
+        netProfit: number;
+        stoPct: number;
+        stoPool: number;
+        partnerHalf: number;
+        leaveDeductionPct: number;
+        leaveDeductionAmount: number;
+        role: string;
+        splitPct: number;
+        earnings: number;
+      }[],
       trader2Total: 0,
       combinedFinalSto: 0,
     };
 
-    if (tradingData.length === 0) return result;
+    // Compute leave deduction once (used for both primary and partner shares)
+    const leaveResultEarly = calculateLeaveDeduction(
+      allAttendanceRecords, selectedMonth, selectedYear, carryForwardDays
+    );
+    const leaveDeductionPctEarly = leaveResultEarly.deductionPercent;
+    result.leaveDeductionPct = leaveDeductionPctEarly;
+
+    // Skip primary-trader sections if no primary trading data, but still process partner earnings below.
+    if (tradingData.length === 0) {
+      // Process partner earnings only
+      const trader2EarningsOnly: typeof result.trader2Earnings = [];
+      if (trader2TradingData.length > 0) {
+        const byPrimary: Record<string, any[]> = {};
+        trader2TradingData.forEach((t: any) => {
+          if (!byPrimary[t.user_id]) byPrimary[t.user_id] = [];
+          byPrimary[t.user_id].push(t);
+        });
+        for (const [primaryUserId, trades] of Object.entries(byPrimary)) {
+          const totalPnl2 = trades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
+          const totalShares2 = trades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
+          const shareCost2 = calculateShareCost(totalShares2);
+          const softwareCost2 = Number(softwareCostInput) || 0;
+          const netProfit2 = totalPnl2 - shareCost2 - softwareCost2;
+          const role = trades[0]?.trader2_role || "partner";
+          const roleLower = role.toLowerCase();
+          const primaryStoPct = primaryConfigs[primaryUserId]?.stoPct || milestone.stoPercent;
+          const stoPool = netProfit2 > 0 ? netProfit2 * (primaryStoPct / 100) : 0;
+          const partnerHalf = stoPool * 0.5;
+          const leaveDeductionAmount2 = roleLower === "partner" ? partnerHalf * (leaveDeductionPctEarly / 100) : 0;
+          const earnings = roleLower === "partner" ? partnerHalf - leaveDeductionAmount2 : 0;
+          const primaryUser = users.find(u => u.user_id === primaryUserId);
+          trader2EarningsOnly.push({
+            primaryTraderName: primaryUser?.full_name || "Unknown",
+            pnl: totalPnl2,
+            totalShares: totalShares2,
+            shareCost: shareCost2,
+            softwareCost: softwareCost2,
+            netProfit: netProfit2,
+            stoPct: primaryStoPct,
+            stoPool,
+            partnerHalf,
+            leaveDeductionPct: leaveDeductionPctEarly,
+            leaveDeductionAmount: leaveDeductionAmount2,
+            role,
+            splitPct: roleLower === "partner" ? primaryStoPct / 2 : 25,
+            earnings,
+          });
+        }
+      }
+      const trader2TotalOnly = trader2EarningsOnly.reduce((sum, e) => sum + e.earnings, 0);
+      Object.assign(result, {
+        trader2Earnings: trader2EarningsOnly,
+        trader2Total: trader2TotalOnly,
+        combinedFinalSto: trader2TotalOnly,
+      });
+      return result;
+    }
 
     const totalPnl = tradingData.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
     const totalShares = tradingData.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
