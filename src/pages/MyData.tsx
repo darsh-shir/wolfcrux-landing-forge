@@ -42,6 +42,7 @@ const MyData = () => {
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [tradingData, setTradingData] = useState<TradingData[]>([]);
+  const [softwareCosts, setSoftwareCosts] = useState<Record<string, number>>({}); // key "YYYY-MM" -> cost
   const [dataLoading, setDataLoading] = useState(true);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [firstName, setFirstName] = useState<string>("");
@@ -83,13 +84,22 @@ const MyData = () => {
     setDataLoading(true);
     
     // Fetch only the current user's data by filtering with user_id
-    const [accountsRes, tradesRes] = await Promise.all([
+    const [accountsRes, tradesRes, configRes] = await Promise.all([
       supabase.from("trading_accounts").select("*").order("account_name"),
       supabase.from("trading_data").select("*").eq("user_id", user.id).order("trade_date", { ascending: false }),
+      supabase.from("trader_config").select("month,year,software_cost").eq("user_id", user.id),
     ]);
 
     if (accountsRes.data) setAccounts(accountsRes.data);
     if (tradesRes.data) setTradingData(tradesRes.data);
+    if (configRes.data) {
+      const map: Record<string, number> = {};
+      configRes.data.forEach((c: any) => {
+        const key = `${c.year}-${String(c.month).padStart(2, "0")}`;
+        map[key] = Number(c.software_cost) || 0;
+      });
+      setSoftwareCosts(map);
+    }
 
     setDataLoading(false);
   };
@@ -328,6 +338,7 @@ const MyData = () => {
                   tradingDays={tradingDays}
                   allTradingData={tradingData}
                   allDailySummary={allDailySummary}
+                  softwareCosts={softwareCosts}
                 />
               )}
             </TabsContent>
