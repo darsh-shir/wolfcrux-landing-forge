@@ -227,7 +227,7 @@ const PayoutSummary = () => {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Next level unlocks STO {nextMilestone.stoPercent}% / LTO {nextMilestone.ltoPercent}% — whichever milestone is reached first (days or profit)
+              Next level unlocks STO {nextMilestone.stoPercent}% — whichever milestone is reached first (days or profit)
             </p>
           </CardContent>
         </Card>
