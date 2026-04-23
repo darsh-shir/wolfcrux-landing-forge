@@ -160,12 +160,12 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
     const primaryUserIds = Array.from(new Set((tradesAsTrader2Res.data || []).map((t: any) => t.user_id)));
     if (primaryUserIds.length > 0) {
       const { data: primaryCfgs } = await supabase.from("trader_config")
-        .select("user_id, sto_percentage, month, year")
+        .select("user_id, sto_percentage, software_cost, month, year")
         .in("user_id", primaryUserIds)
         .eq("month", selectedMonth).eq("year", selectedYear);
-      const cfgMap: Record<string, { stoPct: number }> = {};
+      const cfgMap: Record<string, { stoPct: number; softwareCost: number }> = {};
       (primaryCfgs || []).forEach((c: any) => {
-        cfgMap[c.user_id] = { stoPct: Number(c.sto_percentage) || 0 };
+        cfgMap[c.user_id] = { stoPct: Number(c.sto_percentage) || 0, softwareCost: Number(c.software_cost) || 1000 };
       });
       setPrimaryConfigs(cfgMap);
     } else {
