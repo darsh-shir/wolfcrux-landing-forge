@@ -283,6 +283,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
                 <TableHead>STO %</TableHead>
                 <TableHead>LTO %</TableHead>
                 <TableHead>Total %</TableHead>
+                <TableHead>Software $</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
