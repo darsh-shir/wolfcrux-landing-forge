@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
+import { DollarSign, Briefcase, CalendarCheck } from "lucide-react";
 
 interface DailySummary {
   date: string;
