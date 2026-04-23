@@ -83,15 +83,36 @@ const MyData = () => {
     
     setDataLoading(true);
     
-    // Fetch only the current user's data by filtering with user_id
-    const [accountsRes, tradesRes, configRes] = await Promise.all([
+    // Fetch user's own trades + trades where they were the partner (trader2)
+    const [accountsRes, ownTradesRes, partnerTradesRes, configRes] = await Promise.all([
       supabase.from("trading_accounts").select("*").order("account_name"),
       supabase.from("trading_data").select("*").eq("user_id", user.id).order("trade_date", { ascending: false }),
+      supabase
+        .from("trading_data")
+        .select("*")
+        .eq("trader2_id", user.id)
+        .eq("trader2_role", "partner")
+        .order("trade_date", { ascending: false }),
       supabase.from("trader_config").select("month,year,software_cost").eq("user_id", user.id),
     ]);
 
     if (accountsRes.data) setAccounts(accountsRes.data);
-    if (tradesRes.data) setTradingData(tradesRes.data);
+
+    // Merge own + partner trades, dedupe by id, and split shares/PnL 50/50 for partner rows
+    const ownRows = ownTradesRes.data || [];
+    const partnerRows = (partnerTradesRes.data || []).map((t: any) => ({
+      ...t,
+      // For partner sessions, attribute half of P&L and half of shares to this user
+      net_pnl: Number(t.net_pnl) / 2,
+      shares_traded: Math.round(Number(t.shares_traded) / 2),
+      user_id: user.id, // normalize so downstream grouping treats it as the partner's row
+    }));
+
+    const merged = [...ownRows, ...partnerRows].sort((a, b) =>
+      b.trade_date.localeCompare(a.trade_date)
+    );
+    setTradingData(merged);
+
     if (configRes.data) {
       const map: Record<string, number> = {};
       configRes.data.forEach((c: any) => {
