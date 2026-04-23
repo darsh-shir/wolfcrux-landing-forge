@@ -189,7 +189,22 @@ const MyData = () => {
   const totalPnl = dailySummary.reduce((sum, d) => sum + d.combinedPnl, 0);
   const totalShares = dailySummary.reduce((sum, d) => sum + d.totalShares, 0);
   const totalBrokerage = (totalShares / 1000) * 14;
-  const netAfterBrokerage = totalPnl - totalBrokerage;
+
+  // Sum software cost for every month covered by the selected date range
+  const totalSoftwareCost = useMemo(() => {
+    let sum = 0;
+    const start = new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), 1);
+    const end = new Date(dateRange.end.getFullYear(), dateRange.end.getMonth(), 1);
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+      sum += softwareCosts[key] || 0;
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return sum;
+  }, [dateRange, softwareCosts]);
+
+  const netAfterBrokerage = totalPnl - totalBrokerage - totalSoftwareCost;
   const tradingDays = dailySummary.length;
 
   // Generate months for dropdown
@@ -401,7 +416,7 @@ const MyData = () => {
               </div>
 
               {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
@@ -432,6 +447,22 @@ const MyData = () => {
                         <p className="text-sm text-muted-foreground">Brokerage</p>
                         <p className="text-2xl font-bold text-orange-600">
                           -{formatCurrencyINR(totalBrokerage)}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-purple-100">
+                        <DollarSign className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Software Cost</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          -{formatCurrencyINR(totalSoftwareCost)}
                         </p>
                       </div>
                     </div>
