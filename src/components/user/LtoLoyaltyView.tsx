@@ -58,7 +58,7 @@ const LtoLoyaltyView = () => {
   return (
     <>
       {/* Animated Loyalty Welcome Popup */}
-      <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
+      <Dialog open={showWelcome} onOpenChange={(open) => { if (!open && acknowledged) setShowWelcome(false); }}>
         <DialogContent className="max-w-lg p-0 overflow-hidden border-0 bg-gradient-to-br from-primary/5 via-background to-primary/10">
           {/* Floating sparkles background */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
