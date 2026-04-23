@@ -115,6 +115,9 @@ const MonthlyPnlBreakdown = ({ dailySummary, softwareCosts = {} }: MonthlyPnlBre
                   <TableCell className="text-right font-mono text-orange-600">
                     -{fmt(m.brokerage)}
                   </TableCell>
+                  <TableCell className="text-right font-mono text-purple-600">
+                    -{fmt(m.softwareCost)}
+                  </TableCell>
                   <TableCell className="text-right">
                     <Badge
                       variant={m.netPnl >= 0 ? "default" : "destructive"}
