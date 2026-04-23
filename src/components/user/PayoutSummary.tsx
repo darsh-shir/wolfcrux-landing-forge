@@ -47,19 +47,17 @@ const PayoutSummary = () => {
     if (!user) return;
     setLoading(true);
 
-    const [milestoneRes, stoRes, ltoRes, tradingDaysRes, partnerConfigsRes, ownConfigsRes] = await Promise.all([
+    const [milestoneRes, stoRes, ltoRes, tradingDaysRes, partnerSessionsRes] = await Promise.all([
       supabase.from("trader_milestones").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("sto_ledger").select("*").eq("user_id", user.id)
         .order("year", { ascending: false }).order("month", { ascending: false }),
       supabase.from("lto_ledger").select("*").eq("user_id", user.id)
         .order("year", { ascending: false }).order("month", { ascending: false }),
       supabase.from("trading_data").select("trade_date, user_id, trader2_id, trader2_role"),
-      // Months where this user was the partner of some primary trader
-      supabase.from("trader_config")
-        .select("user_id, month, year, partner_percentage")
-        .eq("partner_id", user.id),
-      // This user's own configs (to read their leave_deduction via sto_ledger by month)
-      supabase.from("trader_config").select("month, year").eq("user_id", user.id),
+      // Sessions where THIS user sat as the partner (trader2) on someone else's account
+      supabase.from("trading_data")
+        .select("trade_date, user_id, trader2_id, trader2_role")
+        .eq("trader2_id", user.id),
     ]);
 
     setMilestoneData(milestoneRes.data);
@@ -73,39 +71,80 @@ const PayoutSummary = () => {
     });
     setTradingDaysCount(uniqueDays.size);
 
-    // Build partner shares
-    const partnerCfgs = partnerConfigsRes.data || [];
-    if (partnerCfgs.length > 0) {
-      const primaryIds = Array.from(new Set(partnerCfgs.map((c: any) => c.user_id)));
-      const [primaryStoRes, primaryProfilesRes] = await Promise.all([
+    // ---- Build partner shares from actual joint sessions ----
+    // Group partner sessions by primary user + month/year, counting days sat together.
+    type Bucket = { primaryId: string; month: number; year: number; daysWithPartner: number };
+    const bucketMap = new Map<string, Bucket>();
+    (partnerSessionsRes.data || []).forEach((t: any) => {
+      if ((t.trader2_role || "").toLowerCase() !== "partner") return;
+      const d = new Date(t.trade_date);
+      const m = d.getUTCMonth() + 1;
+      const y = d.getUTCFullYear();
+      const key = `${t.user_id}-${y}-${m}`;
+      const b = bucketMap.get(key) || { primaryId: t.user_id, month: m, year: y, daysWithPartner: 0 };
+      b.daysWithPartner += 1;
+      bucketMap.set(key, b);
+    });
+
+    if (bucketMap.size > 0) {
+      const buckets = Array.from(bucketMap.values());
+      const primaryIds = Array.from(new Set(buckets.map(b => b.primaryId)));
+      const monthYearPairs = Array.from(new Set(buckets.map(b => `${b.year}-${b.month}`)));
+
+      // Fetch primary STO ledgers, primary names, primary trading_data counts (to compute day ratio),
+      // and the partner's own STO ledger rows (for their leave deduction %).
+      const [primaryStoRes, primaryProfilesRes, primaryAllTradesRes] = await Promise.all([
         supabase.from("sto_ledger")
           .select("user_id, month, year, sto_amount, payout_due_date")
           .in("user_id", primaryIds),
         supabase.from("profiles").select("user_id, full_name").in("user_id", primaryIds),
+        supabase.from("trading_data")
+          .select("trade_date, user_id, is_holiday")
+          .in("user_id", primaryIds),
       ]);
-      const ownStoMap = new Map<string, any>();
-      (stoRes.data || []).forEach((s: any) => ownStoMap.set(`${s.year}-${s.month}`, s));
+
       const primaryStoMap = new Map<string, any>();
-      (primaryStoRes.data || []).forEach((s: any) => primaryStoMap.set(`${s.user_id}-${s.year}-${s.month}`, s));
+      (primaryStoRes.data || []).forEach((s: any) =>
+        primaryStoMap.set(`${s.user_id}-${s.year}-${s.month}`, s));
       const nameMap = new Map<string, string>();
       (primaryProfilesRes.data || []).forEach((p: any) => nameMap.set(p.user_id, p.full_name));
 
-      const shares: PartnerShare[] = partnerCfgs.map((c: any) => {
-        const primaryKey = `${c.user_id}-${c.year}-${c.month}`;
+      // Count primary's total trading days per month (excluding holidays) for day ratio
+      const primaryDaysMap = new Map<string, number>();
+      (primaryAllTradesRes.data || []).forEach((t: any) => {
+        if (t.is_holiday) return;
+        const d = new Date(t.trade_date);
+        const k = `${t.user_id}-${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`;
+        primaryDaysMap.set(k, (primaryDaysMap.get(k) || 0) + 1);
+      });
+
+      // Partner's own leave deduction % per month (from their own sto_ledger if it exists)
+      const ownStoMap = new Map<string, any>();
+      (stoRes.data || []).forEach((s: any) => ownStoMap.set(`${s.year}-${s.month}`, s));
+
+      const shares: PartnerShare[] = buckets.map((b) => {
+        const primaryKey = `${b.primaryId}-${b.year}-${b.month}`;
         const primaryStoRow = primaryStoMap.get(primaryKey);
         const primarySto = Number(primaryStoRow?.sto_amount || 0);
-        const sharePct = Number(c.partner_percentage) > 0 ? Number(c.partner_percentage) : 50;
-        const shareAmount = primarySto * (sharePct / 100);
-        // Partner's own leave deduction % comes from their own sto_ledger row that month (if any)
-        const ownStoRow = ownStoMap.get(`${c.year}-${c.month}`);
+        const primaryDays = primaryDaysMap.get(primaryKey) || b.daysWithPartner;
+        const dayRatio = primaryDays > 0 ? Math.min(1, b.daysWithPartner / primaryDays) : 1;
+
+        // Partner gets 50% of the STO proportional to days sat together
+        const proportionalPrimarySto = primarySto * dayRatio;
+        const sharePct = 50;
+        const shareAmount = proportionalPrimarySto * (sharePct / 100);
+
+        // Partner's own leave deduction %
+        const ownStoRow = ownStoMap.get(`${b.year}-${b.month}`);
         const leavePct = Number(ownStoRow?.leave_deduction_percent || 0);
         const leaveAmt = shareAmount * (leavePct / 100);
+
         return {
-          month: c.month,
-          year: c.year,
-          primary_user_id: c.user_id,
-          primary_name: nameMap.get(c.user_id) || "Primary Trader",
-          primary_sto_amount: primarySto,
+          month: b.month,
+          year: b.year,
+          primary_user_id: b.primaryId,
+          primary_name: nameMap.get(b.primaryId) || "Primary Trader",
+          primary_sto_amount: proportionalPrimarySto,
           share_percent: sharePct,
           share_amount: shareAmount,
           leave_deduction_percent: leavePct,
@@ -113,8 +152,9 @@ const PayoutSummary = () => {
           final_amount: shareAmount - leaveAmt,
           payout_due_date: primaryStoRow?.payout_due_date || null,
         };
-      }).filter(s => s.primary_sto_amount > 0)
-        .sort((a, b) => (b.year - a.year) || (b.month - a.month));
+      })
+      .filter(s => s.share_amount > 0)
+      .sort((a, b) => (b.year - a.year) || (b.month - a.month));
       setPartnerShares(shares);
     } else {
       setPartnerShares([]);
