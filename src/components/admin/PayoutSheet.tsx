@@ -723,9 +723,11 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                       <span className="font-medium text-right text-orange-600 flex items-center justify-end gap-2">
                         <Input type="number" className="w-24 text-right" step="0.01" value={softwareCostInput || ""}
                           onChange={e => setSoftwareCostInput(Number(e.target.value))} placeholder="0" />
-                        <Button size="sm" variant="outline" onClick={handleSaveSoftwareCost} title="Save">
-                          <Save className="h-3 w-3" />
-                        </Button>
+                        {Number(softwareCostInput) !== Number(savedSoftwareCost) && (
+                          <Button size="sm" variant="outline" onClick={handleSaveSoftwareCost} title="Save">
+                            <Save className="h-3 w-3" />
+                          </Button>
+                        )}
                       </span>
                       <span className="text-muted-foreground font-semibold border-t pt-2">Net Trading Profit</span>
                       <span className={`font-bold text-right border-t pt-2 ${calculations.netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
