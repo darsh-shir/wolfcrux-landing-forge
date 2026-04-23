@@ -342,25 +342,38 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" onClick={() => {
-                        if (isMilestone && ml) {
-                          handleChange(user.user_id, "sto_percentage", ml.stoPercent);
-                          handleChange(user.user_id, "lto_percentage", ml.ltoPercent);
-                          // Need to set both then save
-                          const updated = {
-                            ...cfg,
-                            sto_percentage: ml.stoPercent,
-                            lto_percentage: ml.ltoPercent,
-                            payout_percentage: ml.stoPercent + ml.ltoPercent,
-                          };
-                          setEditing(prev => ({ ...prev, [user.user_id]: updated }));
-                          setTimeout(() => saveConfig(user.user_id), 0);
-                          return;
-                        }
-                        saveConfig(user.user_id);
-                      }}>
-                        <Save className="h-4 w-4" />
-                      </Button>
+                      <Input
+                        type="number"
+                        className="w-24"
+                        step="1"
+                        value={cfg.software_cost ?? 1000}
+                        onChange={e => handleChange(user.user_id, "software_cost", Number(e.target.value))}
+                        placeholder="1000"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {isEdited(user.user_id) ? (
+                        <Button size="sm" onClick={() => {
+                          if (isMilestone && ml) {
+                            handleChange(user.user_id, "sto_percentage", ml.stoPercent);
+                            handleChange(user.user_id, "lto_percentage", ml.ltoPercent);
+                            const updated = {
+                              ...cfg,
+                              sto_percentage: ml.stoPercent,
+                              lto_percentage: ml.ltoPercent,
+                              payout_percentage: ml.stoPercent + ml.ltoPercent,
+                            };
+                            setEditing(prev => ({ ...prev, [user.user_id]: updated }));
+                            setTimeout(() => saveConfig(user.user_id), 0);
+                            return;
+                          }
+                          saveConfig(user.user_id);
+                        }}>
+                          <Save className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Default $1000</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
