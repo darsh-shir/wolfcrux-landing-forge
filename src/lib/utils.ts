@@ -52,9 +52,9 @@ export function formatCurrencyCompact(value: number, prefix = "$"): string {
   const absValue = Math.abs(value);
   const sign = value < 0 ? "-" : "";
   if (absValue >= 1000000) {
-    return `${sign}${prefix}${formatIndian(Math.round(value / 10000) / 100, 2)}M`;
+    return `${sign}${prefix}${formatIndian(Math.round(absValue / 10000) / 100, 2)}M`;
   } else if (absValue >= 1000) {
-    return `${sign}${prefix}${formatIndian(Math.round(value / 100) / 10, 1)}K`;
+    return `${sign}${prefix}${formatIndian(Math.round(absValue / 100) / 10, 1)}K`;
   }
   return `${sign}${prefix}${formatIndian(absValue, 0)}`;
 }
