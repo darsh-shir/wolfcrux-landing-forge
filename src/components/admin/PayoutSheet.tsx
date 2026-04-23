@@ -51,7 +51,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [trader2TradingData, setTrader2TradingData] = useState<any[]>([]);
   const [allAttendanceRecords, setAllAttendanceRecords] = useState<any[]>([]);
   const [carryForwardDays, setCarryForwardDays] = useState(0);
-  const [softwareCostInput, setSoftwareCostInput] = useState(0);
+  const [softwareCostInput, setSoftwareCostInput] = useState(1000);
+  const [savedSoftwareCost, setSavedSoftwareCost] = useState(1000);
   const [inrRate, setInrRate] = useState(84);
   const [payoutNotes, setPayoutNotes] = useState("");
   const [paidCash, setPaidCash] = useState(false);
