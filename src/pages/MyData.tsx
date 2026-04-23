@@ -42,6 +42,7 @@ const MyData = () => {
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [tradingData, setTradingData] = useState<TradingData[]>([]);
+  const [softwareCosts, setSoftwareCosts] = useState<Record<string, number>>({}); // key "YYYY-MM" -> cost
   const [dataLoading, setDataLoading] = useState(true);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [firstName, setFirstName] = useState<string>("");
