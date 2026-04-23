@@ -96,6 +96,7 @@ const MonthlyPnlBreakdown = ({ dailySummary, softwareCosts = {} }: MonthlyPnlBre
                 <TableHead>Month</TableHead>
                 <TableHead className="text-right">Gross P&L</TableHead>
                 <TableHead className="text-right">Brokerage</TableHead>
+                <TableHead className="text-right">Software</TableHead>
                 <TableHead className="text-right">Net P&L</TableHead>
                 <TableHead className="text-center">Days</TableHead>
                 <TableHead className="text-center">Win Rate</TableHead>
