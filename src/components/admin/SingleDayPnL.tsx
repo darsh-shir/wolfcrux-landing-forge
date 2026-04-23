@@ -211,6 +211,35 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
         </CardContent>
       </Card>
 
+      {/* Trader-wise Breakdown (cards) */}
+      {traderGroups.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Trader-wise P&L</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {traderGroups
+                .slice()
+                .sort((a, b) => b.totalPnl - a.totalPnl)
+                .map((t) => (
+                  <div key={t.userId} className="rounded-lg border p-3 space-y-1">
+                    <div className="flex justify-between items-start">
+                      <p className="font-medium text-sm">{t.name}</p>
+                      <p className={cn("font-bold text-sm", t.totalPnl >= 0 ? "text-green-600" : "text-red-600")}>
+                        {formatCurrencyINR(t.totalPnl)}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {t.entries.length} {t.entries.length === 1 ? "account" : "accounts"} • {formatIndian(t.totalShares)} shares
+                    </p>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Account-wise Breakdown */}
       {accountBreakdown.length > 0 && (
         <Card>
@@ -240,7 +269,7 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
         </Card>
       )}
 
-      {/* Trader-wise Grouped Table */}
+      {/* Detailed Entries (editable, grouped by trader) */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Trader P&L — {format(selectedDate, "MMMM d, yyyy")}</CardTitle>
