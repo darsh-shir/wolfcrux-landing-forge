@@ -157,7 +157,7 @@ const PayoutSummary = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Current Level</p>
                 <p className="text-xl font-bold text-foreground">{milestone.label}</p>
-                <p className="text-xs text-muted-foreground">STO {milestone.stoPercent}% / LTO {milestone.ltoPercent}%</p>
+                <p className="text-xs text-muted-foreground">STO {milestone.stoPercent}%</p>
               </div>
             </div>
           </CardContent>
