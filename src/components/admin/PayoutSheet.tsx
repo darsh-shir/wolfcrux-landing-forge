@@ -389,27 +389,36 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
         const totalPnl2 = trades.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0);
         const totalShares2 = trades.reduce((sum: number, t: any) => sum + Number(t.shares_traded), 0);
         const shareCost2 = calculateShareCost(totalShares2);
-        // Same P&L treatment: subtract software cost too
-        const netProfit2 = totalPnl2 - shareCost2 - softwareCost;
+        const softwareCost2 = primaryConfigs[primaryUserId]?.softwareCost ?? softwareCost;
+        const netProfit2 = totalPnl2 - shareCost2 - softwareCost2;
 
         const role = trades[0]?.trader2_role || "partner";
         const roleLower = role.toLowerCase();
 
-        // Use primary trader's STO% to compute the STO pool, then split 50/50
         const primaryStoPct = primaryConfigs[primaryUserId]?.stoPct || effectiveStoPct;
         const stoPool = netProfit2 > 0 ? netProfit2 * (primaryStoPct / 100) : 0;
-        const partnerHalf = stoPool * 0.5; // partner's 50% share before partner's own leave deduction
+        const partnerHalf = stoPool * 0.5;
 
+        const leaveDeductionAmount2 = roleLower === "partner" ? partnerHalf * (leaveDeductionPct / 100) : 0;
         let earnings = 0;
         if (roleLower === "partner" && partnerHalf > 0) {
-          // Apply THIS trader's (partner's) own leave deduction on their share
-          earnings = partnerHalf * (1 - leaveDeductionPct / 100);
+          earnings = partnerHalf - leaveDeductionAmount2;
         }
 
         const primaryUser = users.find(u => u.user_id === primaryUserId);
         trader2Earnings.push({
           primaryTraderName: primaryUser?.full_name || "Unknown",
-          pnl: totalPnl2, role,
+          pnl: totalPnl2,
+          totalShares: totalShares2,
+          shareCost: shareCost2,
+          softwareCost: softwareCost2,
+          netProfit: netProfit2,
+          stoPct: primaryStoPct,
+          stoPool,
+          partnerHalf,
+          leaveDeductionPct,
+          leaveDeductionAmount: leaveDeductionAmount2,
+          role,
           splitPct: roleLower === "partner" ? primaryStoPct / 2 : 25,
           earnings,
         });
