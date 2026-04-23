@@ -44,9 +44,10 @@ interface TradingAnalyticsProps {
   tradingDays: number;
   allTradingData: TradingDataRaw[];
   allDailySummary: AllDailySummary[];
+  softwareCosts?: Record<string, number>;
 }
 
-const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDays, allTradingData, allDailySummary }: TradingAnalyticsProps) => {
+const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDays, allTradingData, allDailySummary, softwareCosts = {} }: TradingAnalyticsProps) => {
   const analytics = useMemo(() => {
     if (dailySummary.length === 0) {
       return {
