@@ -69,7 +69,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
   const [traderConfig, setTraderConfig] = useState<any>(null);
   const [cumulativeNetProfit, setCumulativeNetProfit] = useState(0);
-  const [primaryConfigs, setPrimaryConfigs] = useState<Record<string, { stoPct: number }>>({});
+  const [primaryConfigs, setPrimaryConfigs] = useState<Record<string, { stoPct: number; softwareCost: number }>>({});
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
