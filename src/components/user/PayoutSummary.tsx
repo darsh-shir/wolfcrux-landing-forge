@@ -157,7 +157,7 @@ const PayoutSummary = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Current Level</p>
                 <p className="text-xl font-bold text-foreground">{milestone.label}</p>
-                <p className="text-xs text-muted-foreground">STO {milestone.stoPercent}% / LTO {milestone.ltoPercent}%</p>
+                <p className="text-xs text-muted-foreground">STO {milestone.stoPercent}%</p>
               </div>
             </div>
           </CardContent>
@@ -179,15 +179,15 @@ const PayoutSummary = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Lock className="h-5 w-5 text-blue-600" />
+              <div className="p-2 rounded-lg bg-green-500/10">
+                <TrendingUp className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">LTO Locked</p>
-                <p className="text-xl font-bold text-foreground">{fmt(totalLtoLocked)}</p>
-                {totalLtoUnlocked > 0 && (
-                  <p className="text-xs text-green-600 font-medium">{fmt(totalLtoUnlocked)} ready to release</p>
-                )}
+                <p className="text-sm text-muted-foreground">Days Worked</p>
+                <p className="text-xl font-bold text-foreground">{tradingDaysCount} days</p>
+                <p className="text-xs text-muted-foreground">
+                  Cumulative Profit: {fmt(Number(milestoneData?.cumulative_net_profit || 0))}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -227,7 +227,7 @@ const PayoutSummary = () => {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Next level unlocks STO {nextMilestone.stoPercent}% / LTO {nextMilestone.ltoPercent}% — whichever milestone is reached first (days or profit)
+              Next level unlocks STO {nextMilestone.stoPercent}% — whichever milestone is reached first (days or profit)
             </p>
           </CardContent>
         </Card>
@@ -355,7 +355,7 @@ const PayoutSummary = () => {
                   <span className="font-medium">{m.label}</span>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  STO {m.stoPercent}% / LTO {m.ltoPercent}%
+                  STO {m.stoPercent}%
                   {m.level > 0 && (
                     <span className="ml-2">
                       ({m.daysRequired} days or {`$${formatIndian(m.profitRequired)}`})
