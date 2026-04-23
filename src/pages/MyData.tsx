@@ -456,6 +456,22 @@ const MyData = () => {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-purple-100">
+                        <DollarSign className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Software Cost</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          -{formatCurrencyINR(totalSoftwareCost)}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${netAfterBrokerage >= 0 ? "bg-green-100" : "bg-red-100"}`}>
                         {netAfterBrokerage >= 0 ? (
                           <TrendingUp className="h-5 w-5 text-green-600" />
