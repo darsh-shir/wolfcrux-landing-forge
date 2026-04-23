@@ -482,7 +482,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
       <CalendarHeatmap allTradingData={allTradingData} />
 
       {/* Monthly P&L Breakdown */}
-      <MonthlyPnlBreakdown dailySummary={allDailySummary} />
+      <MonthlyPnlBreakdown dailySummary={allDailySummary} softwareCosts={softwareCosts} />
     </div>
   );
 };
