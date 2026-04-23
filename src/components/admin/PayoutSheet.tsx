@@ -184,8 +184,23 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       setTraderConfig(config);
     }
 
-    // Default software cost to $1000 unless explicitly set in config
-    setSoftwareCostInput(config?.software_cost ? Number(config.software_cost) : 1000);
+    // Default software cost to $1000. Auto-persist so admin doesn't see a "dirty" Save button.
+    const existingCost = config?.software_cost ? Number(config.software_cost) : null;
+    if (existingCost === null) {
+      // No config row at all for this trader → create one with $1000 default silently
+      const { data: created } = await supabase.from("trader_config").insert({
+        user_id: selectedTrader,
+        month: selectedMonth,
+        year: selectedYear,
+        software_cost: 1000,
+      }).select().maybeSingle();
+      if (created) setTraderConfig(created);
+      setSoftwareCostInput(1000);
+      setSavedSoftwareCost(1000);
+    } else {
+      setSoftwareCostInput(existingCost);
+      setSavedSoftwareCost(existingCost);
+    }
 
     if (existingRes.data) {
       setExistingRecord(existingRes.data);
