@@ -17,11 +17,26 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December"
 ];
 
+interface PartnerShare {
+  month: number;
+  year: number;
+  primary_user_id: string;
+  primary_name: string;
+  primary_sto_amount: number;
+  share_percent: number;     // typically 50
+  share_amount: number;      // primary_sto_amount * share_percent/100
+  leave_deduction_percent: number; // partner's own
+  leave_deduction_amount: number;
+  final_amount: number;      // share_amount - leave_deduction_amount
+  payout_due_date: string | null;
+}
+
 const PayoutSummary = () => {
   const { user } = useAuth();
   const [milestoneData, setMilestoneData] = useState<any>(null);
   const [stoHistory, setStoHistory] = useState<any[]>([]);
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
+  const [partnerShares, setPartnerShares] = useState<PartnerShare[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,13 +47,19 @@ const PayoutSummary = () => {
     if (!user) return;
     setLoading(true);
 
-    const [milestoneRes, stoRes, ltoRes, tradingDaysRes] = await Promise.all([
+    const [milestoneRes, stoRes, ltoRes, tradingDaysRes, partnerConfigsRes, ownConfigsRes] = await Promise.all([
       supabase.from("trader_milestones").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("sto_ledger").select("*").eq("user_id", user.id)
         .order("year", { ascending: false }).order("month", { ascending: false }),
       supabase.from("lto_ledger").select("*").eq("user_id", user.id)
         .order("year", { ascending: false }).order("month", { ascending: false }),
       supabase.from("trading_data").select("trade_date, user_id, trader2_id, trader2_role"),
+      // Months where this user was the partner of some primary trader
+      supabase.from("trader_config")
+        .select("user_id, month, year, partner_percentage")
+        .eq("partner_id", user.id),
+      // This user's own configs (to read their leave_deduction via sto_ledger by month)
+      supabase.from("trader_config").select("month, year").eq("user_id", user.id),
     ]);
 
     setMilestoneData(milestoneRes.data);
@@ -51,6 +72,54 @@ const PayoutSummary = () => {
       if (t.trader2_id === user.id && t.trader2_role?.toLowerCase() === "partner") uniqueDays.add(t.trade_date);
     });
     setTradingDaysCount(uniqueDays.size);
+
+    // Build partner shares
+    const partnerCfgs = partnerConfigsRes.data || [];
+    if (partnerCfgs.length > 0) {
+      const primaryIds = Array.from(new Set(partnerCfgs.map((c: any) => c.user_id)));
+      const [primaryStoRes, primaryProfilesRes] = await Promise.all([
+        supabase.from("sto_ledger")
+          .select("user_id, month, year, sto_amount, payout_due_date")
+          .in("user_id", primaryIds),
+        supabase.from("profiles").select("user_id, full_name").in("user_id", primaryIds),
+      ]);
+      const ownStoMap = new Map<string, any>();
+      (stoRes.data || []).forEach((s: any) => ownStoMap.set(`${s.year}-${s.month}`, s));
+      const primaryStoMap = new Map<string, any>();
+      (primaryStoRes.data || []).forEach((s: any) => primaryStoMap.set(`${s.user_id}-${s.year}-${s.month}`, s));
+      const nameMap = new Map<string, string>();
+      (primaryProfilesRes.data || []).forEach((p: any) => nameMap.set(p.user_id, p.full_name));
+
+      const shares: PartnerShare[] = partnerCfgs.map((c: any) => {
+        const primaryKey = `${c.user_id}-${c.year}-${c.month}`;
+        const primaryStoRow = primaryStoMap.get(primaryKey);
+        const primarySto = Number(primaryStoRow?.sto_amount || 0);
+        const sharePct = Number(c.partner_percentage) > 0 ? Number(c.partner_percentage) : 50;
+        const shareAmount = primarySto * (sharePct / 100);
+        // Partner's own leave deduction % comes from their own sto_ledger row that month (if any)
+        const ownStoRow = ownStoMap.get(`${c.year}-${c.month}`);
+        const leavePct = Number(ownStoRow?.leave_deduction_percent || 0);
+        const leaveAmt = shareAmount * (leavePct / 100);
+        return {
+          month: c.month,
+          year: c.year,
+          primary_user_id: c.user_id,
+          primary_name: nameMap.get(c.user_id) || "Primary Trader",
+          primary_sto_amount: primarySto,
+          share_percent: sharePct,
+          share_amount: shareAmount,
+          leave_deduction_percent: leavePct,
+          leave_deduction_amount: leaveAmt,
+          final_amount: shareAmount - leaveAmt,
+          payout_due_date: primaryStoRow?.payout_due_date || null,
+        };
+      }).filter(s => s.primary_sto_amount > 0)
+        .sort((a, b) => (b.year - a.year) || (b.month - a.month));
+      setPartnerShares(shares);
+    } else {
+      setPartnerShares([]);
+    }
+
     setLoading(false);
   };
 
@@ -63,7 +132,8 @@ const PayoutSummary = () => {
 
   const nextMilestone = useMemo(() => getNextMilestone(milestone.level), [milestone]);
 
-  const totalStoPending = stoHistory.filter(s => !s.is_paid).reduce((sum, s) => sum + Number(s.final_sto_amount), 0);
+  const partnerSharesPending = partnerShares.reduce((sum, p) => sum + p.final_amount, 0);
+  const totalStoPending = stoHistory.filter(s => !s.is_paid).reduce((sum, s) => sum + Number(s.final_sto_amount), 0) + partnerSharesPending;
   const totalLtoLocked = ltoHistory.filter(l => !l.is_released).reduce((sum, l) => sum + Number(l.lto_amount), 0);
   const totalLtoUnlocked = ltoHistory.filter(l => !l.is_released && new Date(l.unlock_date) <= new Date())
     .reduce((sum, l) => sum + Number(l.lto_amount), 0);
@@ -216,6 +286,54 @@ const PayoutSummary = () => {
         </Card>
       )}
 
+      {/* Partner Shares (joint-session payouts) */}
+      {partnerShares.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" /> Partner Share Payouts
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Your share from joint sessions where you partnered with another trader. You receive {partnerShares[0]?.share_percent || 50}% of their STO, with your own leave deductions applied.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left p-3">Period</th>
+                    <th className="text-left p-3">Primary Trader</th>
+                    <th className="text-right p-3">Primary STO</th>
+                    <th className="text-right p-3">Your Share %</th>
+                    <th className="text-right p-3">Your Share</th>
+                    <th className="text-right p-3">Leave Deduction</th>
+                    <th className="text-right p-3">Final</th>
+                    <th className="text-right p-3">Due Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {partnerShares.map((p) => (
+                    <tr key={`${p.primary_user_id}-${p.year}-${p.month}`} className="border-t">
+                      <td className="p-3 font-medium">{MONTHS[(p.month || 1) - 1]} {p.year}</td>
+                      <td className="p-3">{p.primary_name}</td>
+                      <td className="p-3 text-right">{fmt(p.primary_sto_amount)}</td>
+                      <td className="p-3 text-right">{p.share_percent}%</td>
+                      <td className="p-3 text-right">{fmt(p.share_amount)}</td>
+                      <td className="p-3 text-right text-red-600">
+                        {p.leave_deduction_amount > 0 ? `-${fmt(p.leave_deduction_amount)} (${p.leave_deduction_percent}%)` : "-"}
+                      </td>
+                      <td className="p-3 text-right font-medium">{fmt(p.final_amount)}</td>
+                      <td className="p-3 text-right text-muted-foreground">{p.payout_due_date || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* LTO History */}
       {ltoHistory.length > 0 && (
         <Card>
@@ -297,7 +415,7 @@ const PayoutSummary = () => {
         </CardContent>
       </Card>
 
-      {stoHistory.length === 0 && ltoHistory.length === 0 && !milestoneData && (
+      {stoHistory.length === 0 && ltoHistory.length === 0 && partnerShares.length === 0 && !milestoneData && (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             No payout data available yet. Your admin will set up your payout structure.
