@@ -334,54 +334,7 @@ const PayoutSummary = () => {
         </Card>
       )}
 
-      {/* LTO History */}
-      {ltoHistory.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Lock className="h-4 w-4" /> LTO Lock Schedule
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3">Period</th>
-                    <th className="text-right p-3">LTO %</th>
-                    <th className="text-right p-3">LTO Amount</th>
-                    <th className="text-right p-3">Unlock Date</th>
-                    <th className="text-center p-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ltoHistory.map((l: any) => {
-                    const isUnlocked = new Date(l.unlock_date) <= new Date();
-                    return (
-                      <tr key={l.id} className="border-t">
-                        <td className="p-3 font-medium">{MONTHS[(l.month || 1) - 1]} {l.year}</td>
-                        <td className="p-3 text-right">{l.lto_percentage}%</td>
-                        <td className="p-3 text-right font-medium">{fmt(Number(l.lto_amount))}</td>
-                        <td className="p-3 text-right text-muted-foreground">{l.unlock_date}</td>
-                        <td className="p-3 text-center">
-                          <Badge
-                            variant={l.is_released ? "default" : isUnlocked ? "outline" : "secondary"}
-                            className="text-xs gap-1"
-                          >
-                            {l.is_released ? <><Unlock className="h-3 w-3" /> Released</> :
-                              isUnlocked ? <><Unlock className="h-3 w-3" /> Unlocked</> :
-                                <><Lock className="h-3 w-3" /> Locked</>}
-                          </Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* LTO History moved to its own "LTO" tab */}
 
       {/* Milestone History */}
       <Card>
