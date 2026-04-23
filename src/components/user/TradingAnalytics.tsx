@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
+import { DollarSign, Briefcase, CalendarCheck } from "lucide-react";
 
 interface DailySummary {
   date: string;
@@ -142,8 +143,70 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
 
   const formatCurrency = (value: number) => formatCurrencyINR(value);
 
+  // Lifetime + current month summary (independent of selected filter)
+  const lifetimeNet = allDailySummary.reduce((s, d) => s + d.netAfterBrokerage, 0);
+  const lifetimeDays = allDailySummary.length;
+  const currentMonthKey = format(new Date(), "yyyy-MM");
+  const currentMonthNet = allDailySummary
+    .filter((d) => d.date.startsWith(currentMonthKey))
+    .reduce((s, d) => s + d.netAfterBrokerage, 0);
+
   return (
     <div className="space-y-6">
+      {/* Personal Summary - always lifetime/current month */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <DollarSign className="h-4 w-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">This Month Net</p>
+                <p className={`text-xl font-bold ${currentMonthNet >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {formatCurrency(currentMonthNet)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {format(new Date(), "MMMM yyyy")}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Briefcase className="h-4 w-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Total P&L (Till Date)</p>
+                <p className={`text-xl font-bold ${lifetimeNet >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {formatCurrency(lifetimeNet)}
+                </p>
+                <p className="text-xs text-muted-foreground">Lifetime net after brokerage</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <CalendarCheck className="h-4 w-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Total Days Worked</p>
+                <p className="text-xl font-bold">{lifetimeDays}</p>
+                <p className="text-xs text-muted-foreground">All trading days till date</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Best Day */}
