@@ -13,25 +13,19 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-const STORAGE_KEY = "wolfcrux_lto_loyalty_seen";
-
 const LtoLoyaltyView = () => {
   const { user } = useAuth();
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
 
   useEffect(() => {
     if (user) fetchData();
   }, [user]);
 
   useEffect(() => {
-    // Show popup once per session per user
-    const key = `${STORAGE_KEY}_${user?.id || "anon"}`;
-    if (user && !sessionStorage.getItem(key)) {
-      setShowWelcome(true);
-      sessionStorage.setItem(key, "1");
-    }
+    // Always show popup when component mounts
+    if (user) setShowWelcome(true);
   }, [user]);
 
   const fetchData = async () => {
