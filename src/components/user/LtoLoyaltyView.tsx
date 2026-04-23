@@ -18,14 +18,18 @@ const LtoLoyaltyView = () => {
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [acknowledged, setAcknowledged] = useState(false);
 
   useEffect(() => {
     if (user) fetchData();
   }, [user]);
 
   useEffect(() => {
-    // Always show popup when component mounts
-    if (user) setShowWelcome(true);
+    // Require acknowledgment every time
+    if (user) {
+      setShowWelcome(true);
+      setAcknowledged(false);
+    }
   }, [user]);
 
   const fetchData = async () => {
