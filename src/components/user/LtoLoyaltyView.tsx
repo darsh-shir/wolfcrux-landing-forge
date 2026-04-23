@@ -240,6 +240,19 @@ const LtoLoyaltyView = () => {
           </CardContent>
         </Card>
       </div>
+      ) : (
+        <div className="text-center py-16 text-muted-foreground">
+          <Heart className="h-10 w-10 mx-auto mb-3 text-primary/40 animate-pulse" />
+          <p className="text-sm">Please read the loyalty message to view your LTO details.</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => setShowWelcome(true)}
+          >
+            <Sparkles className="h-4 w-4 mr-2" /> Show Message
+          </Button>
+        </div>
+      )}
     </>
   );
 };
