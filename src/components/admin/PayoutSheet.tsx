@@ -51,7 +51,8 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
   const [trader2TradingData, setTrader2TradingData] = useState<any[]>([]);
   const [allAttendanceRecords, setAllAttendanceRecords] = useState<any[]>([]);
   const [carryForwardDays, setCarryForwardDays] = useState(0);
-  const [softwareCostInput, setSoftwareCostInput] = useState(0);
+  const [softwareCostInput, setSoftwareCostInput] = useState(1000);
+  const [savedSoftwareCost, setSavedSoftwareCost] = useState(1000);
   const [inrRate, setInrRate] = useState(84);
   const [payoutNotes, setPayoutNotes] = useState("");
   const [paidCash, setPaidCash] = useState(false);
@@ -183,8 +184,23 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       setTraderConfig(config);
     }
 
-    // Default software cost to $1000 unless explicitly set in config
-    setSoftwareCostInput(config?.software_cost ? Number(config.software_cost) : 1000);
+    // Default software cost to $1000. Auto-persist so admin doesn't see a "dirty" Save button.
+    const existingCost = config?.software_cost ? Number(config.software_cost) : null;
+    if (existingCost === null) {
+      // No config row at all for this trader → create one with $1000 default silently
+      const { data: created } = await supabase.from("trader_config").insert({
+        user_id: selectedTrader,
+        month: selectedMonth,
+        year: selectedYear,
+        software_cost: 1000,
+      }).select().maybeSingle();
+      if (created) setTraderConfig(created);
+      setSoftwareCostInput(1000);
+      setSavedSoftwareCost(1000);
+    } else {
+      setSoftwareCostInput(existingCost);
+      setSavedSoftwareCost(existingCost);
+    }
 
     if (existingRes.data) {
       setExistingRecord(existingRes.data);
@@ -464,6 +480,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
       }
       setTraderConfig(data);
     }
+    setSavedSoftwareCost(softwareCostInput);
     toast({ title: "Saved", description: `Software cost updated to $${softwareCostInput}` });
   };
 
@@ -706,9 +723,11 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                       <span className="font-medium text-right text-orange-600 flex items-center justify-end gap-2">
                         <Input type="number" className="w-24 text-right" step="0.01" value={softwareCostInput || ""}
                           onChange={e => setSoftwareCostInput(Number(e.target.value))} placeholder="0" />
-                        <Button size="sm" variant="outline" onClick={handleSaveSoftwareCost} title="Save">
-                          <Save className="h-3 w-3" />
-                        </Button>
+                        {Number(softwareCostInput) !== Number(savedSoftwareCost) && (
+                          <Button size="sm" variant="outline" onClick={handleSaveSoftwareCost} title="Save">
+                            <Save className="h-3 w-3" />
+                          </Button>
+                        )}
                       </span>
                       <span className="text-muted-foreground font-semibold border-t pt-2">Net Trading Profit</span>
                       <span className={`font-bold text-right border-t pt-2 ${calculations.netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
