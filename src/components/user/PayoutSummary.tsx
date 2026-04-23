@@ -355,7 +355,7 @@ const PayoutSummary = () => {
                   <span className="font-medium">{m.label}</span>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  STO {m.stoPercent}% / LTO {m.ltoPercent}%
+                  STO {m.stoPercent}%
                   {m.level > 0 && (
                     <span className="ml-2">
                       ({m.daysRequired} days or {`$${formatIndian(m.profitRequired)}`})
