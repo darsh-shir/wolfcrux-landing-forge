@@ -161,7 +161,16 @@ const EarningsOverview = () => {
                         <ChevronDown className="w-3 h-3 text-muted-foreground" />
                       )}
                       <div>
-                        <p className="text-sm font-medium">{s.ticker}</p>
+                        <p className="text-sm font-medium flex items-center gap-1.5">
+                          {s.ticker}
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                            s.earning?.reportOnTimeOfDay === "PreMarket"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-purple-100 text-purple-700"
+                          }`}>
+                            {s.earning?.reportOnTimeOfDay === "PreMarket" ? "PRE" : "POST"}
+                          </span>
+                        </p>
                         <p className="text-[11px] text-muted-foreground truncate max-w-[120px]">
                           {s.name}
                         </p>
