@@ -1,6 +1,29 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Calendar, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+
+type PriceFilterValue =
+  | "all"
+  | "below_20" | "below_50" | "below_100" | "below_250" | "below_500"
+  | "above_20" | "above_50" | "above_100" | "above_250" | "above_500"
+  | "custom";
+
+const PRICE_OPTIONS: { value: PriceFilterValue; label: string }[] = [
+  { value: "all", label: "All prices" },
+  { value: "below_20", label: "Below $20" },
+  { value: "below_50", label: "Below $50" },
+  { value: "below_100", label: "Below $100" },
+  { value: "below_250", label: "Below $250" },
+  { value: "below_500", label: "Below $500" },
+  { value: "above_20", label: "Above $20" },
+  { value: "above_50", label: "Above $50" },
+  { value: "above_100", label: "Above $100" },
+  { value: "above_250", label: "Above $250" },
+  { value: "above_500", label: "Above $500" },
+  { value: "custom", label: "Custom…" },
+];
 
 const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
 
