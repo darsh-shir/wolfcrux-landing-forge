@@ -94,7 +94,7 @@ const EarningsOverview = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Calendar className="w-4 h-4" />
-            Today's Pre-Market Earnings
+            Today's Earnings
           </CardTitle>
         </CardHeader>
         <CardContent>
