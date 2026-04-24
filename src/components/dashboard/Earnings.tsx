@@ -231,9 +231,46 @@ const Earnings = () => {
     });
   }, [calendarDays]);
 
+  // Apply price filter
+  const priceFiltered = useMemo(() => {
+    const passes = (price: number) => {
+      if (price == null || isNaN(price)) return false;
+      switch (priceFilter) {
+        case "all": return true;
+        case "below_20": return price < 20;
+        case "below_50": return price < 50;
+        case "below_100": return price < 100;
+        case "below_250": return price < 250;
+        case "below_500": return price < 500;
+        case "above_20": return price > 20;
+        case "above_50": return price > 50;
+        case "above_100": return price > 100;
+        case "above_250": return price > 250;
+        case "above_500": return price > 500;
+        case "custom": {
+          const min = parseFloat(customMin);
+          const max = parseFloat(customMax);
+          if (customMode === "above") return !isNaN(min) ? price > min : true;
+          if (customMode === "below") return !isNaN(max) || !isNaN(min)
+            ? price < (!isNaN(max) ? max : min)
+            : true;
+          if (customMode === "between") {
+            if (isNaN(min) || isNaN(max)) return true;
+            const lo = Math.min(min, max);
+            const hi = Math.max(min, max);
+            return price >= lo && price <= hi;
+          }
+          return true;
+        }
+        default: return true;
+      }
+    };
+    return dayData.filter((s) => passes(s.price));
+  }, [dayData, priceFilter, customMode, customMin, customMax]);
+
   // Sort stocks by session: PRE first, then POST, secondary by market cap
   const sortedStocks = useMemo(() => {
-    const arr = [...dayData];
+    const arr = [...priceFiltered];
     return arr.sort((a, b) => {
       const sessionRank = (s: string) =>
         s === "PreMarket" ? 1 : s === "AfterHours" ? 2 : 3;
@@ -243,7 +280,7 @@ const Earnings = () => {
       if (rankDiff !== 0) return rankDiff;
       return (b.marketCap || 0) - (a.marketCap || 0);
     });
-  }, [dayData]);
+  }, [priceFiltered]);
 
   // Group by session
   const grouped = useMemo(() => {
