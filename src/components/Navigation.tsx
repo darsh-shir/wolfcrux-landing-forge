@@ -38,12 +38,12 @@ const Navigation = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <img src={logo} alt="WOLFCRUX" className="h-12 w-12 object-contain" />
-            <span className="font-['Space_Grotesk'] text-xl font-bold text-foreground">
+          <Link to="/" className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity min-w-0">
+            <img src={logo} alt="WOLFCRUX" className="h-9 w-9 sm:h-12 sm:w-12 object-contain shrink-0" />
+            <span className="font-['Space_Grotesk'] text-base sm:text-xl font-bold text-foreground truncate">
               WOLFCRUX
             </span>
           </Link>
@@ -114,7 +114,7 @@ const Navigation = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center gap-4">
+          <div className="md:hidden flex items-center gap-2">
             <MilestoneNotification />
             <BirthdayNotification />
             {!loading && user && (
