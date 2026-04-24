@@ -11,12 +11,12 @@ const About = () => {
       <Navigation />
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
+      <section className="relative pt-24 md:pt-32 pb-12 md:pb-20 overflow-hidden">
         <FloatingShapes />
         
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl animate-fade-in">
-            <h1 className="font-['Space_Grotesk'] text-5xl md:text-6xl font-bold text-foreground mb-6">
+            <h1 className="font-['Space_Grotesk'] text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6">
               About Wolfcrux
             </h1>
             <p className="font-['Inter'] text-xl text-muted-foreground leading-relaxed">
@@ -30,8 +30,8 @@ const About = () => {
       </section>
 
       {/* Company Info Grid */}
-      <section className="py-20 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <section className="py-12 md:py-20 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="border-border animate-fade-in">
               <CardContent className="p-6">
@@ -77,8 +77,8 @@ const About = () => {
       </section>
 
       {/* Mission & Vision */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <section className="py-12 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div className="animate-fade-in">
               <h2 className="font-['Space_Grotesk'] text-3xl font-bold text-foreground mb-6">
@@ -114,9 +114,9 @@ const About = () => {
       </section>
 
       {/* Values */}
-      <section className="py-20 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
+      <section className="py-12 md:py-20 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
             Our Values
           </h2>
           
@@ -152,9 +152,9 @@ const About = () => {
       </section>
 
       {/* Team Photo Section */}
-      <section className="py-20">
-        <div className="max-w-5xl mx-auto px-6 lg:px-8">
-          <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
+      <section className="py-12 md:py-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
             Our Team
           </h2>
           <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border shadow-lg bg-muted/20 animate-fade-in">

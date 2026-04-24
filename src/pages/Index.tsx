@@ -15,9 +15,9 @@ const Index = () => {
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
         <FloatingShapes />
         
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center space-y-8 animate-fade-in">
-            <h1 className="font-['Space_Grotesk'] text-5xl md:text-7xl font-bold text-foreground leading-tight">
+            <h1 className="font-['Space_Grotesk'] text-4xl sm:text-5xl md:text-7xl font-bold text-foreground leading-tight">
               Precision Trading at
               <br />
               <span className="text-accent">Microsecond Speed</span>
@@ -62,10 +62,10 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <section className="py-16 md:py-24 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 animate-fade-in">
-            <h2 className="font-['Space_Grotesk'] text-3xl md:text-5xl font-bold text-foreground mb-4">
+            <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-5xl font-bold text-foreground mb-4">
               Our Advantage
             </h2>
             <p className="font-['Inter'] text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -127,8 +127,8 @@ const Index = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-primary/5" />
         <FloatingShapes />
         
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center relative z-10">
-          <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground mb-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-6">
             Interested in Working with Us?
           </h2>
           <p className="font-['Inter'] text-lg text-muted-foreground mb-8">

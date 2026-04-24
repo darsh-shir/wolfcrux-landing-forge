@@ -46,12 +46,12 @@ const Careers = () => {
       <Navigation />
 
       {/* HERO SECTION */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
+      <section className="relative pt-24 md:pt-32 pb-12 md:pb-20 overflow-hidden">
         <FloatingShapes />
 
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl animate-fade-in">
-            <h1 className="font-['Space_Grotesk'] text-5xl md:text-6xl font-bold text-foreground mb-6">
+            <h1 className="font-['Space_Grotesk'] text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6">
               Join Our Team
             </h1>
             <p className="font-['Inter'] text-xl text-muted-foreground leading-relaxed">
@@ -64,9 +64,9 @@ const Careers = () => {
       </section>
 
       {/* WHY JOIN */}
-      <section className="py-20 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
+      <section className="py-12 md:py-20 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
             Why Wolfcrux?
           </h2>
 
@@ -123,9 +123,9 @@ const Careers = () => {
       </section>
 
       {/* OPEN POSITIONS */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground mb-12">
+      <section className="py-12 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-12">
             Open Positions
           </h2>
 
@@ -182,9 +182,9 @@ const Careers = () => {
       </section>
 
       {/* APPLICATION PROCESS */}
-      <section className="py-20 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
+      <section className="py-12 md:py-20 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
             Application Process
           </h2>
 
@@ -227,12 +227,12 @@ const Careers = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-20 relative overflow-hidden">
+      <section className="py-12 md:py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-primary/5" />
         <FloatingShapes />
 
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center relative z-10">
-          <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground mb-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-6">
             Don't See a Perfect Fit?
           </h2>
           <p className="font-['Inter'] text-lg text-muted-foreground mb-8">

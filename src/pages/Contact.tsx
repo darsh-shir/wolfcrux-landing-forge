@@ -24,12 +24,12 @@ const Contact = () => {
       <Navigation />
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
+      <section className="relative pt-24 md:pt-32 pb-12 md:pb-20 overflow-hidden">
         <FloatingShapes />
         
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl animate-fade-in">
-            <h1 className="font-['Space_Grotesk'] text-5xl md:text-6xl font-bold text-foreground mb-6">
+            <h1 className="font-['Space_Grotesk'] text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6">
               Get in Touch
             </h1>
             <p className="font-['Inter'] text-xl text-muted-foreground leading-relaxed">
@@ -41,8 +41,8 @@ const Contact = () => {
       </section>
 
       {/* Contact Info */}
-      <section className="py-20 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <section className="py-12 md:py-20 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card className="border-border animate-fade-in">
               <CardContent className="p-8 text-center">
@@ -93,10 +93,10 @@ const Contact = () => {
       </section>
 
       {/* Contact Form */}
-      <section className="py-20">
-        <div className="max-w-3xl mx-auto px-6 lg:px-8">
+      <section className="py-12 md:py-20">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 animate-fade-in">
-            <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-foreground mb-4">
+            <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4">
               Send us a Message
             </h2>
             <p className="font-['Inter'] text-muted-foreground">

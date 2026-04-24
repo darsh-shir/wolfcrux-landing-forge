@@ -61,10 +61,10 @@ const Testimonials = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <main className="pt-32 pb-20 px-6">
+      <main className="pt-24 md:pt-32 pb-12 md:pb-20 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 animate-fade-in">
-            <h1 className="font-['Space_Grotesk'] text-5xl md:text-6xl font-bold text-foreground mb-6">
+            <h1 className="font-['Space_Grotesk'] text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6">
               Traders Testimonials
             </h1>
             <p className="font-['Inter'] text-xl text-muted-foreground max-w-3xl mx-auto">
