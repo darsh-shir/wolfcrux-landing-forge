@@ -283,7 +283,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
                 <TableHead>STO %</TableHead>
                 <TableHead>LTO %</TableHead>
                 <TableHead>Total %</TableHead>
-                <TableHead>Software $</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -342,16 +341,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Input
-                        type="number"
-                        className="w-24"
-                        step="1"
-                        value={cfg.software_cost ?? 1000}
-                        onChange={e => handleChange(user.user_id, "software_cost", Number(e.target.value))}
-                        placeholder="1000"
-                      />
-                    </TableCell>
-                    <TableCell>
                       {isEdited(user.user_id) ? (
                         <Button size="sm" onClick={() => {
                           if (isMilestone && ml) {
@@ -371,9 +360,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
                         }}>
                           <Save className="h-4 w-4" />
                         </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Default $1000</span>
-                      )}
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 );
