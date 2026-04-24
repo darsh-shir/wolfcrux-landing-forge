@@ -490,9 +490,85 @@ const Earnings = () => {
           ))}
         </div>
 
+        {/* PRICE FILTER */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Price:</span>
+          <Select value={priceFilter} onValueChange={(v) => setPriceFilter(v as PriceFilterValue)}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Select price range" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRICE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {priceFilter === "custom" && (
+            <>
+              <Select value={customMode} onValueChange={(v) => setCustomMode(v as "above" | "below" | "between")}>
+                <SelectTrigger className="w-[120px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="above">Above</SelectItem>
+                  <SelectItem value="below">Below</SelectItem>
+                  <SelectItem value="between">Between</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {customMode === "above" && (
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="Min $"
+                  value={customMin}
+                  onChange={(e) => setCustomMin(e.target.value)}
+                  className="w-[100px] h-9"
+                />
+              )}
+              {customMode === "below" && (
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="Max $"
+                  value={customMax}
+                  onChange={(e) => setCustomMax(e.target.value)}
+                  className="w-[100px] h-9"
+                />
+              )}
+              {customMode === "between" && (
+                <>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="Min $"
+                    value={customMin}
+                    onChange={(e) => setCustomMin(e.target.value)}
+                    className="w-[100px] h-9"
+                  />
+                  <span className="text-xs text-muted-foreground">–</span>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="Max $"
+                    value={customMax}
+                    onChange={(e) => setCustomMax(e.target.value)}
+                    className="w-[100px] h-9"
+                  />
+                </>
+              )}
+            </>
+          )}
+
+          <span className="ml-auto text-xs text-muted-foreground">
+            Showing {sortedStocks.length} of {dayData.length}
+          </span>
+        </div>
+
         {/* HEADER */}
         <h3 className="text-md font-semibold text-muted-foreground border-b pb-2">
-          {formatHeaderDate(selectedDate)} — {dayData.length} Earnings
+          {formatHeaderDate(selectedDate)} — {sortedStocks.length} Earnings
         </h3>
 
         {dayLoading ? (
