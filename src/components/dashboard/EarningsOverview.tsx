@@ -112,9 +112,9 @@ const EarningsOverview = () => {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Today's Pre-Market Earnings
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <Calendar className="w-4 h-4" />
+          Today's Earnings
           </CardTitle>
         </CardHeader>
         <CardContent>
