@@ -64,10 +64,21 @@ const EarningsOverview = () => {
         const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
         const json = await resp.json();
         const tableData: EarningStock[] = json?.data?.tableData || [];
-        const preMarket = tableData
-          .filter((s) => s.earning?.reportOnTimeOfDay === "PreMarket")
-          .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
-        setStocks(preMarket);
+        const sessionRank = (s: string) =>
+          s === "PreMarket" ? 1 : s === "AfterHours" ? 2 : 3;
+        const sorted = tableData
+          .filter((s) =>
+            s.earning?.reportOnTimeOfDay === "PreMarket" ||
+            s.earning?.reportOnTimeOfDay === "AfterHours"
+          )
+          .sort((a, b) => {
+            const r =
+              sessionRank(a.earning?.reportOnTimeOfDay) -
+              sessionRank(b.earning?.reportOnTimeOfDay);
+            if (r !== 0) return r;
+            return (b.marketCap || 0) - (a.marketCap || 0);
+          });
+        setStocks(sorted);
       } catch (e) {
         console.error("Earnings overview fetch failed", e);
       } finally {
