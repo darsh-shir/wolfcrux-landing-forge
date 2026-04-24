@@ -137,6 +137,12 @@ const Earnings = () => {
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
   const [peersCache, setPeersCache] = useState<Record<string, { loading: boolean; data: any[] }>>({});
 
+  // Price filter state — default "above $25" expressed via custom mode
+  const [priceFilter, setPriceFilter] = useState<PriceFilterValue>("custom");
+  const [customMode, setCustomMode] = useState<"above" | "below" | "between">("above");
+  const [customMin, setCustomMin] = useState<string>("25");
+  const [customMax, setCustomMax] = useState<string>("");
+
   const fetchPeers = useCallback(async (ticker: string) => {
     if (peersCache[ticker]) return;
     setPeersCache((p) => ({ ...p, [ticker]: { loading: true, data: [] } }));
