@@ -64,10 +64,21 @@ const EarningsOverview = () => {
         const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
         const json = await resp.json();
         const tableData: EarningStock[] = json?.data?.tableData || [];
-        const preMarket = tableData
-          .filter((s) => s.earning?.reportOnTimeOfDay === "PreMarket")
-          .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
-        setStocks(preMarket);
+        const sessionRank = (s: string) =>
+          s === "PreMarket" ? 1 : s === "AfterHours" ? 2 : 3;
+        const sorted = tableData
+          .filter((s) =>
+            s.earning?.reportOnTimeOfDay === "PreMarket" ||
+            s.earning?.reportOnTimeOfDay === "AfterHours"
+          )
+          .sort((a, b) => {
+            const r =
+              sessionRank(a.earning?.reportOnTimeOfDay) -
+              sessionRank(b.earning?.reportOnTimeOfDay);
+            if (r !== 0) return r;
+            return (b.marketCap || 0) - (a.marketCap || 0);
+          });
+        setStocks(sorted);
       } catch (e) {
         console.error("Earnings overview fetch failed", e);
       } finally {
@@ -83,7 +94,7 @@ const EarningsOverview = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Calendar className="w-4 h-4" />
-            Today's Pre-Market Earnings
+            Today's Earnings
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -101,9 +112,9 @@ const EarningsOverview = () => {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Today's Pre-Market Earnings
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <Calendar className="w-4 h-4" />
+          Today's Earnings
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -150,7 +161,16 @@ const EarningsOverview = () => {
                         <ChevronDown className="w-3 h-3 text-muted-foreground" />
                       )}
                       <div>
-                        <p className="text-sm font-medium">{s.ticker}</p>
+                        <p className="text-sm font-medium flex items-center gap-1.5">
+                          {s.ticker}
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                            s.earning?.reportOnTimeOfDay === "PreMarket"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-purple-100 text-purple-700"
+                          }`}>
+                            {s.earning?.reportOnTimeOfDay === "PreMarket" ? "PRE" : "POST"}
+                          </span>
+                        </p>
                         <p className="text-[11px] text-muted-foreground truncate max-w-[120px]">
                           {s.name}
                         </p>
