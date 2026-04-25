@@ -220,6 +220,10 @@ const CompareStocks = () => {
           industry: profileData.industry,
           image: profileData.image,
         });
+        // Auto-add the searched stock to the comparison
+        if (!symbols.find((s) => s.symbol === profileData.symbol)) {
+          addSymbol(profileData.symbol);
+        }
       } else {
         setPeerError("Symbol not found");
       }
