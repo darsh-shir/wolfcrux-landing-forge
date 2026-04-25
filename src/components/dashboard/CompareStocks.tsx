@@ -184,6 +184,15 @@ const CompareStocks = () => {
     setSymbols((prev) => prev.filter((s) => s.symbol !== sym));
   };
 
+  const resetAll = () => {
+    setSymbols([]);
+    setInput("");
+    setPeerInput("");
+    setProfile(null);
+    setPeers([]);
+    setPeerError(null);
+  };
+
   const toggleVisible = (sym: string) => {
     setSymbols((prev) =>
       prev.map((s) => (s.symbol === sym ? { ...s, visible: !s.visible } : s))
