@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Loader2, Search, Sparkles } from "lucide-react";
+import { X, Plus, Loader2, Search, Sparkles, RotateCcw } from "lucide-react";
 import {
   LineChart,
   Line,
