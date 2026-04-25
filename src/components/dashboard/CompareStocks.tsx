@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Loader2, Search, Sparkles } from "lucide-react";
+import { X, Plus, Loader2, Search, Sparkles, RotateCcw } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -182,6 +182,15 @@ const CompareStocks = () => {
 
   const removeSymbol = (sym: string) => {
     setSymbols((prev) => prev.filter((s) => s.symbol !== sym));
+  };
+
+  const resetAll = () => {
+    setSymbols([]);
+    setInput("");
+    setPeerInput("");
+    setProfile(null);
+    setPeers([]);
+    setPeerError(null);
   };
 
   const toggleVisible = (sym: string) => {
@@ -503,6 +512,21 @@ const CompareStocks = () => {
               ) : (
                 <Plus className="w-4 h-4" />
               )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={resetAll}
+              disabled={
+                symbols.length === 0 &&
+                !input &&
+                !peerInput &&
+                !profile &&
+                peers.length === 0
+              }
+              title="Reset all"
+            >
+              <RotateCcw className="w-4 h-4" />
             </Button>
           </div>
         </div>
