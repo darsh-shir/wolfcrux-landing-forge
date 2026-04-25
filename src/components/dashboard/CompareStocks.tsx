@@ -513,6 +513,21 @@ const CompareStocks = () => {
                 <Plus className="w-4 h-4" />
               )}
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={resetAll}
+              disabled={
+                symbols.length === 0 &&
+                !input &&
+                !peerInput &&
+                !profile &&
+                peers.length === 0
+              }
+              title="Reset all"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
