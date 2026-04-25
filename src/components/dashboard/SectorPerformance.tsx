@@ -75,7 +75,7 @@ const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
             return (
               <div
                 key={sector.name}
-                className="group relative flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-muted/30 transition-colors"
+                className="group relative flex items-center gap-2 sm:gap-3 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-muted/30 transition-colors"
               >
                 {/* Icon */}
                 <div className="shrink-0">
