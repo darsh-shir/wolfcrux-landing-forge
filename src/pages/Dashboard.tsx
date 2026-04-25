@@ -293,6 +293,11 @@ const Dashboard = () => {
                   <CalendarClock className="w-4 h-4 mr-1 sm:mr-2" />
                   Economic Calendar
                 </TabsTrigger>
+
+                <TabsTrigger value="compare" className="whitespace-nowrap text-xs sm:text-sm">
+                  <LineChart className="w-4 h-4 mr-1 sm:mr-2" />
+                  Compare Stocks
+                </TabsTrigger>
               </TabsList>
             </div>
 
