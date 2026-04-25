@@ -143,7 +143,7 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {indices.map((index) => {
           const isPositive = index.changesPercentage >= 0;
           const percentValue = Math.abs(index.changesPercentage);
@@ -153,24 +153,24 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
               key={index.symbol}
               className="bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow"
             >
-              <CardContent className="p-5">
+              <CardContent className="p-3 sm:p-5">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-lg font-semibold text-foreground">
+                <div className="flex items-center justify-between mb-1 gap-1">
+                  <span className="text-sm sm:text-lg font-semibold text-foreground truncate">
                     {index.name}
                   </span>
 
                   <Badge
-                    className={`text-xs font-semibold px-2 py-0.5 ${
+                    className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 shrink-0 ${
                       isPositive
                         ? "bg-green-500/20 text-green-600 border-green-500/30"
                         : "bg-red-500/20 text-red-600 border-red-500/30"
                     }`}
                   >
                     {isPositive ? (
-                      <TrendingUp className="w-3 h-3 mr-1" />
+                      <TrendingUp className="w-3 h-3 mr-0.5 sm:mr-1" />
                     ) : (
-                      <TrendingDown className="w-3 h-3 mr-1" />
+                      <TrendingDown className="w-3 h-3 mr-0.5 sm:mr-1" />
                     )}
                     {percentValue.toFixed(2)}%
                   </Badge>
@@ -179,7 +179,7 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
                 {/* Change */}
                 <div className="flex justify-end mb-1">
                   <span
-                    className={`text-sm font-medium ${
+                    className={`text-xs sm:text-sm font-medium ${
                       isPositive ? "text-green-600" : "text-red-600"
                     }`}
                   >
@@ -190,15 +190,17 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
 
                 {/* Sparkline */}
                 {index.history && index.history.length > 0 && (
-                  <Sparkline
-                    data={index.history}
-                    isPositive={isPositive}
-                    id={index.symbol}
-                  />
+                  <div className="w-full overflow-hidden">
+                    <Sparkline
+                      data={index.history}
+                      isPositive={isPositive}
+                      id={index.symbol}
+                    />
+                  </div>
                 )}
 
                 {/* Price */}
-                <p className="text-2xl font-bold text-foreground mt-2">
+                <p className="text-lg sm:text-2xl font-bold text-foreground mt-2">
                   {formatIndian(index.price, 2)}
                 </p>
               </CardContent>
