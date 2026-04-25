@@ -296,7 +296,7 @@ const Dashboard = () => {
             </div>
 
             {/* ================= OVERVIEW TAB ================= */}
-            <TabsContent value="overview" className="space-y-6">
+            <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
               <IndexCards
                 data={indices}
                 loading={loadingIndices}
@@ -304,7 +304,7 @@ const Dashboard = () => {
                 onRefresh={fetchAll}
               />
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
                 <SectorPerformance
                   data={sectors}
                   loading={loadingSectors}
@@ -320,12 +320,12 @@ const Dashboard = () => {
 
               <EconomicOverview data={economicEvents} loading={economicLoading} />
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 <NewsOverview data={newsPosts} loading={loadingNews} />
                 <EarningsOverview />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 <StockSplits limit={6} compact />
               </div>
             </TabsContent>
