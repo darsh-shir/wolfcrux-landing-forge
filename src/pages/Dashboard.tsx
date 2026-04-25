@@ -249,7 +249,7 @@ const Dashboard = () => {
       <div className="min-h-screen bg-background flex flex-col">
         <Navigation />
 
-        <main className="pt-24 pb-6 px-4 max-w-7xl mx-auto flex-1">
+        <main className="pt-20 md:pt-24 pb-6 px-2 sm:px-4 max-w-7xl mx-auto flex-1 w-full">
           {/* Market Sentiment Header */}
           <div className="flex justify-between items-center mb-4">
             <MarketSentiment
@@ -261,37 +261,39 @@ const Dashboard = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full justify-start">
-              <TabsTrigger value="overview">
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Overview
-              </TabsTrigger>
+            <div className="-mx-2 sm:mx-0 overflow-x-auto scrollbar-none">
+              <TabsList className="w-max md:w-full md:justify-start px-2 sm:px-0">
+                <TabsTrigger value="overview" className="whitespace-nowrap text-xs sm:text-sm">
+                  <BarChart3 className="w-4 h-4 mr-1 sm:mr-2" />
+                  Overview
+                </TabsTrigger>
 
-              <TabsTrigger value="news">
-                <Newspaper className="w-4 h-4 mr-2" />
-                News
-              </TabsTrigger>
+                <TabsTrigger value="news" className="whitespace-nowrap text-xs sm:text-sm">
+                  <Newspaper className="w-4 h-4 mr-1 sm:mr-2" />
+                  News
+                </TabsTrigger>
 
-              <TabsTrigger value="splits">
-                <Scissors className="w-4 h-4 mr-2" />
-                Stock Splits
-              </TabsTrigger>
+                <TabsTrigger value="splits" className="whitespace-nowrap text-xs sm:text-sm">
+                  <Scissors className="w-4 h-4 mr-1 sm:mr-2" />
+                  Stock Splits
+                </TabsTrigger>
 
-              <TabsTrigger value="earnings">
-                <Calendar className="w-4 h-4 mr-2" />
-                Earnings
-              </TabsTrigger>
+                <TabsTrigger value="earnings" className="whitespace-nowrap text-xs sm:text-sm">
+                  <Calendar className="w-4 h-4 mr-1 sm:mr-2" />
+                  Earnings
+                </TabsTrigger>
 
-              <TabsTrigger value="peers">
-                <Users className="w-4 h-4 mr-2" />
-                Peers
-              </TabsTrigger>
+                <TabsTrigger value="peers" className="whitespace-nowrap text-xs sm:text-sm">
+                  <Users className="w-4 h-4 mr-1 sm:mr-2" />
+                  Peers
+                </TabsTrigger>
 
-              <TabsTrigger value="economic">
-                <CalendarClock className="w-4 h-4 mr-2" />
-                Economic Calendar
-              </TabsTrigger>
-            </TabsList>
+                <TabsTrigger value="economic" className="whitespace-nowrap text-xs sm:text-sm">
+                  <CalendarClock className="w-4 h-4 mr-1 sm:mr-2" />
+                  Economic Calendar
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* ================= OVERVIEW TAB ================= */}
             <TabsContent value="overview" className="space-y-6">
