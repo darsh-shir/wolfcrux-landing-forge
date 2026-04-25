@@ -18,6 +18,7 @@ import Peers from "@/components/dashboard/Peers";
 import EconomicOverview from "@/components/dashboard/EconomicOverview";
 import EconomicCalendar from "@/components/dashboard/EconomicCalendar";
 import EarningsOverview from "@/components/dashboard/EarningsOverview";
+import CompareStocks from "@/components/dashboard/CompareStocks";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
