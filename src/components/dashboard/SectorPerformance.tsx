@@ -87,12 +87,12 @@ const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
                 </div>
 
                 {/* Name */}
-                <span className="text-sm font-medium text-foreground w-[160px] shrink-0 truncate">
+                <span className="text-xs sm:text-sm font-medium text-foreground w-[110px] sm:w-[160px] shrink-0 truncate">
                   {sector.name}
                 </span>
 
                 {/* Bar */}
-                <div className="flex-1 h-5 bg-muted/40 rounded-md overflow-hidden relative">
+                <div className="flex-1 min-w-0 h-4 sm:h-5 bg-muted/40 rounded-md overflow-hidden relative">
                   <div
                     className={`h-full rounded-md transition-all duration-700 ease-out ${
                       isPositive
@@ -105,7 +105,7 @@ const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
 
                 {/* Percentage */}
                 <span
-                  className={`text-sm font-bold tabular-nums w-[60px] text-right shrink-0 ${
+                  className={`text-xs sm:text-sm font-bold tabular-nums w-[52px] sm:w-[60px] text-right shrink-0 ${
                     isPositive ? "text-green-600" : "text-red-600"
                   }`}
                 >
