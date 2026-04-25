@@ -360,6 +360,11 @@ const Dashboard = () => {
             <TabsContent value="economic" className="mt-6">
               <EconomicCalendar data={economicEvents} loading={economicLoading} />
             </TabsContent>
+
+            {/* ================= COMPARE STOCKS TAB ================= */}
+            <TabsContent value="compare" className="mt-6">
+              <CompareStocks />
+            </TabsContent>
           </Tabs>
         </main>
 
