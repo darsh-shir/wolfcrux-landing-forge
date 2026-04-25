@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock } from "lucide-react";
+import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock, LineChart } from "lucide-react";
 
 // Dashboard components
 import IndexCards from "@/components/dashboard/IndexCards";
@@ -18,6 +18,7 @@ import Peers from "@/components/dashboard/Peers";
 import EconomicOverview from "@/components/dashboard/EconomicOverview";
 import EconomicCalendar from "@/components/dashboard/EconomicCalendar";
 import EarningsOverview from "@/components/dashboard/EarningsOverview";
+import CompareStocks from "@/components/dashboard/CompareStocks";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
@@ -292,6 +293,11 @@ const Dashboard = () => {
                   <CalendarClock className="w-4 h-4 mr-1 sm:mr-2" />
                   Economic Calendar
                 </TabsTrigger>
+
+                <TabsTrigger value="compare" className="whitespace-nowrap text-xs sm:text-sm">
+                  <LineChart className="w-4 h-4 mr-1 sm:mr-2" />
+                  Compare Stocks
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -353,6 +359,11 @@ const Dashboard = () => {
             {/* ================= ECONOMIC CALENDAR TAB ================= */}
             <TabsContent value="economic" className="mt-6">
               <EconomicCalendar data={economicEvents} loading={economicLoading} />
+            </TabsContent>
+
+            {/* ================= COMPARE STOCKS TAB ================= */}
+            <TabsContent value="compare" className="mt-6">
+              <CompareStocks />
             </TabsContent>
           </Tabs>
         </main>
