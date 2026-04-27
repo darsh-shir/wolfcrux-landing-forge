@@ -151,6 +151,7 @@ const CompareStocks = () => {
           loading: false,
         };
       } catch (e) {
+        console.error(`[CompareStocks] Fetch failed for ${sym}:`, e);
         return {
           symbol: sym,
           name: sym,
@@ -160,7 +161,7 @@ const CompareStocks = () => {
           change: 0,
           changePct: 0,
           loading: false,
-          error: "Failed to fetch",
+          error: e instanceof Error ? e.message : "Failed to fetch",
         };
       }
     },
