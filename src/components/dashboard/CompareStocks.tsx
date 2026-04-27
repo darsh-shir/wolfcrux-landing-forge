@@ -101,7 +101,26 @@ const CompareStocks = () => {
           `https://www.tipranks.com/api/stocks/getHistoricalPriceExtended?daysBack=${daysBack}&name=${sym}`
         );
         const res = await fetch(`${PROXY_URL}${url}`);
-        const data = await res.json();
+        if (!res.ok) {
+          console.error(`[CompareStocks] HTTP ${res.status} for ${sym}`);
+          return {
+            symbol: sym, name: sym, visible: true, data: [],
+            latestPrice: 0, change: 0, changePct: 0, loading: false,
+            error: `HTTP ${res.status}`,
+          };
+        }
+        const text = await res.text();
+        let data: any;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          console.error(`[CompareStocks] Non-JSON response for ${sym}:`, text.slice(0, 200));
+          return {
+            symbol: sym, name: sym, visible: true, data: [],
+            latestPrice: 0, change: 0, changePct: 0, loading: false,
+            error: "Bad response",
+          };
+        }
         if (!Array.isArray(data) || data.length === 0) {
           return {
             symbol: sym,
