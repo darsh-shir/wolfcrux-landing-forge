@@ -129,7 +129,7 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <YAxis 
-                    tickFormatter={formatCurrency}
+                    tickFormatter={formatAxis}
                     tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
@@ -166,7 +166,7 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <YAxis 
-                    tickFormatter={formatCurrency}
+                    tickFormatter={formatAxis}
                     tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
@@ -202,7 +202,7 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <YAxis 
-                    tickFormatter={formatCurrency}
+                    tickFormatter={formatAxis}
                     tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
