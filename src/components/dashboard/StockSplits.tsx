@@ -114,9 +114,9 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
     return (
       <Card className="bg-card border border-border/50 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Scissors className="w-4 h-4" />
-            Upcoming Stock Splits
+          <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+            <Scissors className="w-3.5 h-3.5" />
+            // Upcoming Stock Splits
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -132,35 +132,70 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
   if (compact) {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Scissors className="w-4 h-4" />
-            Recent Stock Splits
+        <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+            <Scissors className="w-3.5 h-3.5" />
+            // Recent Stock Splits
           </CardTitle>
+          <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
+            {splits.length} UPCOMING
+          </span>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           {overviewVisible.map((split, idx) => {
-            // display: date top, then row with ticker left and ratio + type right (compact)
             const isForward = (split.splitType || "").toLowerCase() === "forward";
-            const badgeClass = isForward ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
+            const accent = isForward ? "border-emerald-500/30" : "border-red-500/30";
+            const stripe = isForward ? "bg-emerald-500/70" : "bg-red-500/70";
+            const tone = isForward ? "text-emerald-700" : "text-red-700";
+            const due = daysUntil(split.exDate);
 
             return (
-              <div key={idx} className="border rounded-lg p-3 bg-background/50">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-xs text-muted-foreground">{formatDateShort(split.exDate)}</div>
-                    <div className="mt-1 font-bold text-foreground text-sm">{split.ticker}</div>
+              <div
+                key={idx}
+                className={`relative border ${accent} rounded-md p-3 bg-background/40 hover:bg-muted/30 transition-colors animate-fade-in`}
+                style={{ animationDelay: `${idx * 45}ms` }}
+              >
+                <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${stripe} rounded-l-md`} />
+                <div className="flex items-start justify-between pl-2 gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                      {formatDateShort(split.exDate)}
+                    </div>
+                    <div className="mt-0.5 font-mono font-bold text-foreground text-sm truncate">
+                      {split.ticker}
+                    </div>
+                    {split.companyName && (
+                      <div className="text-[11px] text-muted-foreground truncate">
+                        {split.companyName}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="text-right">
-                    <div className="text-xs uppercase tracking-wide text-muted-foreground">{split.splitType}</div>
-                    <div className="mt-1 font-semibold text-foreground">{split.splitRatio}</div>
+                  <div className="text-right shrink-0">
+                    <Badge
+                      variant="outline"
+                      className={`text-[9px] font-mono uppercase tracking-wider ${tone} ${accent}`}
+                    >
+                      {split.splitType || "—"}
+                    </Badge>
+                    <div className="mt-1 font-mono font-semibold text-foreground text-sm tabular-nums">
+                      {split.splitRatio}
+                    </div>
+                    <div className="text-[10px] font-mono text-muted-foreground tabular-nums">
+                      {due}
+                    </div>
                   </div>
                 </div>
               </div>
             );
           })}
+
+          {overviewVisible.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No upcoming stock splits
+            </p>
+          )}
         </CardContent>
       </Card>
     );
@@ -169,33 +204,62 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
   /* ================= FULL SPLIT TAB (all, ascending by date) ================= */
   return (
     <Card className="bg-card border border-border/50 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <Scissors className="w-4 h-4" />
-          Upcoming Stock Splits
+      <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+          <Scissors className="w-3.5 h-3.5" />
+          // Upcoming Stock Splits
         </CardTitle>
+        <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
+          {fullSortedAscending.length} TOTAL
+        </span>
       </CardHeader>
 
       <CardContent>
         {fullSortedAscending.length === 0 ? (
           <p className="text-sm text-muted-foreground text-left py-8">No upcoming stock splits</p>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {fullSortedAscending.map((split, idx) => {
               const isForward = (split.splitType || "").toLowerCase() === "forward";
-              const badge = isForward ? "FORWARD" : "REVERSE";
+              const accent = isForward ? "border-emerald-500/30" : "border-red-500/30";
+              const stripe = isForward ? "bg-emerald-500/70" : "bg-red-500/70";
+              const tone = isForward ? "text-emerald-700" : "text-red-700";
+              const due = daysUntil(split.exDate);
 
               return (
-                <div key={idx} className="border rounded-lg p-3">
-                  <div className="text-xs text-muted-foreground">{formatDateShort(split.exDate)}</div>
-                  <div className="mt-1 font-bold text-foreground text-base">{split.ticker}</div>
-                  <div className="text-sm text-muted-foreground mt-1">{split.companyName}</div>
-
-                  <div className="flex items-center justify-between mt-3">
-                    <div className={`text-xs font-semibold uppercase ${isForward ? "text-green-600" : "text-red-600"}`}>
-                      {badge}
+                <div
+                  key={idx}
+                  className={`relative border ${accent} rounded-md p-3 hover:bg-muted/30 transition-colors animate-fade-in`}
+                  style={{ animationDelay: `${idx * 25}ms` }}
+                >
+                  <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${stripe} rounded-l-md`} />
+                  <div className="pl-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                        {formatDateShort(split.exDate)}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-[9px] font-mono uppercase tracking-wider ${tone} ${accent}`}
+                      >
+                        {isForward ? "FORWARD" : "REVERSE"}
+                      </Badge>
                     </div>
-                    <div className="font-semibold text-foreground">{split.splitRatio}</div>
+                    <div className="mt-1 font-mono font-bold text-foreground text-base">
+                      {split.ticker}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {split.companyName}
+                    </div>
+
+                    <div className="flex items-center justify-between mt-3 font-mono">
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        {due}
+                      </span>
+                      <span className="text-sm font-semibold text-foreground tabular-nums">
+                        {split.splitRatio}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
