@@ -2,6 +2,7 @@ import { formatIndian } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
+import AnimatedNumber from "@/components/AnimatedNumber";
 
 interface IndexData {
   symbol: string;
@@ -130,15 +131,22 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">US Indices</h2>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {lastUpdated && <span>Updated {lastUpdated.toLocaleTimeString()}</span>}
+        <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
+          // US Indices
+        </h2>
+        <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+          {lastUpdated && (
+            <span className="tabular-nums">
+              LAST · {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
           <button
             onClick={onRefresh}
             className="p-1.5 hover:bg-muted rounded-md transition-all duration-200 active:scale-90"
             disabled={loading}
+            aria-label="Refresh"
           >
-            <RefreshCw className={`w-4 h-4 transition-transform ${loading ? "animate-spin" : "hover:rotate-90"}`} />
+            <RefreshCw className={`w-3.5 h-3.5 transition-transform ${loading ? "animate-spin" : "hover:rotate-90"}`} />
           </button>
         </div>
       </div>
@@ -151,21 +159,34 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
           return (
             <Card
               key={index.symbol}
-              className="bg-card border border-border/50 shadow-sm hover-lift-sm animate-scale-in"
+              className={`relative bg-card border shadow-sm hover-lift-sm animate-scale-in overflow-hidden ${
+                isPositive ? "border-emerald-500/20" : "border-red-500/20"
+              }`}
               style={{ animationDelay: `${i * 60}ms` }}
             >
-              <CardContent className="p-3 sm:p-5">
+              {/* Left status bar */}
+              <span
+                className={`absolute left-0 top-0 bottom-0 w-[3px] ${
+                  isPositive ? "bg-emerald-500/70" : "bg-red-500/70"
+                }`}
+              />
+              <CardContent className="p-3 sm:p-5 pl-4 sm:pl-6">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-1 gap-1">
-                  <span className="text-sm sm:text-lg font-semibold text-foreground truncate">
-                    {index.name}
-                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground truncate">
+                      {index.symbol}
+                    </div>
+                    <span className="text-sm sm:text-base font-semibold text-foreground truncate block">
+                      {index.name}
+                    </span>
+                  </div>
 
                   <Badge
-                    className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 shrink-0 ${
+                    className={`text-[10px] sm:text-xs font-mono font-semibold px-1.5 sm:px-2 py-0.5 shrink-0 ${
                       isPositive
-                        ? "bg-green-500/20 text-green-600 border-green-500/30"
-                        : "bg-red-500/20 text-red-600 border-red-500/30"
+                        ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                        : "bg-red-500/15 text-red-700 border-red-500/30"
                     }`}
                   >
                     {isPositive ? (
@@ -180,8 +201,8 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
                 {/* Change */}
                 <div className="flex justify-end mb-1">
                   <span
-                    className={`text-xs sm:text-sm font-medium ${
-                      isPositive ? "text-green-600" : "text-red-600"
+                    className={`text-xs sm:text-sm font-mono tabular-nums ${
+                      isPositive ? "text-emerald-600" : "text-red-600"
                     }`}
                   >
                     {isPositive ? "+" : ""}
@@ -201,8 +222,13 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
                 )}
 
                 {/* Price */}
-                <p className="text-lg sm:text-2xl font-bold text-foreground mt-2">
-                  {formatIndian(index.price, 2)}
+                <p className="text-lg sm:text-2xl font-bold text-foreground mt-2 font-mono tabular-nums">
+                  <AnimatedNumber
+                    value={index.price}
+                    format={(n) => formatIndian(n, 2)}
+                    resetKey={index.price}
+                    duration={900}
+                  />
                 </p>
               </CardContent>
             </Card>
