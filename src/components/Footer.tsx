@@ -10,11 +10,11 @@ const Footer = () => {
           
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-4 group">
               <img
                 src={logo}
                 alt="WOLFCRUX"
-                className="h-10 w-10 object-contain"
+                className="h-10 w-10 object-contain transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-6deg]"
               />
               <span className="font-['Space_Grotesk'] text-lg font-bold text-foreground">
                 Wolfcrux Global Markets LLP
