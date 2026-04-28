@@ -293,25 +293,25 @@ const Peers = () => {
                 <h4 className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground mb-2 pb-1 border-b border-border/50">
                   // {group.theme} <span className="text-foreground/60">[{group.pairs.length}]</span>
                 </h4>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2.5">
                   {group.pairs.map(([a, b]) => (
                     <div
                       key={`${a}-${b}`}
-                      className="group inline-flex items-center rounded-md border border-border/60 bg-muted/20 hover:bg-muted/50 hover:border-foreground/30 transition-colors overflow-hidden"
+                      className="group inline-flex items-center rounded-md border border-border bg-muted/60 hover:bg-muted hover:border-foreground/40 shadow-sm transition-colors overflow-hidden"
                     >
                       <button
                         type="button"
                         onClick={() => fetchData(a)}
-                        className="px-2 py-1 font-mono text-xs font-semibold text-foreground hover:text-emerald-600 transition-colors"
+                        className="px-2.5 py-1.5 font-mono text-xs font-semibold text-foreground hover:text-emerald-600 transition-colors"
                         title={`View ${a}`}
                       >
                         {a}
                       </button>
-                      <ArrowRight className="w-3 h-3 text-muted-foreground/60 group-hover:text-foreground/80 transition-colors" />
+                      <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-foreground transition-colors" />
                       <button
                         type="button"
                         onClick={() => fetchData(b)}
-                        className="px-2 py-1 font-mono text-xs font-semibold text-foreground hover:text-emerald-600 transition-colors"
+                        className="px-2.5 py-1.5 font-mono text-xs font-semibold text-foreground hover:text-emerald-600 transition-colors"
                         title={`View ${b}`}
                       >
                         {b}
