@@ -44,7 +44,7 @@ const CodeRain = ({ className = "" }: { className?: string }) => {
         const x = i * FONT;
         const y = drops[i];
         const hue = (i * 7) % 60 + 200;
-        ctx.fillStyle = `hsla(${hue}, 80%, 50%, 0.55)`;
+        ctx.fillStyle = `hsla(${hue}, 80%, 50%, 0.35)`;
         ctx.fillText(ch, x, y);
         if (y > h && Math.random() > 0.975) drops[i] = 0;
         drops[i] += FONT * 0.6;
