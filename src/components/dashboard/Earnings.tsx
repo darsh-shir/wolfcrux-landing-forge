@@ -440,10 +440,10 @@ const Earnings = () => {
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" /> Earnings Calendar
+      <Card className="bg-card border border-border/50 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5" /> // Earnings Calendar
           </CardTitle>
         </CardHeader>
         <CardContent>
