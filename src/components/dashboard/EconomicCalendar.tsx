@@ -98,44 +98,46 @@ const WeeklyStance = ({ events }: { events: EconomicEvent[] }) => {
   }, [events]);
 
   return (
-    <Card className="bg-card border border-border/50 shadow-sm mb-6">
+    <Card className="bg-card border border-border/50 shadow-sm mb-5">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <CalendarClock className="w-5 h-5" />
-          Weekly Stance
+        <CardTitle className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground flex items-center gap-2">
+          <CalendarClock className="w-3.5 h-3.5" />
+          // Weekly Stance
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-3">
-          {weekDays.map((day) => {
+        <div className="grid grid-cols-1 gap-2">
+          {weekDays.map((day, dayIdx) => {
             const dayEvents = eventsByDate.get(day.dateKey) || [];
             const highImpact = dayEvents.filter((e) => e.impact >= 3);
             const medImpact = dayEvents.filter((e) => e.impact === 2);
             return (
               <div
                 key={day.dateKey}
-                className={`flex items-start gap-4 rounded-lg border p-3 transition-colors ${
+                className={`relative flex items-start gap-4 rounded-md border p-3 transition-colors animate-fade-in ${
                   day.isToday
-                    ? "border-primary/40 bg-primary/5"
-                    : "border-border/60 bg-card"
+                    ? "border-foreground/40 bg-muted/30"
+                    : "border-border/60 bg-card hover:bg-muted/20"
                 }`}
+                style={{ animationDelay: `${dayIdx * 40}ms` }}
               >
+                {day.isToday && (
+                  <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-emerald-500/80 rounded-l-md" />
+                )}
                 <div className="w-28 shrink-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-foreground">{day.name}</span>
+                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">{day.name}</span>
                     {day.isToday && (
-                      <Badge variant="outline" className="text-[9px] bg-primary/10 text-primary border-primary/30">
-                        Today
-                      </Badge>
+                      <span className="font-mono text-[9px] uppercase tracking-widest text-emerald-600">●</span>
                     )}
                   </div>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[10px] font-mono text-muted-foreground">
                     {day.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   {dayEvents.length === 0 ? (
-                    <span className="text-xs text-muted-foreground italic">No events</span>
+                    <span className="text-xs font-mono text-muted-foreground italic">// No events</span>
                   ) : (
                     <div className="flex flex-wrap gap-1.5">
                       {dayEvents.map((e) => {
@@ -144,7 +146,7 @@ const WeeklyStance = ({ events }: { events: EconomicEvent[] }) => {
                           <Badge
                             key={e.id}
                             variant="outline"
-                            className={`text-[10px] font-medium ${imp.className}`}
+                            className={`text-[10px] font-mono ${imp.className}`}
                             title={`${formatTime(e.time)} — ${e.event}`}
                           >
                             {e.event.length > 30 ? e.event.slice(0, 28) + "…" : e.event}
@@ -154,20 +156,21 @@ const WeeklyStance = ({ events }: { events: EconomicEvent[] }) => {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 font-mono">
                   {highImpact.length > 0 && (
-                    <span className="text-[10px] font-semibold text-destructive">
-                      {highImpact.length} High
+                    <span className="text-[10px] font-semibold text-destructive flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                      {highImpact.length}H
                     </span>
                   )}
                   {medImpact.length > 0 && (
                     <span className="text-[10px] font-semibold text-yellow-600">
-                      {medImpact.length} Med
+                      {medImpact.length}M
                     </span>
                   )}
                   {dayEvents.length > 0 && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {dayEvents.length} total
+                    <span className="text-[10px] text-muted-foreground tabular-nums">
+                      [{dayEvents.length}]
                     </span>
                   )}
                 </div>
