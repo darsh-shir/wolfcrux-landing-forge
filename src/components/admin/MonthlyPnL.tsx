@@ -346,7 +346,7 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
 
                     return (
                       <TableRow key={entry.id}>
-                        <TableCell className="text-sm">{format(new Date(entry.trade_date), "dd MMM")}</TableCell>
+                        <TableCell className="text-sm">{(() => { const p = parseTradeDate(entry.trade_date); return p ? format(new Date(p.year, p.month - 1, p.day), "dd MMM") : entry.trade_date; })()}</TableCell>
                         <TableCell className="font-medium">{getUserName(entry.user_id)}</TableCell>
                         <TableCell>
                           <div>
