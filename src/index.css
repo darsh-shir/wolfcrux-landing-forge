@@ -299,6 +299,13 @@ All colors MUST be HSL.
   }
   .animate-wave-slow { animation: wave-slow 18s linear infinite; }
 
+  /* Pinging dot for the globe */
+  @keyframes globe-ping {
+    0%   { transform: scale(1); opacity: 0.7; }
+    80%  { transform: scale(5); opacity: 0; }
+    100% { transform: scale(5); opacity: 0; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .reveal,
     .hover-lift,

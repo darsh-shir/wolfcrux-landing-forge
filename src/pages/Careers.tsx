@@ -6,6 +6,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, LineChart, Users, Cpu, Code2 } from "lucide-react";
 import { useReveal } from "@/hooks/useReveal";
 
+import AuroraBackground from "@/components/landing/AuroraBackground";
+import TextScramble from "@/components/landing/TextScramble";
+import SpotlightTiltCard from "@/components/landing/SpotlightTiltCard";
+import ScrollProgress from "@/components/landing/ScrollProgress";
+import AnimatedCounter from "@/components/landing/AnimatedCounter";
+
 const Careers = () => {
   useReveal();
   const positions = [
@@ -45,20 +51,23 @@ const Careers = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <ScrollProgress />
       <Navigation />
 
-      {/* HERO SECTION */}
+      {/* HERO */}
       <section className="relative pt-24 md:pt-32 pb-12 md:pb-20 overflow-hidden">
+        <AuroraBackground />
         <FloatingShapes />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl animate-fade-in">
             <h1 className="font-['Space_Grotesk'] text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6">
-              Join Our Team
+              <TextScramble text="Join Our " />
+              <span className="text-gradient-accent">Team</span>
             </h1>
             <p className="font-['Inter'] text-xl text-muted-foreground leading-relaxed">
-              We're looking for exceptional talent to help us push the boundaries 
-              of quantitative trading. If you're passionate about technology, 
+              We're looking for exceptional talent to help us push the boundaries
+              of quantitative trading. If you're passionate about technology,
               mathematics, and financial markets, we'd love to hear from you.
             </p>
           </div>
@@ -68,7 +77,7 @@ const Careers = () => {
       {/* WHY JOIN */}
       <section className="py-12 md:py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
+          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-12 reveal">
             Why Wolfcrux?
           </h2>
 
@@ -81,18 +90,24 @@ const Careers = () => {
             ].map((item, i) => (
               <div
                 key={item.title}
-                className="text-center reveal group"
+                className="reveal"
                 style={{ transitionDelay: `${i * 100}ms` }}
               >
-                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:scale-110 group-hover:bg-accent/20">
-                  <item.icon className="text-accent" size={32} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] text-lg font-semibold text-foreground mb-2">
-                  {item.title}
-                </h3>
-                <p className="font-['Inter'] text-sm text-muted-foreground">
-                  {item.desc}
-                </p>
+                <SpotlightTiltCard className="gradient-border h-full">
+                  <Card className="border-0 bg-transparent h-full group">
+                    <CardContent className="p-6 text-center">
+                      <div className="icon-glow w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-accent/20">
+                        <item.icon className="text-accent" size={32} />
+                      </div>
+                      <h3 className="font-['Space_Grotesk'] text-lg font-semibold text-foreground mb-2">
+                        {item.title}
+                      </h3>
+                      <p className="font-['Inter'] text-sm text-muted-foreground">
+                        {item.desc}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </SpotlightTiltCard>
               </div>
             ))}
           </div>
@@ -102,92 +117,117 @@ const Careers = () => {
       {/* OPEN POSITIONS */}
       <section className="py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-12">
-            Open Positions
-          </h2>
+          <div className="flex items-baseline justify-between mb-12 reveal flex-wrap gap-4">
+            <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+              Open Positions
+            </h2>
+            <div className="text-right">
+              <div className="text-4xl font-bold text-gradient-accent font-['Space_Grotesk']">
+                <AnimatedCounter end={positions.length} duration={900} />
+              </div>
+              <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                Roles open
+              </div>
+            </div>
+          </div>
 
           <div className="space-y-6">
             {positions.map((position, index) => (
-              <Card
+              <div
                 key={index}
-                className="border-border hover-lift reveal group cursor-pointer"
-                onClick={() => (window.location.href = "mailto:info@wolfcrux.com")}
+                className="reveal"
                 style={{ transitionDelay: `${index * 100}ms` }}
               >
-                <CardContent className="p-6 sm:p-8">
-                  <div className="flex items-start justify-between gap-4 sm:gap-6">
-                    <div className="flex items-start gap-4 sm:gap-6 flex-1">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <position.icon className="text-accent" size={20} />
-                      </div>
+                <SpotlightTiltCard className="gradient-border" tilt={false}>
+                  <Card
+                    className="border-0 bg-transparent group cursor-pointer"
+                    onClick={() => (window.location.href = "mailto:info@wolfcrux.com")}
+                  >
+                    <CardContent className="p-6 sm:p-8">
+                      <div className="flex items-start justify-between gap-4 sm:gap-6">
+                        <div className="flex items-start gap-4 sm:gap-6 flex-1">
+                          <div className="icon-glow w-10 h-10 sm:w-12 sm:h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:bg-accent/15">
+                            <position.icon className="text-accent" size={20} />
+                          </div>
 
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-['Space_Grotesk'] text-lg sm:text-xl font-semibold text-foreground mb-2">
-                          {position.title}
-                        </h3>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-['Space_Grotesk'] text-lg sm:text-xl font-semibold text-foreground mb-2">
+                              {position.title}
+                            </h3>
 
-                        <div className="flex flex-wrap gap-2 sm:gap-4 mb-3 text-xs sm:text-sm">
-                          <span className="font-['Inter'] text-muted-foreground">
-                            {position.department}
-                          </span>
-                          <span className="font-['Inter'] text-muted-foreground">
-                            • {position.location}
-                          </span>
+                            <div className="flex flex-wrap gap-2 sm:gap-4 mb-3 text-xs sm:text-sm">
+                              <span className="font-['Inter'] text-muted-foreground">
+                                {position.department}
+                              </span>
+                              <span className="font-['Inter'] text-muted-foreground">
+                                • {position.location}
+                              </span>
+                            </div>
+
+                            <p className="font-['Inter'] text-sm sm:text-base text-muted-foreground whitespace-pre-line leading-relaxed">
+                              {position.description}
+                            </p>
+                          </div>
                         </div>
 
-                        <p className="font-['Inter'] text-sm sm:text-base text-muted-foreground whitespace-pre-line leading-relaxed">
-                          {position.description}
-                        </p>
+                        <ArrowRight
+                          className="text-accent group-hover:translate-x-2 transition-transform flex-shrink-0 hidden sm:block cursor-pointer"
+                          size={24}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = "mailto:info@wolfcrux.com";
+                          }}
+                        />
                       </div>
-                    </div>
-
-                    {/* UPDATED ARROW WITH MAILTO */}
-                    <ArrowRight
-                      className="text-accent group-hover:translate-x-2 transition-transform flex-shrink-0 hidden sm:block cursor-pointer"
-                      size={24}
-                      onClick={(e) => {
-                        e.stopPropagation(); 
-                        window.location.href = "mailto:info@wolfcrux.com";
-                      }}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </SpotlightTiltCard>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* APPLICATION PROCESS */}
-      <section className="py-12 md:py-20 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
+      {/* APPLICATION PROCESS — signature path */}
+      <section className="py-12 md:py-20 bg-muted/30 relative overflow-hidden">
+        <AuroraBackground className="opacity-50" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-12 reveal">
             Application Process
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
-            {[
-              { num: 1, title: "Apply", desc: "Submit your application and resume" },
-              { num: 2, title: "Screen", desc: "Technical assessment and review" },
-              { num: 3, title: "Interview", desc: "Meet with our team" },
-              { num: 4, title: "Offer", desc: "Welcome to Wolfcrux!" },
-            ].map((step, i) => (
-              <div
-                key={step.num}
-                className="text-center reveal group"
-                style={{ transitionDelay: `${i * 120}ms` }}
-              >
-                <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-4 font-['Space_Grotesk'] font-bold text-lg transition-transform duration-300 group-hover:scale-110 shadow-md">
-                  {step.num}
+          <div className="relative max-w-5xl mx-auto">
+            {/* connector line behind the steps */}
+            <div className="hidden md:block absolute top-6 left-[12%] right-[12%] h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              {[
+                { num: 1, title: "Apply", desc: "Submit your application and resume" },
+                { num: 2, title: "Screen", desc: "Technical assessment and review" },
+                { num: 3, title: "Interview", desc: "Meet with our team" },
+                { num: 4, title: "Offer", desc: "Welcome to Wolfcrux!" },
+              ].map((step, i) => (
+                <div
+                  key={step.num}
+                  className="text-center reveal group relative"
+                  style={{ transitionDelay: `${i * 120}ms` }}
+                >
+                  <div className="relative w-12 h-12 mx-auto mb-4">
+                    {/* pulsing ring */}
+                    <span className="absolute inset-0 rounded-full bg-accent/20 animate-ping opacity-0 group-hover:opacity-100" />
+                    <div className="relative w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center font-['Space_Grotesk'] font-bold text-lg transition-all duration-300 group-hover:scale-110 shadow-lg shadow-accent/30">
+                      {step.num}
+                    </div>
+                  </div>
+                  <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
+                    {step.title}
+                  </h3>
+                  <p className="font-['Inter'] text-sm text-muted-foreground">
+                    {step.desc}
+                  </p>
                 </div>
-                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
-                  {step.title}
-                </h3>
-                <p className="font-['Inter'] text-sm text-muted-foreground">
-                  {step.desc}
-                </p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -202,13 +242,13 @@ const Careers = () => {
             Don't See a Perfect Fit?
           </h2>
           <p className="font-['Inter'] text-lg text-muted-foreground mb-8">
-            We're always interested in hearing from talented individuals. 
+            We're always interested in hearing from talented individuals.
             Send us your resume and we'll keep you in mind for future opportunities.
           </p>
 
           <Button
             size="lg"
-            className="bg-accent hover:bg-accent/90 text-accent-foreground font-['Inter']"
+            className="bg-accent hover:bg-accent/90 text-accent-foreground font-['Inter'] shadow-lg shadow-accent/20"
             onClick={() => (window.location.href = "mailto:info@wolfcrux.com")}
           >
             Get in Touch
