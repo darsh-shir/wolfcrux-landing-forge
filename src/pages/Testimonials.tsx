@@ -29,7 +29,7 @@ const Testimonials = () => {
       <ScrollProgress />
       <Navigation />
 
-      <main className="relative pt-24 md:pt-32 pb-12 md:pb-20 px-6 overflow-hidden">
+      <main className="relative pt-24 md:pt-32 pb-12 md:pb-20 px-4 sm:px-6 overflow-hidden">
         <AuroraBackground />
 
         <div className="max-w-7xl mx-auto relative">
@@ -62,7 +62,7 @@ const Testimonials = () => {
               >
                 <SpotlightTiltCard className="gradient-border h-full">
                   <Card className="group border-0 bg-transparent flex flex-col h-full">
-                    <CardContent className="p-8 flex flex-col flex-grow">
+                    <CardContent className="p-5 sm:p-8 flex flex-col flex-grow">
                       <Quote
                         className="text-accent mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-6deg]"
                         size={32}
