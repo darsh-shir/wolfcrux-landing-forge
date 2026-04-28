@@ -82,15 +82,35 @@ const Admin = () => {
   const fetchAllData = async () => {
     setDataLoading(true);
 
-    const [usersRes, accountsRes, tradesRes] = await Promise.all([
+    // Fetch ALL trading_data rows in pages of 1000 to bypass the Supabase default row limit
+    const fetchAllTrades = async () => {
+      const pageSize = 1000;
+      let from = 0;
+      const all: any[] = [];
+      // safety cap to avoid infinite loops
+      for (let i = 0; i < 100; i++) {
+        const { data, error } = await supabase
+          .from("trading_data")
+          .select("*")
+          .order("trade_date", { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (error || !data) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
+    };
+
+    const [usersRes, accountsRes, allTrades] = await Promise.all([
       supabase.from("profiles").select("*").order("full_name"),
       supabase.from("trading_accounts").select("*").order("account_name"),
-      supabase.from("trading_data").select("*").order("trade_date", { ascending: false }),
+      fetchAllTrades(),
     ]);
 
     if (usersRes.data) setUsers(usersRes.data);
     if (accountsRes.data) setAccounts(accountsRes.data);
-    if (tradesRes.data) setTradingData(tradesRes.data);
+    setTradingData(allTrades);
 
     setDataLoading(false);
   };
