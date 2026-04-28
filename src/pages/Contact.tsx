@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useReveal } from "@/hooks/useReveal";
 
 import AuroraBackground from "@/components/landing/AuroraBackground";
-import TextScramble from "@/components/landing/TextScramble";
+
 import SpotlightTiltCard from "@/components/landing/SpotlightTiltCard";
 import ScrollProgress from "@/components/landing/ScrollProgress";
 import PulseGlobe from "@/components/landing/PulseGlobe";
@@ -41,7 +41,7 @@ const Contact = () => {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-10">
             <div className="max-w-3xl animate-fade-in">
               <h1 className="font-['Space_Grotesk'] text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6">
-                <TextScramble text="Get in " />
+                Get in
                 <span className="text-gradient-accent">Touch</span>
               </h1>
               <p className="font-['Inter'] text-xl text-muted-foreground leading-relaxed">
