@@ -66,7 +66,13 @@ const CodeRain = ({ className = "" }: { className?: string }) => {
     <canvas
       ref={canvasRef}
       aria-hidden
-      className={`absolute inset-0 w-full h-full pointer-events-none ${className}`}
+      className={`absolute inset-0 w-full h-full pointer-events-none opacity-60 blur-[1px] ${className}`}
+      style={{
+        WebkitMaskImage:
+          "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0.15) 85%, rgba(0,0,0,0) 100%)",
+        maskImage:
+          "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0.15) 85%, rgba(0,0,0,0) 100%)",
+      }}
     />
   );
 };
