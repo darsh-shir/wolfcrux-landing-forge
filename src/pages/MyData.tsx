@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { formatIndian, formatCurrencyINR } from "@/lib/utils";
+import AnimatedNumber from "@/components/AnimatedNumber";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -451,7 +452,7 @@ const MyData = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Gross P&L</p>
                         <p className={`text-2xl font-bold ${totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {formatCurrencyINR(totalPnl)}
+                          <AnimatedNumber value={totalPnl} format={(n) => formatCurrencyINR(n)} resetKey={totalPnl} />
                         </p>
                       </div>
                     </div>
@@ -467,7 +468,7 @@ const MyData = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Brokerage</p>
                         <p className="text-2xl font-bold text-orange-600">
-                          -{formatCurrencyINR(totalBrokerage)}
+                          -<AnimatedNumber value={totalBrokerage} format={(n) => formatCurrencyINR(n)} resetKey={totalBrokerage} />
                         </p>
                       </div>
                     </div>
@@ -483,7 +484,7 @@ const MyData = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Software Cost</p>
                         <p className="text-2xl font-bold text-purple-600">
-                          -{formatCurrencyINR(totalSoftwareCost)}
+                          -<AnimatedNumber value={totalSoftwareCost} format={(n) => formatCurrencyINR(n)} resetKey={totalSoftwareCost} />
                         </p>
                       </div>
                     </div>
@@ -503,7 +504,7 @@ const MyData = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Net P&L</p>
                         <p className={`text-2xl font-bold ${netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {formatCurrencyINR(netAfterBrokerage)}
+                          <AnimatedNumber value={netAfterBrokerage} format={(n) => formatCurrencyINR(n)} resetKey={netAfterBrokerage} />
                         </p>
                       </div>
                     </div>
@@ -518,7 +519,7 @@ const MyData = () => {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Shares Traded</p>
-                        <p className="text-2xl font-bold">{formatIndian(totalShares)}</p>
+                        <p className="text-2xl font-bold"><AnimatedNumber value={totalShares} format={(n) => formatIndian(Math.round(n))} resetKey={totalShares} /></p>
                       </div>
                     </div>
                   </CardContent>
