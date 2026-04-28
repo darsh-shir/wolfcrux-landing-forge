@@ -118,7 +118,7 @@ const Admin = () => {
   if (loading || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="spinner-ring" />
       </div>
     );
   }
@@ -126,7 +126,7 @@ const Admin = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background pt-24 pb-12 px-4">
+      <div className="min-h-screen bg-background pt-24 pb-12 px-4 animate-fade-in">
         <div className="max-w-[1600px] mx-auto">
           <Tabs defaultValue="dashboard" className="space-y-6">
             <TabsList className="bg-muted/30 border border-border/50">
