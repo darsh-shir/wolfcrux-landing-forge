@@ -27,8 +27,11 @@ export interface TickerQuote {
   changesPercentage: number;
 }
 
-const storageKey = (userId?: string | null) =>
-  userId ? `wolfcrux:ticker-watchlist:${userId}` : "wolfcrux:ticker-watchlist:guest";
+// Single browser-wide key. Watchlist persists across logins, logouts,
+// browser restarts and days — until the user clears site data.
+// Old per-user keys are migrated on first read.
+const STORAGE_KEY = "wolfcrux:ticker-watchlist";
+const LEGACY_KEY_PREFIX = "wolfcrux:ticker-watchlist:";
 
 const sanitize = (s: string) => s.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, "");
 
@@ -67,27 +70,48 @@ export const useTickerWatchlist = () => {
   const [loading, setLoading] = useState(true);
   const inflight = useRef(false);
 
-  // Load watchlist whenever the user changes
+  // Load watchlist once on mount; merge any legacy per-user lists into the
+  // single shared list so nothing the user previously added is lost.
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(storageKey(user?.id));
-      const parsed = raw ? (JSON.parse(raw) as string[]) : [];
-      setUserSymbols(Array.isArray(parsed) ? parsed.filter(Boolean) : []);
+      const merged = new Set<string>();
+
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as string[];
+        if (Array.isArray(parsed)) parsed.forEach((s) => s && merged.add(s));
+      }
+
+      // Migrate any legacy per-user / guest keys into the shared list, then drop them
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith(LEGACY_KEY_PREFIX)) continue;
+        try {
+          const legacy = JSON.parse(localStorage.getItem(key) || "[]") as string[];
+          if (Array.isArray(legacy)) legacy.forEach((s) => s && merged.add(s));
+        } catch {
+          /* ignore */
+        }
+        localStorage.removeItem(key);
+      }
+
+      const next = Array.from(merged);
+      setUserSymbols(next);
+      if (next.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {
       setUserSymbols([]);
     }
+    // Re-run if user identity changes so a freshly-signed-in user picks up
+    // anything they added while logged out (and vice versa).
   }, [user?.id]);
 
-  const persist = useCallback(
-    (next: string[]) => {
-      try {
-        localStorage.setItem(storageKey(user?.id), JSON.stringify(next));
-      } catch {
-        /* ignore quota errors */
-      }
-    },
-    [user?.id]
-  );
+  const persist = useCallback((next: string[]) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      /* ignore quota errors */
+    }
+  }, []);
 
   const allSymbols = [...INDUSTRY_LEADERS, ...userSymbols.filter((s) => !INDUSTRY_LEADERS.includes(s))];
 
