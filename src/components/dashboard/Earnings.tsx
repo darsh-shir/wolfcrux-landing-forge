@@ -379,31 +379,7 @@ const Earnings = () => {
               </div>
             </div>
 
-            {/* Analyst Ratings */}
-            {consensus && (
-              <div className="flex items-center gap-3 text-xs pt-2 border-t">
-                <span
-                  className={`px-2 py-1 rounded font-semibold ${getConsensusColor(consensus.id)}`}
-                >
-                  {getConsensusLabel(consensus.id)}
-                </span>
-                <span className="text-muted-foreground">
-                  {consensus.buy}B / {consensus.hold}H / {consensus.sell}S
-                </span>
-                <span className="text-muted-foreground">
-                  Target: ${consensus.priceTarget?.value?.toFixed(2)}
-                </span>
-                {s.price && consensus.priceTarget?.value ? (
-                  <span
-                    className={
-                      consensus.priceTarget.value > s.price ? "text-green-600" : "text-red-500"
-                    }
-                  >
-                    ({((consensus.priceTarget.value / s.price - 1) * 100).toFixed(1)}% upside)
-                  </span>
-                ) : null}
-              </div>
-            )}
+            {/* Analyst Ratings removed per request */}
 
             {/* Peers */}
             <div className="pt-3 mt-3 border-t">
