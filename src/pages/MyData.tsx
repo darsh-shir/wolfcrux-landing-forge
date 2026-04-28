@@ -363,7 +363,7 @@ const MyData = () => {
               {dataLoading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />
+                    <div key={i} className="skeleton-shimmer h-32 rounded-lg" />
                   ))}
                 </div>
               ) : (
@@ -534,7 +534,7 @@ const MyData = () => {
                   {dataLoading ? (
                     <div className="space-y-2">
                       {[1, 2, 3, 4, 5].map((i) => (
-                        <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+                        <div key={i} className="skeleton-shimmer h-12 rounded" />
                       ))}
                     </div>
                   ) : dailySummary.length === 0 ? (

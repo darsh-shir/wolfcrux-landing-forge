@@ -181,7 +181,7 @@ const PayoutSummary = () => {
   const fmt = (val: number) => formatCurrencyINR(val);
 
   if (loading) {
-    return <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />)}</div>;
+    return <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="skeleton-shimmer h-32 rounded-lg" />)}</div>;
   }
 
   return (

@@ -432,7 +432,7 @@ const Earnings = () => {
         <CardContent>
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-24 w-full bg-muted animate-pulse rounded-lg" />
+              <div key={i} className="skeleton-shimmer h-24 w-full rounded-lg" />
             ))}
           </div>
         </CardContent>
