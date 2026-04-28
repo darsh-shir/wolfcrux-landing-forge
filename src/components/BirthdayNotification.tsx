@@ -22,13 +22,33 @@ interface MonthBirthday {
   passed: boolean;
 }
 
+// Module-level cache so the icon doesn't flicker when Navigation
+// unmounts/remounts on route changes.
+let cachedUpcoming: UpcomingBirthday[] | null = null;
+let cachedMonth: MonthBirthday[] | null = null;
+let cachedForUserId: string | null = null;
+let lastFetchedAt = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 const BirthdayNotification = () => {
   const { user } = useAuth();
-  const [birthdays, setBirthdays] = useState<UpcomingBirthday[]>([]);
-  const [monthBirthdays, setMonthBirthdays] = useState<MonthBirthday[]>([]);
+  const [birthdays, setBirthdays] = useState<UpcomingBirthday[]>(
+    () => (cachedForUserId === (user?.id ?? null) && cachedUpcoming) || []
+  );
+  const [monthBirthdays, setMonthBirthdays] = useState<MonthBirthday[]>(
+    () => (cachedForUserId === (user?.id ?? null) && cachedMonth) || []
+  );
 
   useEffect(() => {
     if (!user) return;
+
+    // Hydrate instantly from cache when the user matches
+    if (cachedForUserId === user.id && cachedUpcoming && cachedMonth) {
+      setBirthdays(cachedUpcoming);
+      setMonthBirthdays(cachedMonth);
+      // Skip refetch if cache is still fresh
+      if (Date.now() - lastFetchedAt < CACHE_TTL_MS) return;
+    }
 
     const fetchBirthdays = async () => {
       const { data } = await supabase
@@ -83,12 +103,19 @@ const BirthdayNotification = () => {
 
       upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
       thisMonth.sort((a, b) => a.day - b.day);
+
+      cachedUpcoming = upcoming;
+      cachedMonth = thisMonth;
+      cachedForUserId = user.id;
+      lastFetchedAt = Date.now();
+
       setBirthdays(upcoming);
       setMonthBirthdays(thisMonth);
     };
 
     fetchBirthdays();
   }, [user]);
+
 
   if (!user || (birthdays.length === 0 && monthBirthdays.length === 0)) return null;
 
