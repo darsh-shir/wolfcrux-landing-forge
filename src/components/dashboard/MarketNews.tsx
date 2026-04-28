@@ -104,9 +104,9 @@ const MarketNews = ({ data, loading }: MarketNewsProps) => {
         {isLoading ? (
           <div className="space-y-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="animate-pulse space-y-2">
-                <div className="h-4 bg-muted rounded w-full" />
-                <div className="h-3 bg-muted rounded w-3/4" />
+              <div key={i} className="space-y-2">
+                <div className="skeleton-shimmer h-4 w-full" />
+                <div className="skeleton-shimmer h-3 w-3/4" />
               </div>
             ))}
           </div>

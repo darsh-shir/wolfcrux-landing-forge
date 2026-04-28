@@ -219,9 +219,9 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
         <CardContent>
           <div className="space-y-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="animate-pulse space-y-2">
-                <div className="h-5 bg-muted rounded w-full" />
-                <div className="h-4 bg-muted rounded w-2/3" />
+              <div key={i} className="space-y-2">
+                <div className="skeleton-shimmer h-5 w-full" />
+                <div className="skeleton-shimmer h-4 w-2/3" />
               </div>
             ))}
           </div>
