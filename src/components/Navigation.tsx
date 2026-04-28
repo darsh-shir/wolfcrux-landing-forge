@@ -41,8 +41,12 @@ const Navigation = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity min-w-0">
-            <img src={logo} alt="WOLFCRUX" className="h-9 w-9 sm:h-12 sm:w-12 object-contain shrink-0" />
+          <Link to="/" className="flex items-center gap-2 sm:gap-3 hover:opacity-90 transition-opacity min-w-0 group">
+            <img
+              src={logo}
+              alt="WOLFCRUX"
+              className="h-9 w-9 sm:h-12 sm:w-12 object-contain shrink-0 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-[-8deg]"
+            />
             <span className="font-['Space_Grotesk'] text-base sm:text-xl font-bold text-foreground truncate">
               WOLFCRUX
             </span>
@@ -59,9 +63,11 @@ const Navigation = () => {
                 }`}
               >
                 {link.name}
-                {isActive(link.path) && (
-                  <span className="absolute -bottom-6 left-0 right-0 h-0.5 bg-accent" />
-                )}
+                <span
+                  className={`absolute -bottom-6 left-0 right-0 h-0.5 bg-accent origin-left transition-transform duration-300 ease-out ${
+                    isActive(link.path) ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  }`}
+                />
               </Link>
             ))}
 
