@@ -7,8 +7,9 @@ import {
 } from "lucide-react";
 import { CompanyStats } from "./types";
 import { format, parseISO } from "date-fns";
-import { formatCurrencyINR } from "@/lib/utils";
+import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import AnimatedNumber from "@/components/AnimatedNumber";
 
 interface CompanyKPIsProps {
   stats: CompanyStats;
@@ -40,11 +41,14 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
   };
 
   const formatCurrency = (v: number) => formatCurrencyINR(v, "$", 0);
+  const fmtCur = (n: number) => formatCurrency(n);
+  const fmtInt = (n: number) => formatIndian(Math.round(n), 0);
 
   const kpis = [
     {
       label: "Total Company PnL",
-      value: formatCurrency(stats.totalPnl),
+      rawValue: stats.totalPnl,
+      format: fmtCur,
       subLabel: "Lifetime",
       icon: stats.totalPnl >= 0 ? TrendingUp : TrendingDown,
       color: stats.totalPnl >= 0 ? "text-emerald-600" : "text-red-600",
@@ -52,7 +56,8 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
     },
     {
       label: "Today PnL",
-      value: formatCurrency(stats.todayPnl),
+      rawValue: stats.todayPnl,
+      format: fmtCur,
       subLabel: "Today",
       icon: stats.todayPnl >= 0 ? ArrowUpRight : ArrowDownRight,
       color: stats.todayPnl >= 0 ? "text-emerald-600" : "text-red-600",
@@ -60,7 +65,8 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
     },
     {
       label: "This Week",
-      value: formatCurrency(stats.weekPnl),
+      rawValue: stats.weekPnl,
+      format: fmtCur,
       subLabel: "Week PnL",
       icon: stats.weekPnl >= 0 ? ArrowUpRight : ArrowDownRight,
       color: stats.weekPnl >= 0 ? "text-emerald-600" : "text-red-600",
@@ -68,7 +74,8 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
     },
     {
       label: "This Month",
-      value: formatCurrency(stats.monthPnl),
+      rawValue: stats.monthPnl,
+      format: fmtCur,
       subLabel: "Month PnL",
       icon: stats.monthPnl >= 0 ? ArrowUpRight : ArrowDownRight,
       color: stats.monthPnl >= 0 ? "text-emerald-600" : "text-red-600",
@@ -76,7 +83,8 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
     },
     {
       label: "Active Employees",
-      value: stats.totalActiveEmployees.toString(),
+      rawValue: stats.totalActiveEmployees,
+      format: fmtInt,
       subLabel: "Trading Staff",
       icon: Users,
       color: "text-blue-600",
@@ -84,7 +92,8 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
     },
     {
       label: "STO Pending",
-      value: formatCurrency(stoPending),
+      rawValue: stoPending,
+      format: fmtCur,
       subLabel: "Unpaid payouts",
       icon: Clock,
       color: "text-amber-600",
@@ -92,7 +101,8 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
     },
     {
       label: "LTO Locked",
-      value: formatCurrency(ltoLocked),
+      rawValue: ltoLocked,
+      format: fmtCur,
       subLabel: "12-month lock",
       icon: Lock,
       color: "text-blue-600",
@@ -100,7 +110,8 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
     },
     {
       label: "Trainee Pool",
-      value: formatCurrency(traineePool),
+      rawValue: traineePool,
+      format: fmtCur,
       subLabel: "This month",
       icon: Landmark,
       color: "text-purple-600",
@@ -108,7 +119,8 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
     },
     {
       label: "Best Day",
-      value: formatCurrency(stats.bestDayPnl),
+      rawValue: stats.bestDayPnl,
+      format: fmtCur,
       subLabel: stats.bestDayDate ? format(parseISO(stats.bestDayDate), "MMM d, yyyy") : "N/A",
       icon: TrendingUp,
       color: "text-emerald-600",
@@ -116,7 +128,8 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
     },
     {
       label: "Worst Day",
-      value: formatCurrency(stats.worstDayPnl),
+      rawValue: stats.worstDayPnl,
+      format: fmtCur,
       subLabel: stats.worstDayDate ? format(parseISO(stats.worstDayDate), "MMM d, yyyy") : "N/A",
       icon: TrendingDown,
       color: "text-red-600",
@@ -142,7 +155,11 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
               </div>
             </div>
             <div className={`text-xl font-bold ${kpi.color}`}>
-              {kpi.value}
+              <AnimatedNumber
+                value={kpi.rawValue}
+                format={kpi.format}
+                resetKey={kpi.rawValue}
+              />
             </div>
             <div className="text-xs text-muted-foreground mt-1">
               {kpi.subLabel}
