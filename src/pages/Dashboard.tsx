@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock, LineChart } from "lucide-react";
+import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock, LineChart, Activity } from "lucide-react";
 
 // Dashboard components
 import IndexCards from "@/components/dashboard/IndexCards";
@@ -19,6 +19,8 @@ import EconomicOverview from "@/components/dashboard/EconomicOverview";
 import EconomicCalendar from "@/components/dashboard/EconomicCalendar";
 import EarningsOverview from "@/components/dashboard/EarningsOverview";
 import CompareStocks from "@/components/dashboard/CompareStocks";
+import TickerTape from "@/components/dashboard/TickerTape";
+import MarketClock from "@/components/dashboard/MarketClock";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
@@ -241,18 +243,73 @@ const Dashboard = () => {
   }, [fetchSentiment]);
 
   /* ===================== UI ===================== */
+  const tickerItems = useMemo(
+    () =>
+      indices.map((i) => ({
+        symbol: i.symbol,
+        price: i.price,
+        change: i.change,
+        changesPercentage: i.changesPercentage,
+      })),
+    [indices]
+  );
+
   return (
     <>
       <Helmet>
-        <title>Trading Dashboard | Wolfcrux</title>
+        <title>Trading Terminal | Wolfcrux</title>
+        <meta
+          name="description"
+          content="Live US market terminal: indices, sectors, movers, news, earnings, and economic calendar."
+        />
       </Helmet>
 
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col relative">
+        {/* Subtle terminal grid backdrop */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-0 opacity-[0.05]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--foreground)) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+            maskImage:
+              "radial-gradient(ellipse at top, black 30%, transparent 75%)",
+            WebkitMaskImage:
+              "radial-gradient(ellipse at top, black 30%, transparent 75%)",
+          }}
+        />
+
         <Navigation />
 
-        <main className="pt-20 md:pt-24 pb-6 px-2 sm:px-4 max-w-7xl mx-auto flex-1 w-full animate-fade-in">
-          {/* Market Sentiment Header */}
-          <div className="flex justify-between items-center mb-4">
+        {/* Ticker tape — sits flush under the nav */}
+        <div className="pt-16 md:pt-20 relative z-20">
+          <TickerTape items={tickerItems} loading={loadingIndices} />
+        </div>
+
+        <main className="relative z-10 pb-10 px-2 sm:px-4 max-w-7xl mx-auto flex-1 w-full animate-fade-in">
+          {/* Terminal status bar */}
+          <div className="mt-3 sm:mt-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+                <Activity className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                Wolfcrux Terminal
+              </div>
+              <span className="text-border hidden sm:inline">·</span>
+              <div className="hidden sm:block">
+                <MarketSentiment
+                  sentiment={sentiment?.sentiment || ""}
+                  marketStatus={sentiment?.market_status || ""}
+                  created={sentiment?.created || ""}
+                  loading={loadingSentiment}
+                />
+              </div>
+            </div>
+            <MarketClock />
+          </div>
+
+          {/* Inline sentiment for mobile */}
+          <div className="sm:hidden mb-4">
             <MarketSentiment
               sentiment={sentiment?.sentiment || ""}
               marketStatus={sentiment?.market_status || ""}
@@ -263,40 +320,40 @@ const Dashboard = () => {
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="-mx-2 sm:mx-0 overflow-x-auto scrollbar-none">
-              <TabsList className="w-max md:w-full md:justify-start px-2 sm:px-0">
-                <TabsTrigger value="overview" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
+              <TabsList className="w-max md:w-full md:justify-start px-2 sm:px-0 bg-muted/40 border border-border/50">
+                <TabsTrigger value="overview" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <BarChart3 className="w-4 h-4 mr-1 sm:mr-2" />
                   Overview
                 </TabsTrigger>
 
-                <TabsTrigger value="news" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
+                <TabsTrigger value="news" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <Newspaper className="w-4 h-4 mr-1 sm:mr-2" />
                   News
                 </TabsTrigger>
 
-                <TabsTrigger value="splits" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
+                <TabsTrigger value="splits" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <Scissors className="w-4 h-4 mr-1 sm:mr-2" />
-                  Stock Splits
+                  Splits
                 </TabsTrigger>
 
-                <TabsTrigger value="earnings" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
+                <TabsTrigger value="earnings" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <Calendar className="w-4 h-4 mr-1 sm:mr-2" />
                   Earnings
                 </TabsTrigger>
 
-                <TabsTrigger value="peers" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
+                <TabsTrigger value="peers" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <Users className="w-4 h-4 mr-1 sm:mr-2" />
                   Peers
                 </TabsTrigger>
 
-                <TabsTrigger value="economic" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
+                <TabsTrigger value="economic" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <CalendarClock className="w-4 h-4 mr-1 sm:mr-2" />
-                  Economic Calendar
+                  Economic
                 </TabsTrigger>
 
-                <TabsTrigger value="compare" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
+                <TabsTrigger value="compare" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <LineChart className="w-4 h-4 mr-1 sm:mr-2" />
-                  Compare Stocks
+                  Compare
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -367,8 +424,6 @@ const Dashboard = () => {
             </TabsContent>
           </Tabs>
         </main>
-
-        
       </div>
     </>
   );
