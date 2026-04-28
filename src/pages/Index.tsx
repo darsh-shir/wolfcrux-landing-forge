@@ -9,7 +9,6 @@ import { useReveal } from "@/hooks/useReveal";
 
 import AnimatedCounter from "@/components/landing/AnimatedCounter";
 import TypewriterText from "@/components/landing/TypewriterText";
-import EquitySparkline from "@/components/landing/EquitySparkline";
 import AuroraBackground from "@/components/landing/AuroraBackground";
 import MagneticButton from "@/components/landing/MagneticButton";
 import SpotlightTiltCard from "@/components/landing/SpotlightTiltCard";
@@ -17,7 +16,6 @@ import ScrollProgress from "@/components/landing/ScrollProgress";
 import WaveDivider from "@/components/landing/WaveDivider";
 import TestimonialsCarousel from "@/components/landing/TestimonialsCarousel";
 import TextScramble from "@/components/landing/TextScramble";
-import CursorSpotlight from "@/components/landing/CursorSpotlight";
 
 import purviPhoto from "@/assets/purvi_photo.jpg";
 import labdhiPhoto from "@/assets/labdhi_photo.jpg";
