@@ -5,7 +5,7 @@ import { Quote } from "lucide-react";
 import { useReveal } from "@/hooks/useReveal";
 
 import AuroraBackground from "@/components/landing/AuroraBackground";
-import TextScramble from "@/components/landing/TextScramble";
+
 import SpotlightTiltCard from "@/components/landing/SpotlightTiltCard";
 import ScrollProgress from "@/components/landing/ScrollProgress";
 import AnimatedCounter from "@/components/landing/AnimatedCounter";
@@ -35,7 +35,7 @@ const Testimonials = () => {
         <div className="max-w-7xl mx-auto relative">
           <div className="text-center mb-16 animate-fade-in">
             <h1 className="font-['Space_Grotesk'] text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6">
-              <TextScramble text="Traders " />
+              Traders
               <span className="text-gradient-accent">Testimonials</span>
             </h1>
             <p className="font-['Inter'] text-xl text-muted-foreground max-w-3xl mx-auto">

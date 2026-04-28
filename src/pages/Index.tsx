@@ -13,7 +13,7 @@ import AuroraBackground from "@/components/landing/AuroraBackground";
 import SpotlightTiltCard from "@/components/landing/SpotlightTiltCard";
 import ScrollProgress from "@/components/landing/ScrollProgress";
 import TestimonialsCarousel from "@/components/landing/TestimonialsCarousel";
-import TextScramble from "@/components/landing/TextScramble";
+
 
 import purviPhoto from "@/assets/purvi_photo.jpg";
 import labdhiPhoto from "@/assets/labdhi_photo.jpg";
@@ -67,7 +67,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center space-y-8 animate-fade-in">
             <h1 className="font-['Space_Grotesk'] text-4xl sm:text-5xl md:text-7xl font-bold text-foreground leading-tight">
-              <TextScramble text="Precision Trading at" />
+              Precision Trading at
               <br />
               <span className="text-gradient-accent">Microsecond Speed</span>
             </h1>
