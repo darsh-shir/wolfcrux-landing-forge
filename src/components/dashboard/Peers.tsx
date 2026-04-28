@@ -4,9 +4,99 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, TrendingUp, TrendingDown, Loader2, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, Loader2, ChevronDown, ChevronUp, ExternalLink, Sparkles, ArrowRight } from "lucide-react";
 
 const PROXY_URL = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+
+/**
+ * Curated peer pairs traders frequently watch together.
+ * Grouped by sector/theme for easier scanning.
+ */
+const PEER_PAIRS: { theme: string; pairs: [string, string][] }[] = [
+  {
+    theme: "Banks — Canada",
+    pairs: [
+      ["RY", "BNS"], ["TD", "BNS"], ["RY", "TD"], ["BMO", "BNS"],
+      ["RY", "BMO"], ["TD", "CM"], ["RY", "CM"], ["TD", "BMO"],
+      ["BMO", "CM"], ["BNS", "CM"],
+    ],
+  },
+  {
+    theme: "Banks — US / Capital Markets",
+    pairs: [
+      ["PNC", "USB"], ["AMP", "RJF"], ["MCO", "SPGI"], ["MA", "V"],
+    ],
+  },
+  {
+    theme: "Insurance",
+    pairs: [
+      ["AJG", "MMC"], ["AON", "MMC"], ["AJG", "BRO"], ["MET", "PRU"],
+      ["BRO", "MMC"], ["AJG", "AON"], ["AON", "BRO"], ["HIG", "L"],
+      ["CB", "WRB"], ["WRB", "L"], ["L", "AIZ"], ["L", "ORI"],
+      ["TRV", "WRB"], ["L", "AFG"], ["GL", "AFL"], ["HIG", "WRB"],
+      ["CB", "TRV"], ["WRB", "THG"], ["CB", "L"], ["CB", "HIG"],
+      ["L", "CNA"], ["FNF", "FAF"],
+    ],
+  },
+  {
+    theme: "Industrials & Machinery",
+    pairs: [
+      ["ITW", "DOV"], ["GGG", "DCI"], ["GGG", "IEX"], ["DOV", "IEX"],
+      ["AME", "DOV"], ["ITW", "IEX"], ["ITW", "GGG"], ["AME", "IEX"],
+      ["ITW", "AME"], ["DOV", "GGG"], ["DOV", "DCI"], ["AME", "DCI"],
+      ["AME", "GGG"], ["ITW", "DCI"], ["XYL", "DOV"], ["XYL", "GGG"],
+      ["DOV", "PNR"], ["XYL", "IEX"], ["OTIS", "IEX"], ["ITW", "OTIS"],
+      ["OTIS", "GGG"], ["OTIS", "DOV"], ["IEX", "DCI"], ["PH", "IR"],
+    ],
+  },
+  {
+    theme: "Consumer Staples",
+    pairs: [
+      ["CL", "KMB"], ["CPB", "GIS"], ["K", "CPB"], ["CL", "PG"],
+      ["CL", "CHD"], ["SJM", "GIS"], ["K", "GIS"], ["K", "SJM"],
+      ["KMB", "CHD"], ["KMB", "PG"], ["SJM", "CPB"], ["MKC", "GIS"],
+      ["K", "MKC"], ["CHD", "PG"], ["CHD", "CLX"], ["MO", "PM"],
+    ],
+  },
+  {
+    theme: "Healthcare",
+    pairs: [
+      ["COR", "MCK"], ["BSX", "SYK"], ["SYK", "ZBH"], ["COR", "CAH"],
+      ["CAH", "MCK"], ["LH", "DGX"], ["UHS", "HCA"],
+    ],
+  },
+  {
+    theme: "Energy & Pipelines",
+    pairs: [
+      ["TRP", "ENB"], ["CVX", "XOM"],
+    ],
+  },
+  {
+    theme: "Defense & Aerospace",
+    pairs: [
+      ["LMT", "NOC"], ["GD", "LHX"], ["GD", "HII"], ["LMT", "LHX"],
+    ],
+  },
+  {
+    theme: "Homebuilders & Materials",
+    pairs: [
+      ["LEN", "DHI"], ["LEN", "PHM"], ["VMC", "MLM"],
+    ],
+  },
+  {
+    theme: "Waste & Transportation",
+    pairs: [
+      ["RSG", "WM"], ["RSG", "WCN"], ["WCN", "WM"], ["NSC", "UNP"],
+      ["CP", "CNI"],
+    ],
+  },
+  {
+    theme: "Retail / Other",
+    pairs: [
+      ["LOW", "HD"], ["YUM", "MCD"], ["ADP", "PAYX"],
+    ],
+  },
+];
 
 interface PeerData {
   symbol: string;
