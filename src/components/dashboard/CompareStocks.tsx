@@ -533,21 +533,23 @@ const CompareStocks = () => {
       </Card>
 
       {/* Comparison Card */}
-      <Card className="p-4 sm:p-5">
+      <Card className="p-4 sm:p-5 border border-border/50 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold">Compare Stocks</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">
+            <h2 className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+              // Compare Stocks
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Compare % price change across multiple tickers
             </p>
           </div>
           <div className="flex gap-2">
             <Input
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => setInput(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === "Enter" && addSymbol()}
-              placeholder="Add symbol (e.g. AAPL)"
-              className="h-9 w-full sm:w-48 uppercase"
+              placeholder="Add symbol"
+              className="h-9 w-full sm:w-48 font-mono text-sm uppercase"
               disabled={adding || symbols.length >= MAX_SYMBOLS}
             />
             <Button
