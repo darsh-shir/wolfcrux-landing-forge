@@ -153,28 +153,33 @@ const Peers = () => {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Search Bar */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex gap-3 items-center">
+      <Card className="bg-card border border-border/50 shadow-sm">
+        <CardContent className="pt-5 pb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground flex items-center gap-2">
+              <Search className="w-3.5 h-3.5" /> // Symbol Lookup
+            </span>
+          </div>
+          <div className="flex gap-2 items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Enter stock symbol (e.g. SAIA, AAPL, TSLA)"
+                placeholder="Query symbol (e.g. AAPL, TSLA, JPM)"
                 value={symbol}
                 onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                 onKeyDown={handleKeyDown}
-                className="pl-10 font-mono text-sm uppercase"
+                className="pl-10 font-mono text-sm uppercase h-10"
               />
             </div>
-            <Button onClick={() => fetchData()} disabled={loading || !symbol.trim()}>
+            <Button onClick={() => fetchData()} disabled={loading || !symbol.trim()} className="h-10 font-mono text-xs uppercase tracking-wider">
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
                 <Search className="h-4 w-4 mr-2" />
               )}
-              Find Peers
+              Find
             </Button>
           </div>
         </CardContent>
@@ -182,21 +187,29 @@ const Peers = () => {
 
       {/* Loading */}
       {loading && (
-        <div className="flex justify-start py-12 pl-4">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="flex items-center gap-3 py-12 pl-4 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          // Querying terminal…
         </div>
       )}
 
       {/* Stock Quote + Profile */}
       {!loading && (profile || quote) && (
-        <Card>
+        <Card className="bg-card border border-border/50 shadow-sm relative overflow-hidden animate-fade-in">
+          {quote && (
+            <span
+              className={`absolute left-0 top-0 bottom-0 w-[3px] ${
+                quote.changesPercentage >= 0 ? "bg-emerald-500/70" : "bg-red-500/70"
+              }`}
+            />
+          )}
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
               {profile?.image && (
                 <img
                   src={profile.image}
                   alt={profile.symbol}
-                  className="h-10 w-10 rounded-lg object-contain bg-muted p-1"
+                  className="h-10 w-10 rounded-md object-contain bg-muted p-1 border border-border/50"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
                   }}
@@ -204,7 +217,10 @@ const Peers = () => {
               )}
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  {profile?.companyName || quote?.symbol}
+                  <span className="font-mono">{profile?.symbol || quote?.symbol}</span>
+                  <span className="text-sm text-muted-foreground font-normal truncate">
+                    {profile?.companyName}
+                  </span>
                   {profile?.website && (
                     <a
                       href={profile.website}
@@ -219,8 +235,8 @@ const Peers = () => {
               </div>
               {quote && (
                 <div className="flex items-baseline gap-2 shrink-0">
-                  <span className="text-2xl font-bold font-mono">${quote.price.toFixed(2)}</span>
-                  <div className={`flex items-center gap-1 text-sm font-medium ${quote.changesPercentage >= 0 ? "text-green-500" : "text-red-500"}`}>
+                  <span className="text-2xl font-bold font-mono tabular-nums">${quote.price.toFixed(2)}</span>
+                  <div className={`flex items-center gap-1 text-sm font-mono font-semibold tabular-nums ${quote.changesPercentage >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                     {quote.changesPercentage >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                     <span>{quote.changesPercentage >= 0 ? "+" : ""}{quote.changesPercentage.toFixed(2)}%</span>
                   </div>
@@ -231,51 +247,33 @@ const Peers = () => {
           <CardContent className="pt-0">
             {/* Quote Details Section */}
             {quote && (
-              <div className="mb-4 pb-4 border-b border-border">
-
+              <div className="mb-4 pb-4 border-b border-border/50">
                 {/* After hours */}
                 {quote.afterHoursPrice != null && !quote.isMarketOpen && (
-                  <div className="text-xs text-muted-foreground mb-3">
-                    After Hours: <span className="font-mono font-medium text-foreground">${quote.afterHoursPrice.toFixed(2)}</span>
-                    <span className={`ml-1 ${(quote.afterHoursPercentChange ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                  <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-3">
+                    // After Hours: <span className="font-medium text-foreground tabular-nums">${quote.afterHoursPrice.toFixed(2)}</span>
+                    <span className={`ml-1 ${(quote.afterHoursPercentChange ?? 0) >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                       {(quote.afterHoursChange ?? 0) >= 0 ? "+" : ""}{(quote.afterHoursChange ?? 0).toFixed(2)} ({(quote.afterHoursPercentChange ?? 0) >= 0 ? "+" : ""}{(quote.afterHoursPercentChange ?? 0).toFixed(2)}%)
                     </span>
                   </div>
                 )}
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground block text-xs">Open</span>
-                    <span className="font-medium font-mono">${quote.open.toFixed(2)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-xs">Prev Close</span>
-                    <span className="font-medium font-mono">${quote.previousClose.toFixed(2)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-xs">Day Range</span>
-                    <span className="font-medium font-mono">${quote.dayLow.toFixed(2)} - ${quote.dayHigh.toFixed(2)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-xs">52W Range</span>
-                    <span className="font-medium font-mono">${quote.yearLow.toFixed(2)} - ${quote.yearHigh.toFixed(2)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-xs">Volume</span>
-                    <span className="font-medium font-mono">{formatIndian(quote.volume)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-xs">Avg Volume</span>
-                    <span className="font-medium font-mono">{formatIndian(quote.avgVolume)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-xs">P/E</span>
-                    <span className="font-medium font-mono">{quote.pe?.toFixed(2) || "N/A"}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-xs">EPS</span>
-                    <span className="font-medium font-mono">${quote.eps?.toFixed(2) || "N/A"}</span>
-                  </div>
+                  {[
+                    { label: "Open", value: `$${quote.open.toFixed(2)}` },
+                    { label: "Prev Close", value: `$${quote.previousClose.toFixed(2)}` },
+                    { label: "Day Range", value: `$${quote.dayLow.toFixed(2)} – $${quote.dayHigh.toFixed(2)}` },
+                    { label: "52W Range", value: `$${quote.yearLow.toFixed(2)} – $${quote.yearHigh.toFixed(2)}` },
+                    { label: "Volume", value: formatIndian(quote.volume) },
+                    { label: "Avg Volume", value: formatIndian(quote.avgVolume) },
+                    { label: "P/E", value: quote.pe?.toFixed(2) || "N/A" },
+                    { label: "EPS", value: quote.eps ? `$${quote.eps.toFixed(2)}` : "N/A" },
+                  ].map((m) => (
+                    <div key={m.label} className="rounded-md border border-border/40 bg-muted/20 px-2.5 py-1.5">
+                      <span className="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground">// {m.label}</span>
+                      <span className="font-mono font-medium tabular-nums text-sm">{m.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -283,25 +281,25 @@ const Peers = () => {
             {/* Profile Details */}
             {profile && (
               <>
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-border/50">
                   {profileRows.map((row) => (
-                    <div key={row.label} className="flex justify-between py-2.5 text-sm">
-                      <span className="text-muted-foreground">{row.label}</span>
+                    <div key={row.label} className="flex justify-between py-2 text-sm">
+                      <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{row.label}</span>
                       <span className="font-medium text-foreground">{row.value}</span>
                     </div>
                   ))}
                 </div>
 
                 {profile.description && (
-                  <div className="mt-3 pt-3 border-t border-border">
-                    <p className={`text-sm text-muted-foreground ${!descExpanded ? "line-clamp-3" : ""}`}>
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <p className={`text-sm text-muted-foreground leading-relaxed ${!descExpanded ? "line-clamp-3" : ""}`}>
                       {profile.description}
                     </p>
                     <button
                       onClick={() => setDescExpanded(!descExpanded)}
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-1"
+                      className="flex items-center gap-1 text-[11px] font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground mt-2"
                     >
-                      {descExpanded ? "View Less" : "View More"}
+                      {descExpanded ? "// Less" : "// More"}
                       {descExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                     </button>
                   </div>
@@ -314,27 +312,39 @@ const Peers = () => {
 
       {/* No results */}
       {!loading && searched && peers.length === 0 && !profile && (
-        <div className="text-center py-12 text-muted-foreground">
-          No data found for <span className="font-mono font-semibold">{symbol}</span>
+        <div className="text-center py-12 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          // No data for <span className="font-semibold text-foreground">{symbol}</span>
         </div>
       )}
 
       {/* Peers Grid */}
       {!loading && peers.length > 0 && (
         <>
-          <h3 className="text-lg font-semibold text-foreground">Peers</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {peers.map((peer) => {
+          <h3 className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+            // Peers [{peers.length}]
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {peers.map((peer, idx) => {
               const isPositive = peer.changesPercentage >= 0;
               return (
-                <Card key={peer.symbol} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => fetchData(peer.symbol)}>
-                  <CardHeader className="pb-3">
+                <Card
+                  key={peer.symbol}
+                  onClick={() => fetchData(peer.symbol)}
+                  className="relative overflow-hidden border border-border/60 hover:border-foreground/30 hover:shadow-sm transition-all cursor-pointer animate-fade-in"
+                  style={{ animationDelay: `${idx * 30}ms` }}
+                >
+                  <span
+                    className={`absolute left-0 top-0 bottom-0 w-[3px] ${
+                      isPositive ? "bg-emerald-500/70" : "bg-red-500/70"
+                    }`}
+                  />
+                  <CardHeader className="pb-2 pt-3">
                     <div className="flex items-center gap-3">
                       {peer.image && (
                         <img
                           src={peer.image}
                           alt={peer.symbol}
-                          className="h-10 w-10 rounded-lg object-contain bg-muted p-1"
+                          className="h-9 w-9 rounded-md object-contain bg-muted p-1 border border-border/50"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = "none";
                           }}
@@ -343,7 +353,7 @@ const Peers = () => {
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-base flex items-center gap-2">
                           <span className="font-mono">{peer.symbol}</span>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          <Badge variant="outline" className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0">
                             {peer.exchange}
                           </Badge>
                         </CardTitle>
@@ -353,14 +363,14 @@ const Peers = () => {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0 space-y-2">
+                  <CardContent className="pt-0 space-y-2 pb-3">
                     <div className="flex items-baseline justify-between">
-                      <span className="text-xl font-bold font-mono">
+                      <span className="text-xl font-bold font-mono tabular-nums">
                         ${peer.price.toFixed(2)}
                       </span>
                       <div
-                        className={`flex items-center gap-1 text-sm font-medium ${
-                          isPositive ? "text-green-500" : "text-red-500"
+                        className={`flex items-center gap-1 text-sm font-mono font-semibold tabular-nums ${
+                          isPositive ? "text-emerald-600" : "text-red-500"
                         }`}
                       >
                         {isPositive ? (
@@ -378,9 +388,9 @@ const Peers = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="flex justify-between text-xs text-muted-foreground pt-1 border-t border-border">
-                      <span>Market Cap</span>
-                      <span className="font-medium text-foreground">
+                    <div className="flex justify-between text-xs pt-1 border-t border-border/50">
+                      <span className="font-mono uppercase tracking-wider text-muted-foreground">// Mkt Cap</span>
+                      <span className="font-mono font-medium tabular-nums text-foreground">
                         {formatMarketCap(peer.marketCap)}
                       </span>
                     </div>
