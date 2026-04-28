@@ -72,7 +72,7 @@ const Index = () => {
       {/* Features Section */}
       <section className="py-16 md:py-24 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 animate-fade-in">
+          <div className="text-center mb-16 reveal">
             <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-5xl font-bold text-foreground mb-4">
               Our Advantage
             </h2>
@@ -82,50 +82,39 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="border-border hover:shadow-lg transition-shadow animate-fade-in">
-              <CardContent className="p-8">
-                <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6">
-                  <Zap className="text-accent" size={28} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                  Lightning Fast
-                </h3>
-                <p className="font-['Inter'] text-muted-foreground">
-                  Microsecond-level execution powered by proprietary infrastructure 
-                  and co-location strategies in major US data centers.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border hover:shadow-lg transition-shadow animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              <CardContent className="p-8">
-                <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6">
-                  <TrendingUp className="text-accent" size={28} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                  Data-Driven
-                </h3>
-                <p className="font-['Inter'] text-muted-foreground">
-                  Advanced quantitative models analyzing terabytes of market data 
-                  to identify profitable opportunities in real-time.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border hover:shadow-lg transition-shadow animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              <CardContent className="p-8">
-                <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6">
-                  <Shield className="text-accent" size={28} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                  Risk Managed
-                </h3>
-                <p className="font-['Inter'] text-muted-foreground">
-                  Sophisticated risk management systems ensuring controlled exposure 
-                  and sustainable performance across market conditions.
-                </p>
-              </CardContent>
-            </Card>
+            {[
+              {
+                icon: Zap,
+                title: "Lightning Fast",
+                desc: "Microsecond-level execution powered by proprietary infrastructure and co-location strategies in major US data centers.",
+              },
+              {
+                icon: TrendingUp,
+                title: "Data-Driven",
+                desc: "Advanced quantitative models analyzing terabytes of market data to identify profitable opportunities in real-time.",
+              },
+              {
+                icon: Shield,
+                title: "Risk Managed",
+                desc: "Sophisticated risk management systems ensuring controlled exposure and sustainable performance across market conditions.",
+              },
+            ].map((f, i) => (
+              <Card
+                key={f.title}
+                className="border-border hover-lift reveal group"
+                style={{ transitionDelay: `${i * 100}ms` }}
+              >
+                <CardContent className="p-8">
+                  <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:bg-accent/15">
+                    <f.icon className="text-accent" size={28} />
+                  </div>
+                  <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
+                    {f.title}
+                  </h3>
+                  <p className="font-['Inter'] text-muted-foreground">{f.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
