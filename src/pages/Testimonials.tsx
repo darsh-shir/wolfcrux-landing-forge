@@ -4,8 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Quote } from "lucide-react";
 
 // ✅ Import all photos correctly
-import krishaPhoto from "@/assets/krisha_photo.jpeg";
-import jenishPhoto from "@/assets/jenish_photo.jpeg";
 import purviPhoto from "@/assets/purvi_photo.jpg";      // NEW correct import
 import labdhiPhoto from "@/assets/labdhi_photo.jpg";
 import darshitPhoto from "@/assets/darshit_photo.jpeg";
