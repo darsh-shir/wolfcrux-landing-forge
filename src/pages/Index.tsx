@@ -64,7 +64,6 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
         <AuroraBackground />
-        <CursorSpotlight />
         <FloatingShapes />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -106,13 +105,6 @@ const Index = () => {
                   </Button>
                 </Link>
               </MagneticButton>
-            </div>
-
-            {/* Animated equity curve under hero */}
-            <div className="max-w-3xl mx-auto pt-6">
-              <div className="h-32 md:h-40 opacity-90">
-                <EquitySparkline />
-              </div>
             </div>
 
             {/* Animated stats */}
