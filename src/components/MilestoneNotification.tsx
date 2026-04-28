@@ -244,7 +244,7 @@ const MilestoneNotification = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-96 p-0">
+      <PopoverContent align="end" sideOffset={8} collisionPadding={12} className="w-[calc(100vw-1.5rem)] sm:w-96 p-0">
         {alerts.length > 0 && (
           <div className="p-3 border-b border-border">
             <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">

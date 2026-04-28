@@ -126,67 +126,69 @@ const Admin = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background pt-24 pb-12 px-4 animate-fade-in">
+      <div className="min-h-screen bg-background pt-20 sm:pt-24 pb-12 px-3 sm:px-4 animate-fade-in">
         <div className="max-w-[1600px] mx-auto">
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="bg-muted/30 border border-border/50">
-              <TabsTrigger value="dashboard" className="gap-2 data-[state=active]:bg-background">
-                <LayoutDashboard className="h-4 w-4" />
-                Dashboard
-              </TabsTrigger>
-              <TabsTrigger value="users" className="gap-2 data-[state=active]:bg-background">
-                <Users className="h-4 w-4" />
-                Users
-              </TabsTrigger>
-              <TabsTrigger value="trading" className="gap-2 data-[state=active]:bg-background">
-                <BarChart3 className="h-4 w-4" />
-                Trading Data
-              </TabsTrigger>
-              <TabsTrigger value="leaves" className="gap-2 data-[state=active]:bg-background">
-                <Calendar className="h-4 w-4" />
-                Leaves
-              </TabsTrigger>
-              <TabsTrigger value="payouts" className="gap-2 data-[state=active]:bg-background">
-                <FileText className="h-4 w-4" />
-                Payout Sheet
-              </TabsTrigger>
-              <TabsTrigger value="payout-tracker" className="gap-2 data-[state=active]:bg-background">
-                <DollarSign className="h-4 w-4" />
-                Payout Tracker
-              </TabsTrigger>
-              <TabsTrigger value="salary-backup" className="gap-2 data-[state=active]:bg-background">
-                <Wallet className="h-4 w-4" />
-                Salary Backup
-              </TabsTrigger>
-              <TabsTrigger value="desk-cost" className="gap-2 data-[state=active]:bg-background">
-                <Building2 className="h-4 w-4" />
-                Desk Cost
-              </TabsTrigger>
-              <TabsTrigger value="trader-config" className="gap-2 data-[state=active]:bg-background">
-                <Settings className="h-4 w-4" />
-                Trader Config
-              </TabsTrigger>
-              <TabsTrigger value="pool" className="gap-2 data-[state=active]:bg-background">
-                <Landmark className="h-4 w-4" />
-                Pool
-              </TabsTrigger>
-              <TabsTrigger value="lto" className="gap-2 data-[state=active]:bg-background">
-                <Lock className="h-4 w-4" />
-                LTO
-              </TabsTrigger>
-              <TabsTrigger value="single-day" className="gap-2 data-[state=active]:bg-background">
-                <ClipboardCheck className="h-4 w-4" />
-                Single Day P&L
-              </TabsTrigger>
-              <TabsTrigger value="monthly-pnl" className="gap-2 data-[state=active]:bg-background">
-                <CalendarRange className="h-4 w-4" />
-                Monthly P&L
-              </TabsTrigger>
-              <TabsTrigger value="progress" className="gap-2 data-[state=active]:bg-background">
-                <TrendingUp className="h-4 w-4" />
-                Trader Progress
-              </TabsTrigger>
-            </TabsList>
+            <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
+              <TabsList className="w-max bg-muted/30 border border-border/50">
+                <TabsTrigger value="dashboard" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </TabsTrigger>
+                <TabsTrigger value="users" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Users className="h-4 w-4" />
+                  Users
+                </TabsTrigger>
+                <TabsTrigger value="trading" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <BarChart3 className="h-4 w-4" />
+                  Trading Data
+                </TabsTrigger>
+                <TabsTrigger value="leaves" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Calendar className="h-4 w-4" />
+                  Leaves
+                </TabsTrigger>
+                <TabsTrigger value="payouts" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <FileText className="h-4 w-4" />
+                  Payout Sheet
+                </TabsTrigger>
+                <TabsTrigger value="payout-tracker" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <DollarSign className="h-4 w-4" />
+                  Payout Tracker
+                </TabsTrigger>
+                <TabsTrigger value="salary-backup" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Wallet className="h-4 w-4" />
+                  Salary Backup
+                </TabsTrigger>
+                <TabsTrigger value="desk-cost" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Building2 className="h-4 w-4" />
+                  Desk Cost
+                </TabsTrigger>
+                <TabsTrigger value="trader-config" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Settings className="h-4 w-4" />
+                  Trader Config
+                </TabsTrigger>
+                <TabsTrigger value="pool" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Landmark className="h-4 w-4" />
+                  Pool
+                </TabsTrigger>
+                <TabsTrigger value="lto" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Lock className="h-4 w-4" />
+                  LTO
+                </TabsTrigger>
+                <TabsTrigger value="single-day" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <ClipboardCheck className="h-4 w-4" />
+                  Single Day P&L
+                </TabsTrigger>
+                <TabsTrigger value="monthly-pnl" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <CalendarRange className="h-4 w-4" />
+                  Monthly P&L
+                </TabsTrigger>
+                <TabsTrigger value="progress" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <TrendingUp className="h-4 w-4" />
+                  Trader Progress
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* DASHBOARD TAB */}
             <TabsContent value="dashboard">

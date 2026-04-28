@@ -82,12 +82,62 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html,
   body {
     @apply bg-background text-foreground;
+    /* Prevent horizontal page scroll caused by stray wide elements on mobile */
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   html {
     scroll-behavior: smooth;
+    /* Stops iOS Safari from auto-zooming on focus and from boosting font sizes in landscape */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Force inputs to be at least 16px on mobile so iOS doesn't auto-zoom on focus */
+  @media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Long unbroken strings (emails, account numbers, urls) should wrap, not overflow */
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  span,
+  a,
+  li,
+  td,
+  th {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Make tap targets feel native on touch devices */
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Hide native scrollbar utility (used by horizontal tab/scroll rails) */
+@layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 

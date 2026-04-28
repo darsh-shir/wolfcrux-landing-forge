@@ -90,7 +90,7 @@ const Contact = () => {
               >
                 <SpotlightTiltCard className="gradient-border h-full">
                   <Card className="border-0 bg-transparent h-full group">
-                    <CardContent className="p-8 text-center">
+                    <CardContent className="p-6 sm:p-8 text-center">
                       <div className="icon-glow w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-accent/15">
                         <c.icon className="text-accent" size={28} />
                       </div>
@@ -125,7 +125,7 @@ const Contact = () => {
           <div className="reveal" style={{ transitionDelay: "150ms" }}>
             <SpotlightTiltCard className="gradient-border" tilt={false}>
               <Card className="border-0 bg-transparent">
-                <CardContent className="p-8">
+                <CardContent className="p-5 sm:p-8">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>

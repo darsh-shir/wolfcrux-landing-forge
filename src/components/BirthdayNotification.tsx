@@ -139,7 +139,7 @@ const BirthdayNotification = () => {
           </span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
+      <PopoverContent align="end" sideOffset={8} collisionPadding={12} className="w-[calc(100vw-1.5rem)] sm:w-80 p-0">
         {/* Upcoming section */}
         {birthdays.length > 0 && (
           <>
