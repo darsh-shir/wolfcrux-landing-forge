@@ -316,12 +316,12 @@ const CompareStocks = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days]);
 
-  // Auto-add a couple defaults on mount
+  // Auto-add a fresh rolling pair on each mount/refresh
   useEffect(() => {
     (async () => {
-      const defaults = ["SYF", "COF"];
+      const pair = ROLLING_PAIRS[Math.floor(Math.random() * ROLLING_PAIRS.length)];
       const results = await Promise.all(
-        defaults.map((d) => fetchStock(d, 365))
+        pair.map((d) => fetchStock(d, 365))
       );
       setSymbols(results.filter(Boolean) as StockEntry[]);
     })();
