@@ -65,12 +65,24 @@ const formatDate = (iso: string) => {
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
+const todayKey = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+};
+
+// Returns weekdays (Mon–Fri) from today through Friday of the current week.
+// Past days are skipped — the API has no historical events to show.
 const getWeekDates = () => {
   const now = new Date();
   const day = now.getDay();
   const monday = new Date(now);
   monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
   monday.setHours(0, 0, 0, 0);
+
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().slice(0, 10);
 
   return DAY_NAMES.map((name, i) => {
     const d = new Date(monday);
@@ -79,9 +91,9 @@ const getWeekDates = () => {
       name,
       dateKey: d.toISOString().slice(0, 10),
       date: d,
-      isToday: d.toISOString().slice(0, 10) === now.toISOString().slice(0, 10),
+      isToday: d.toISOString().slice(0, 10) === todayStr,
     };
-  });
+  }).filter((d) => d.dateKey >= todayStr);
 };
 
 const WeeklyStance = ({ events }: { events: EconomicEvent[] }) => {
@@ -187,7 +199,15 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
   const [impactFilter, setImpactFilter] = useState<string>("med-high");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  const usOnly = useMemo(() => data.filter((e) => e.country?.toLowerCase() === "us"), [data]);
+  // US-only AND today-or-later (drop past days; API doesn't return historical events)
+  const usOnly = useMemo(() => {
+    const today = todayKey();
+    return data.filter((e) => {
+      if (e.country?.toLowerCase() !== "us") return false;
+      const dateKey = e.time?.slice(0, 10) || "";
+      return dateKey >= today;
+    });
+  }, [data]);
 
   const filtered = useMemo(() => {
     return usOnly.filter((e) => {
