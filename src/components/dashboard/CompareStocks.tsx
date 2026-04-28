@@ -39,6 +39,29 @@ const RANGES = [
 
 const MAX_SYMBOLS = 6;
 
+// Curated rolling pairs — a fresh pair is picked on every visit/refresh.
+const ROLLING_PAIRS: [string, string][] = [
+  ["AEE", "CMS"], ["RSG", "WM"], ["WEC", "CMS"], ["WEC", "AEE"],
+  ["SO", "DUK"], ["ED", "WEC"], ["DTE", "AEE"], ["EQR", "AVB"],
+  ["DTE", "CMS"], ["AJG", "MMC"], ["MAA", "CPT"], ["ED", "AEE"],
+  ["UDR", "AVB"], ["DUK", "CMS"], ["ED", "CMS"], ["DUK", "WEC"],
+  ["SO", "WEC"], ["DUK", "AEE"], ["SO", "CMS"], ["MAA", "UDR"],
+  ["SO", "AEE"], ["DUK", "ED"], ["EQR", "UDR"], ["RY", "BNS"],
+  ["AON", "MMC"], ["TD", "BNS"], ["CPT", "UDR"], ["MAA", "AVB"],
+  ["DUK", "FE"], ["DTE", "PPL"], ["CPT", "AVB"], ["WEC", "DTE"],
+  ["RY", "TD"], ["AJG", "BRO"], ["ETR", "PPL"], ["MET", "PRU"],
+  ["BRO", "MMC"], ["BMO", "BNS"], ["PEG", "DTE"], ["DUK", "DTE"],
+  ["SO", "DTE"], ["DUK", "PNW"], ["ED", "DTE"], ["DUK", "ETR"],
+  ["DUK", "PPL"], ["D", "CMS"], ["SO", "ED"], ["NI", "ATO"],
+  ["AEE", "FE"], ["ES", "CMS"], ["AJG", "AON"], ["D", "WEC"],
+  ["DTE", "PNW"], ["AEE", "PNW"], ["CL", "KMB"], ["SO", "FE"],
+  ["CPB", "GIS"], ["ETR", "CMS"], ["DTE", "FE"], ["PPL", "CMS"],
+  ["FE", "CMS"], ["PPL", "PNW"], ["RY", "BMO"], ["K", "CPB"],
+  ["AEE", "PPL"], ["EQR", "CPT"], ["ETR", "PNW"], ["DTE", "CNP"],
+  ["SO", "ETR"], ["AEE", "EVRG"], ["TD", "CM"],
+];
+
+
 interface PricePoint {
   date: string;
   close: number;
