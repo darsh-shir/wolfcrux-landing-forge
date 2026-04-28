@@ -4,8 +4,10 @@ import FloatingShapes from "@/components/FloatingShapes";
 import { Building2, Users, Target, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import teamPhoto from "@/assets/team-photo.jpeg";
+import { useReveal } from "@/hooks/useReveal";
 
 const About = () => {
+  useReveal();
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
