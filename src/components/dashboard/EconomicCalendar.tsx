@@ -164,15 +164,16 @@ const WeeklyStance = ({ events }: { events: EconomicEvent[] }) => {
 };
 
 const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
-  const [impactFilter, setImpactFilter] = useState<string>("all");
+  const [impactFilter, setImpactFilter] = useState<string>("med-high");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const usOnly = useMemo(() => data.filter((e) => e.country?.toLowerCase() === "us"), [data]);
 
   const filtered = useMemo(() => {
     return usOnly.filter((e) => {
-      if (impactFilter !== "all" && e.impact !== Number(impactFilter)) return false;
-      return true;
+      if (impactFilter === "med-high") return e.impact >= 2;
+      if (impactFilter === "all") return true;
+      return e.impact === Number(impactFilter);
     });
   }, [usOnly, impactFilter]);
 
