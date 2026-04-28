@@ -305,7 +305,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Avg Daily P&L</p>
-                <p className={`text-lg font-bold ${analytics.avgDailyPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                <p className={`text-base sm:text-lg font-bold leading-tight tabular-nums ${analytics.avgDailyPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                   <AnimatedNumber value={analytics.avgDailyPnl} format={formatCurrency} resetKey={analytics.avgDailyPnl} />
                 </p>
               </div>
