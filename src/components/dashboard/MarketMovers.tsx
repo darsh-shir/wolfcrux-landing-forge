@@ -42,10 +42,7 @@ const MarketMovers = ({
 
         {loading ? (
           [...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="h-12 rounded-lg bg-muted/40 animate-pulse"
-            />
+            <div key={i} className="skeleton-shimmer h-12" />
           ))
         ) : (
           data.slice(0, 4).map((item) => {

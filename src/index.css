@@ -151,11 +151,68 @@ All colors MUST be HSL.
     transform: translateY(0);
   }
 
+  /* Subtle hover lift specifically tuned for dense data cards (smaller offset) */
+  .hover-lift-sm {
+    @apply transition-all duration-300 ease-out;
+  }
+  .hover-lift-sm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px -16px hsl(var(--foreground) / 0.18);
+  }
+
+  /* Premium shimmer skeleton — replaces the duller animate-pulse */
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+    background: hsl(var(--muted));
+    border-radius: 0.5rem;
+  }
+  .skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--foreground) / 0.06),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  /* Polished spinner (dual-ring) */
+  .spinner-ring {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    border: 2.5px solid hsl(var(--muted));
+    border-top-color: hsl(var(--accent));
+    border-right-color: hsl(var(--accent));
+    animation: rotate-slow 0.9s linear infinite;
+  }
+
+  /* TabsContent fade/slide-in */
+  [data-state="active"].tab-anim,
+  .tab-anim[data-state="active"] {
+    animation: fade-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Smoother default tab triggers */
+  [role="tab"] {
+    transition: color 0.2s ease, background-color 0.25s ease, box-shadow 0.25s ease;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .reveal,
     .hover-lift,
+    .hover-lift-sm,
     .story-link::after,
-    .text-gradient-accent {
+    .text-gradient-accent,
+    .skeleton-shimmer::after,
+    .spinner-ring,
+    .tab-anim,
+    [data-state="active"].tab-anim {
       transition: none !important;
       animation: none !important;
     }

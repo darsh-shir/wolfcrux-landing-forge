@@ -127,16 +127,17 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-4">
       {kpis.map((kpi, index) => (
-        <Card 
-          key={index} 
-          className="border-border/50 hover:bg-muted/30 transition-colors"
+        <Card
+          key={index}
+          className="border-border/50 hover-lift-sm animate-scale-in group"
+          style={{ animationDelay: `${index * 50}ms` }}
         >
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
                 {kpi.label}
               </span>
-              <div className={`p-1.5 rounded-lg ${kpi.bgColor}`}>
+              <div className={`p-1.5 rounded-lg ${kpi.bgColor} transition-transform duration-300 group-hover:scale-110`}>
                 <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
               </div>
             </div>

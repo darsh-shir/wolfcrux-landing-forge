@@ -121,7 +121,7 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
         </CardHeader>
         <CardContent className="space-y-3">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-14 bg-muted rounded animate-pulse" />
+            <div key={i} className="skeleton-shimmer h-14 rounded" />
           ))}
         </CardContent>
       </Card>

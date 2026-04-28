@@ -115,10 +115,10 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
         {[...Array(4)].map((_, i) => (
           <Card key={i} className="bg-card border border-border/50 shadow-sm">
             <CardContent className="p-5">
-              <div className="animate-pulse space-y-3">
-                <div className="h-5 w-28 bg-muted rounded" />
-                <div className="h-10 w-full bg-muted rounded" />
-                <div className="h-8 w-32 bg-muted rounded" />
+              <div className="space-y-3">
+                <div className="skeleton-shimmer h-5 w-28" />
+                <div className="skeleton-shimmer h-10 w-full" />
+                <div className="skeleton-shimmer h-8 w-32" />
               </div>
             </CardContent>
           </Card>
@@ -135,23 +135,24 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
           {lastUpdated && <span>Updated {lastUpdated.toLocaleTimeString()}</span>}
           <button
             onClick={onRefresh}
-            className="p-1 hover:bg-muted rounded transition-colors"
+            className="p-1.5 hover:bg-muted rounded-md transition-all duration-200 active:scale-90"
             disabled={loading}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 transition-transform ${loading ? "animate-spin" : "hover:rotate-90"}`} />
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-        {indices.map((index) => {
+        {indices.map((index, i) => {
           const isPositive = index.changesPercentage >= 0;
           const percentValue = Math.abs(index.changesPercentage);
 
           return (
             <Card
               key={index.symbol}
-              className="bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow"
+              className="bg-card border border-border/50 shadow-sm hover-lift-sm animate-scale-in"
+              style={{ animationDelay: `${i * 60}ms` }}
             >
               <CardContent className="p-3 sm:p-5">
                 {/* Header */}

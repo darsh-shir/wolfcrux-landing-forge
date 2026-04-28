@@ -255,8 +255,8 @@ const MyData = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="spinner-ring" />
       </div>
     );
   }
@@ -264,9 +264,9 @@ const MyData = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background pt-24 pb-12 px-4">
+      <div className="min-h-screen bg-background pt-24 pb-12 px-4 animate-fade-in">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
+          <div className="mb-8 animate-fade-in-up">
              <h1 className="text-3xl font-bold font-['Space_Grotesk'] text-foreground">
                Hi{firstName ? `, ${firstName}` : ""} 👋
              </h1>
@@ -277,34 +277,34 @@ const MyData = () => {
 
           <Tabs defaultValue="analytics" className="space-y-6">
             <TabsList>
-              <TabsTrigger value="analytics" className="gap-2">
+              <TabsTrigger value="analytics" className="gap-2 transition-all duration-200 hover:text-foreground">
                 <LineChart className="h-4 w-4" />
                 Analytics
               </TabsTrigger>
-              <TabsTrigger value="trading" className="gap-2">
+              <TabsTrigger value="trading" className="gap-2 transition-all duration-200 hover:text-foreground">
                 <BarChart3 className="h-4 w-4" />
                 Trading Data
               </TabsTrigger>
-              <TabsTrigger value="attendance" className="gap-2">
+              <TabsTrigger value="attendance" className="gap-2 transition-all duration-200 hover:text-foreground">
                 <Calendar className="h-4 w-4" />
                 Attendance
               </TabsTrigger>
-              <TabsTrigger value="payout" className="gap-2">
+              <TabsTrigger value="payout" className="gap-2 transition-all duration-200 hover:text-foreground">
                 <Wallet className="h-4 w-4" />
                 Payout
               </TabsTrigger>
-              <TabsTrigger value="lto" className="gap-2">
+              <TabsTrigger value="lto" className="gap-2 transition-all duration-200 hover:text-foreground">
                 <Heart className="h-4 w-4" />
                 LTO
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-2">
+              <TabsTrigger value="settings" className="gap-2 transition-all duration-200 hover:text-foreground">
                 <Key className="h-4 w-4" />
                 Settings
               </TabsTrigger>
             </TabsList>
 
             {/* ANALYTICS TAB */}
-            <TabsContent value="analytics">
+            <TabsContent value="analytics" className="tab-anim">
               {/* Filters */}
               <div className="flex flex-wrap gap-2 mb-6">
                 <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
@@ -363,7 +363,7 @@ const MyData = () => {
               {dataLoading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />
+                    <div key={i} className="skeleton-shimmer h-32 rounded-lg" />
                   ))}
                 </div>
               ) : (
@@ -380,7 +380,7 @@ const MyData = () => {
             </TabsContent>
 
             {/* TRADING DATA TAB */}
-            <TabsContent value="trading">
+            <TabsContent value="trading" className="tab-anim">
               {/* Filters */}
               <div className="flex flex-wrap gap-2 mb-6">
                 <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
@@ -438,7 +438,7 @@ const MyData = () => {
 
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-                <Card>
+                <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "0ms" }}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${totalPnl >= 0 ? "bg-green-100" : "bg-red-100"}`}>
@@ -458,7 +458,7 @@ const MyData = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "80ms" }}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-orange-100">
@@ -474,7 +474,7 @@ const MyData = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "160ms" }}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-purple-100">
@@ -490,7 +490,7 @@ const MyData = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "240ms" }}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${netAfterBrokerage >= 0 ? "bg-green-100" : "bg-red-100"}`}>
@@ -510,7 +510,7 @@ const MyData = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "320ms" }}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-blue-100">
@@ -534,7 +534,7 @@ const MyData = () => {
                   {dataLoading ? (
                     <div className="space-y-2">
                       {[1, 2, 3, 4, 5].map((i) => (
-                        <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+                        <div key={i} className="skeleton-shimmer h-12 rounded" />
                       ))}
                     </div>
                   ) : dailySummary.length === 0 ? (
@@ -640,22 +640,22 @@ const MyData = () => {
             </TabsContent>
 
             {/* ATTENDANCE TAB - Read-only */}
-            <TabsContent value="attendance">
+            <TabsContent value="attendance" className="tab-anim">
               <LeaveApplication />
             </TabsContent>
 
             {/* PAYOUT TAB */}
-            <TabsContent value="payout">
+            <TabsContent value="payout" className="tab-anim">
               <PayoutSummary />
             </TabsContent>
 
             {/* LTO TAB */}
-            <TabsContent value="lto">
+            <TabsContent value="lto" className="tab-anim">
               <LtoLoyaltyView />
             </TabsContent>
 
             {/* SETTINGS TAB */}
-            <TabsContent value="settings">
+            <TabsContent value="settings" className="tab-anim">
               <div className="max-w-md">
                 <ChangePassword />
               </div>
