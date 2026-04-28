@@ -21,6 +21,7 @@ import EarningsOverview from "@/components/dashboard/EarningsOverview";
 import CompareStocks from "@/components/dashboard/CompareStocks";
 import TickerTape from "@/components/dashboard/TickerTape";
 import MarketClock from "@/components/dashboard/MarketClock";
+import MarketPulse from "@/components/dashboard/MarketPulse";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
@@ -367,6 +368,7 @@ const Dashboard = () => {
                 onRefresh={fetchAll}
               />
 
+              <MarketPulse sectors={sectors} loading={loadingSectors} />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
                 <SectorPerformance
                   data={sectors}
