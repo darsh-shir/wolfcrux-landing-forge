@@ -126,7 +126,7 @@ const Admin = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background pt-24 pb-12 px-4 animate-fade-in">
+      <div className="min-h-screen bg-background pt-20 sm:pt-24 pb-12 px-3 sm:px-4 animate-fade-in">
         <div className="max-w-[1600px] mx-auto">
           <Tabs defaultValue="dashboard" className="space-y-6">
             <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">

@@ -265,13 +265,13 @@ const MyData = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background pt-24 pb-12 px-4 animate-fade-in">
+      <div className="min-h-screen bg-background pt-20 sm:pt-24 pb-12 px-3 sm:px-4 animate-fade-in">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8 animate-fade-in-up">
-             <h1 className="text-3xl font-bold font-['Space_Grotesk'] text-foreground">
+          <div className="mb-6 sm:mb-8 animate-fade-in-up">
+             <h1 className="text-2xl sm:text-3xl font-bold font-['Space_Grotesk'] text-foreground">
                Hi{firstName ? `, ${firstName}` : ""} 👋
              </h1>
-            <p className="text-muted-foreground font-['Inter'] mt-2">
+            <p className="text-sm sm:text-base text-muted-foreground font-['Inter'] mt-1.5 sm:mt-2">
               View your trading performance and attendance
             </p>
           </div>
