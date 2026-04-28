@@ -290,33 +290,8 @@ const Dashboard = () => {
 
         <main className="relative z-10 pb-10 px-2 sm:px-4 max-w-7xl mx-auto flex-1 w-full animate-fade-in">
           {/* Terminal status bar */}
-          <div className="mt-3 sm:mt-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-                <Activity className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-                Wolfcrux Terminal
-              </div>
-              <span className="text-border hidden sm:inline">·</span>
-              <div className="hidden sm:block">
-                <MarketSentiment
-                  sentiment={sentiment?.sentiment || ""}
-                  marketStatus={sentiment?.market_status || ""}
-                  created={sentiment?.created || ""}
-                  loading={loadingSentiment}
-                />
-              </div>
-            </div>
+          <div className="mt-3 sm:mt-4 mb-4 flex justify-end">
             <MarketClock />
-          </div>
-
-          {/* Inline sentiment for mobile */}
-          <div className="sm:hidden mb-4">
-            <MarketSentiment
-              sentiment={sentiment?.sentiment || ""}
-              marketStatus={sentiment?.market_status || ""}
-              created={sentiment?.created || ""}
-              loading={loadingSentiment}
-            />
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
