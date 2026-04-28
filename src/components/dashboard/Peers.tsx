@@ -4,9 +4,99 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, TrendingUp, TrendingDown, Loader2, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, Loader2, ChevronDown, ChevronUp, ExternalLink, Sparkles, ArrowRight } from "lucide-react";
 
 const PROXY_URL = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+
+/**
+ * Curated peer pairs traders frequently watch together.
+ * Grouped by sector/theme for easier scanning.
+ */
+const PEER_PAIRS: { theme: string; pairs: [string, string][] }[] = [
+  {
+    theme: "Banks — Canada",
+    pairs: [
+      ["RY", "BNS"], ["TD", "BNS"], ["RY", "TD"], ["BMO", "BNS"],
+      ["RY", "BMO"], ["TD", "CM"], ["RY", "CM"], ["TD", "BMO"],
+      ["BMO", "CM"], ["BNS", "CM"],
+    ],
+  },
+  {
+    theme: "Banks — US / Capital Markets",
+    pairs: [
+      ["PNC", "USB"], ["AMP", "RJF"], ["MCO", "SPGI"], ["MA", "V"],
+    ],
+  },
+  {
+    theme: "Insurance",
+    pairs: [
+      ["AJG", "MMC"], ["AON", "MMC"], ["AJG", "BRO"], ["MET", "PRU"],
+      ["BRO", "MMC"], ["AJG", "AON"], ["AON", "BRO"], ["HIG", "L"],
+      ["CB", "WRB"], ["WRB", "L"], ["L", "AIZ"], ["L", "ORI"],
+      ["TRV", "WRB"], ["L", "AFG"], ["GL", "AFL"], ["HIG", "WRB"],
+      ["CB", "TRV"], ["WRB", "THG"], ["CB", "L"], ["CB", "HIG"],
+      ["L", "CNA"], ["FNF", "FAF"],
+    ],
+  },
+  {
+    theme: "Industrials & Machinery",
+    pairs: [
+      ["ITW", "DOV"], ["GGG", "DCI"], ["GGG", "IEX"], ["DOV", "IEX"],
+      ["AME", "DOV"], ["ITW", "IEX"], ["ITW", "GGG"], ["AME", "IEX"],
+      ["ITW", "AME"], ["DOV", "GGG"], ["DOV", "DCI"], ["AME", "DCI"],
+      ["AME", "GGG"], ["ITW", "DCI"], ["XYL", "DOV"], ["XYL", "GGG"],
+      ["DOV", "PNR"], ["XYL", "IEX"], ["OTIS", "IEX"], ["ITW", "OTIS"],
+      ["OTIS", "GGG"], ["OTIS", "DOV"], ["IEX", "DCI"], ["PH", "IR"],
+    ],
+  },
+  {
+    theme: "Consumer Staples",
+    pairs: [
+      ["CL", "KMB"], ["CPB", "GIS"], ["K", "CPB"], ["CL", "PG"],
+      ["CL", "CHD"], ["SJM", "GIS"], ["K", "GIS"], ["K", "SJM"],
+      ["KMB", "CHD"], ["KMB", "PG"], ["SJM", "CPB"], ["MKC", "GIS"],
+      ["K", "MKC"], ["CHD", "PG"], ["CHD", "CLX"], ["MO", "PM"],
+    ],
+  },
+  {
+    theme: "Healthcare",
+    pairs: [
+      ["COR", "MCK"], ["BSX", "SYK"], ["SYK", "ZBH"], ["COR", "CAH"],
+      ["CAH", "MCK"], ["LH", "DGX"], ["UHS", "HCA"],
+    ],
+  },
+  {
+    theme: "Energy & Pipelines",
+    pairs: [
+      ["TRP", "ENB"], ["CVX", "XOM"],
+    ],
+  },
+  {
+    theme: "Defense & Aerospace",
+    pairs: [
+      ["LMT", "NOC"], ["GD", "LHX"], ["GD", "HII"], ["LMT", "LHX"],
+    ],
+  },
+  {
+    theme: "Homebuilders & Materials",
+    pairs: [
+      ["LEN", "DHI"], ["LEN", "PHM"], ["VMC", "MLM"],
+    ],
+  },
+  {
+    theme: "Waste & Transportation",
+    pairs: [
+      ["RSG", "WM"], ["RSG", "WCN"], ["WCN", "WM"], ["NSC", "UNP"],
+      ["CP", "CNI"],
+    ],
+  },
+  {
+    theme: "Retail / Other",
+    pairs: [
+      ["LOW", "HD"], ["YUM", "MCD"], ["ADP", "PAYX"],
+    ],
+  },
+];
 
 interface PeerData {
   symbol: string;
@@ -184,6 +274,56 @@ const Peers = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Recommended peer pairs — shown when nothing has been searched yet */}
+      {!loading && !searched && (
+        <Card className="bg-card border border-border/50 shadow-sm animate-fade-in">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              // Recommended Peer Pairs
+            </CardTitle>
+            <p className="text-[11px] font-mono text-muted-foreground mt-1">
+              Click a ticker to load its profile, quote, and full peer list.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {PEER_PAIRS.map((group, gIdx) => (
+              <div key={group.theme} className="animate-fade-in" style={{ animationDelay: `${gIdx * 40}ms` }}>
+                <h4 className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground mb-2 pb-1 border-b border-border/50">
+                  // {group.theme} <span className="text-foreground/60">[{group.pairs.length}]</span>
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {group.pairs.map(([a, b]) => (
+                    <div
+                      key={`${a}-${b}`}
+                      className="group inline-flex items-center rounded-md border border-border/60 bg-muted/20 hover:bg-muted/50 hover:border-foreground/30 transition-colors overflow-hidden"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => fetchData(a)}
+                        className="px-2 py-1 font-mono text-xs font-semibold text-foreground hover:text-emerald-600 transition-colors"
+                        title={`View ${a}`}
+                      >
+                        {a}
+                      </button>
+                      <ArrowRight className="w-3 h-3 text-muted-foreground/60 group-hover:text-foreground/80 transition-colors" />
+                      <button
+                        type="button"
+                        onClick={() => fetchData(b)}
+                        className="px-2 py-1 font-mono text-xs font-semibold text-foreground hover:text-emerald-600 transition-colors"
+                        title={`View ${b}`}
+                      >
+                        {b}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Loading */}
       {loading && (
