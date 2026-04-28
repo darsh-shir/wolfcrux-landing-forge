@@ -4,8 +4,10 @@ import FloatingShapes from "@/components/FloatingShapes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, LineChart, Users, Cpu, Code2 } from "lucide-react";
+import { useReveal } from "@/hooks/useReveal";
 
 const Careers = () => {
+  useReveal();
   const positions = [
     {
       title: "US Equity Trader",
@@ -71,53 +73,28 @@ const Careers = () => {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center animate-fade-in">
-              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="text-accent" size={32} />
+            {[
+              { icon: Users, title: "Collaborative Culture", desc: "Work with brilliant minds in a supportive, innovative environment" },
+              { icon: LineChart, title: "Growth Opportunities", desc: "Rapid career progression in a fast-growing firm" },
+              { icon: Cpu, title: "Cutting-Edge Tech", desc: "Work with the latest technology and infrastructure" },
+              { icon: Code2, title: "Competitive Package", desc: "Industry-leading compensation and benefits" },
+            ].map((item, i) => (
+              <div
+                key={item.title}
+                className="text-center reveal group"
+                style={{ transitionDelay: `${i * 100}ms` }}
+              >
+                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:scale-110 group-hover:bg-accent/20">
+                  <item.icon className="text-accent" size={32} />
+                </div>
+                <h3 className="font-['Space_Grotesk'] text-lg font-semibold text-foreground mb-2">
+                  {item.title}
+                </h3>
+                <p className="font-['Inter'] text-sm text-muted-foreground">
+                  {item.desc}
+                </p>
               </div>
-              <h3 className="font-['Space_Grotesk'] text-lg font-semibold text-foreground mb-2">
-                Collaborative Culture
-              </h3>
-              <p className="font-['Inter'] text-sm text-muted-foreground">
-                Work with brilliant minds in a supportive, innovative environment
-              </p>
-            </div>
-
-            <div className="text-center animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <LineChart className="text-accent" size={32} />
-              </div>
-              <h3 className="font-['Space_Grotesk'] text-lg font-semibold text-foreground mb-2">
-                Growth Opportunities
-              </h3>
-              <p className="font-['Inter'] text-sm text-muted-foreground">
-                Rapid career progression in a fast-growing firm
-              </p>
-            </div>
-
-            <div className="text-center animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Cpu className="text-accent" size={32} />
-              </div>
-              <h3 className="font-['Space_Grotesk'] text-lg font-semibold text-foreground mb-2">
-                Cutting-Edge Tech
-              </h3>
-              <p className="font-['Inter'] text-sm text-muted-foreground">
-                Work with the latest technology and infrastructure
-              </p>
-            </div>
-
-            <div className="text-center animate-fade-in" style={{ animationDelay: "0.3s" }}>
-              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Code2 className="text-accent" size={32} />
-              </div>
-              <h3 className="font-['Space_Grotesk'] text-lg font-semibold text-foreground mb-2">
-                Competitive Package
-              </h3>
-              <p className="font-['Inter'] text-sm text-muted-foreground">
-                Industry-leading compensation and benefits
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
