@@ -1,6 +1,6 @@
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import FloatingShapes from "@/components/FloatingShapes";
+
 import { Cpu, Database, Network, Gauge, Lock, Code } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useReveal } from "@/hooks/useReveal";
@@ -23,7 +23,7 @@ const Technology = () => {
       {/* Hero Section — code rain signature */}
       <section className="relative pt-24 md:pt-32 pb-12 md:pb-20 overflow-hidden">
         <AuroraBackground className="opacity-70" />
-        <FloatingShapes />
+        
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl animate-fade-in">
