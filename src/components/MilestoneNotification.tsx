@@ -45,14 +45,34 @@ interface UpcomingTrader {
   closestBy: "days" | "profit";
 }
 
+// Module-level cache prevents the icon from disappearing/reappearing
+// when Navigation unmounts/remounts during route changes.
+let cachedAlerts: MilestoneAlert[] | null = null;
+let cachedUpcoming: UpcomingTrader[] | null = null;
+let cachedForUserId: string | null = null;
+let lastFetchedAt = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 const MilestoneNotification = () => {
   const { user, isAdmin } = useAuth();
-  const [alerts, setAlerts] = useState<MilestoneAlert[]>([]);
-  const [upcoming, setUpcoming] = useState<UpcomingTrader[]>([]);
-  
+  const [alerts, setAlerts] = useState<MilestoneAlert[]>(
+    () => (cachedForUserId === (user?.id ?? null) && cachedAlerts) || []
+  );
+  const [upcoming, setUpcoming] = useState<UpcomingTrader[]>(
+    () => (cachedForUserId === (user?.id ?? null) && cachedUpcoming) || []
+  );
+
 
   useEffect(() => {
     if (!user || !isAdmin) return;
+
+    // Hydrate instantly from cache when the user matches
+    if (cachedForUserId === user.id && cachedAlerts && cachedUpcoming) {
+      setAlerts(cachedAlerts);
+      setUpcoming(cachedUpcoming);
+      if (Date.now() - lastFetchedAt < CACHE_TTL_MS) return;
+    }
+
     evaluateMilestones();
   }, [user, isAdmin]);
 
@@ -194,8 +214,15 @@ const MilestoneNotification = () => {
     }
 
     upcomingList.sort((a, b) => b.bestProgress - a.bestProgress);
+    const trimmedUpcoming = upcomingList.slice(0, 3);
+
+    cachedAlerts = newAlerts;
+    cachedUpcoming = trimmedUpcoming;
+    cachedForUserId = user?.id ?? null;
+    lastFetchedAt = Date.now();
+
     setAlerts(newAlerts);
-    setUpcoming(upcomingList.slice(0, 3));
+    setUpcoming(trimmedUpcoming);
   };
 
 
