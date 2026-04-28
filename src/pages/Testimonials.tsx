@@ -2,6 +2,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Quote } from "lucide-react";
+import { useReveal } from "@/hooks/useReveal";
 
 // ✅ Import all photos correctly
 import purviPhoto from "@/assets/purvi_photo.jpg";      // NEW correct import
@@ -10,6 +11,7 @@ import darshitPhoto from "@/assets/darshit_photo.jpeg";
 import jinalPhoto from "@/assets/jinal-photo.jpeg";
 
 const Testimonials = () => {
+  useReveal();
   const testimonials = [
     {
       quote:
@@ -60,11 +62,14 @@ const Testimonials = () => {
             {testimonials.map((test, index) => (
               <Card
                 key={index}
-                className="group hover:shadow-xl transition-all duration-300 animate-fade-in border-border bg-card flex flex-col"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="group hover-lift reveal border-border bg-card flex flex-col"
+                style={{ transitionDelay: `${index * 100}ms` }}
               >
                 <CardContent className="p-8 flex flex-col flex-grow">
-                  <Quote className="text-accent mb-4" size={32} />
+                  <Quote
+                    className="text-accent mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-6deg]"
+                    size={32}
+                  />
                   <p className="font-['Inter'] text-lg text-foreground mb-6 leading-relaxed flex-grow">
                     "{test.quote}"
                   </p>
@@ -73,7 +78,7 @@ const Testimonials = () => {
                     <img
                       src={test.image}
                       alt={test.author}
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-12 h-12 rounded-full object-cover ring-2 ring-transparent transition-all duration-300 group-hover:ring-accent/30 group-hover:scale-105"
                     />
                     <div>
                       <h4 className="font-['Space_Grotesk'] font-semibold text-foreground">
