@@ -485,7 +485,7 @@ const Earnings = () => {
 
         {/* PRICE FILTER */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">Price:</span>
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">// Price</span>
           <Select value={priceFilter} onValueChange={(v) => setPriceFilter(v as PriceFilterValue)}>
             <SelectTrigger className="w-[180px] h-9">
               <SelectValue placeholder="Select price range" />
