@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useReveal } from "@/hooks/useReveal";
 
 const Contact = () => {
+  useReveal();
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -44,9 +46,9 @@ const Contact = () => {
       <section className="py-12 md:py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="border-border animate-fade-in">
+            <Card className="border-border hover-lift reveal group">
               <CardContent className="p-8 text-center">
-                <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:bg-accent/15">
                   <Building2 className="text-accent" size={28} />
                 </div>
                 <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
@@ -58,9 +60,9 @@ const Contact = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-border animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <Card className="border-border hover-lift reveal group" style={{ transitionDelay: "100ms" }}>
               <CardContent className="p-8 text-center">
-                <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:bg-accent/15">
                   <MapPin className="text-accent" size={28} />
                 </div>
                 <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
@@ -72,21 +74,21 @@ const Contact = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-border animate-fade-in" style={{ animationDelay: "0.2s" }}>
-  <CardContent className="p-8 text-center">
-    <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-      <Mail className="text-accent" size={28} />
-    </div>
-    <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
-      Email
-    </h3>
-    <p className="font-['Inter'] text-muted-foreground text-sm">
-      <a href="mailto:info@wolfcrux.com" className="text-accent hover:underline">
-        info@wolfcrux.com
-      </a>
-    </p>
-  </CardContent>
-</Card>
+            <Card className="border-border hover-lift reveal group" style={{ transitionDelay: "200ms" }}>
+              <CardContent className="p-8 text-center">
+                <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:bg-accent/15">
+                  <Mail className="text-accent" size={28} />
+                </div>
+                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
+                  Email
+                </h3>
+                <p className="font-['Inter'] text-muted-foreground text-sm">
+                  <a href="mailto:info@wolfcrux.com" className="text-accent story-link">
+                    info@wolfcrux.com
+                  </a>
+                </p>
+              </CardContent>
+            </Card>
 
           </div>
         </div>
@@ -95,7 +97,7 @@ const Contact = () => {
       {/* Contact Form */}
       <section className="py-12 md:py-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 animate-fade-in">
+          <div className="text-center mb-12 reveal">
             <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4">
               Send us a Message
             </h2>
@@ -104,7 +106,7 @@ const Contact = () => {
             </p>
           </div>
 
-          <Card className="border-border animate-fade-in" style={{ animationDelay: "0.2s" }}>
+          <Card className="border-border reveal" style={{ transitionDelay: "150ms" }}>
             <CardContent className="p-8">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

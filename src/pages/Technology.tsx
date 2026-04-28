@@ -3,8 +3,10 @@ import Footer from "@/components/Footer";
 import FloatingShapes from "@/components/FloatingShapes";
 import { Cpu, Database, Network, Gauge, Lock, Code } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useReveal } from "@/hooks/useReveal";
 
 const Technology = () => {
+  useReveal();
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -35,96 +37,56 @@ const Technology = () => {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="border-border hover:shadow-lg transition-shadow animate-fade-in">
-              <CardContent className="p-8">
-                <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6">
-                  <Gauge className="text-accent" size={28} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                  Low Latency Execution
-                </h3>
-                <p className="font-['Inter'] text-muted-foreground leading-relaxed">
-                  Custom-built trading engines written in C++ and optimized assembly, 
-                  achieving sub-microsecond order processing times with kernel bypass 
-                  networking.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border hover:shadow-lg transition-shadow animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              <CardContent className="p-8">
-                <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6">
-                  <Network className="text-accent" size={28} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                  Co-Location
-                </h3>
-                <p className="font-['Inter'] text-muted-foreground leading-relaxed">
-                  Strategic placement of servers in proximity to major US exchanges, 
-                  minimizing network latency and ensuring fastest possible market access.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border hover:shadow-lg transition-shadow animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              <CardContent className="p-8">
-                <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6">
-                  <Database className="text-accent" size={28} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                  Big Data Analytics
-                </h3>
-                <p className="font-['Inter'] text-muted-foreground leading-relaxed">
-                  Distributed processing frameworks analyzing terabytes of historical 
-                  and real-time market data to identify patterns and optimize strategies.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border hover:shadow-lg transition-shadow animate-fade-in" style={{ animationDelay: "0.3s" }}>
-              <CardContent className="p-8">
-                <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6">
-                  <Cpu className="text-accent" size={28} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                  Machine Learning
-                </h3>
-                <p className="font-['Inter'] text-muted-foreground leading-relaxed">
-                  Advanced ML models for price prediction, pattern recognition, and 
-                  strategy optimization, continuously learning from market dynamics.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border hover:shadow-lg transition-shadow animate-fade-in" style={{ animationDelay: "0.4s" }}>
-              <CardContent className="p-8">
-                <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6">
-                  <Lock className="text-accent" size={28} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                  Risk Management
-                </h3>
-                <p className="font-['Inter'] text-muted-foreground leading-relaxed">
-                  Real-time risk monitoring systems with automated circuit breakers 
-                  and position limits to ensure controlled exposure at all times.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border hover:shadow-lg transition-shadow animate-fade-in" style={{ animationDelay: "0.5s" }}>
-              <CardContent className="p-8">
-                <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6">
-                  <Code className="text-accent" size={28} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                  Proprietary Algorithms
-                </h3>
-                <p className="font-['Inter'] text-muted-foreground leading-relaxed">
-                  Custom-developed trading algorithms leveraging quantitative research, 
-                  market microstructure analysis, and statistical arbitrage techniques.
-                </p>
-              </CardContent>
-            </Card>
+            {[
+              {
+                icon: Gauge,
+                title: "Low Latency Execution",
+                desc: "Custom-built trading engines written in C++ and optimized assembly, achieving sub-microsecond order processing times with kernel bypass networking.",
+              },
+              {
+                icon: Network,
+                title: "Co-Location",
+                desc: "Strategic placement of servers in proximity to major US exchanges, minimizing network latency and ensuring fastest possible market access.",
+              },
+              {
+                icon: Database,
+                title: "Big Data Analytics",
+                desc: "Distributed processing frameworks analyzing terabytes of historical and real-time market data to identify patterns and optimize strategies.",
+              },
+              {
+                icon: Cpu,
+                title: "Machine Learning",
+                desc: "Advanced ML models for price prediction, pattern recognition, and strategy optimization, continuously learning from market dynamics.",
+              },
+              {
+                icon: Lock,
+                title: "Risk Management",
+                desc: "Real-time risk monitoring systems with automated circuit breakers and position limits to ensure controlled exposure at all times.",
+              },
+              {
+                icon: Code,
+                title: "Proprietary Algorithms",
+                desc: "Custom-developed trading algorithms leveraging quantitative research, market microstructure analysis, and statistical arbitrage techniques.",
+              },
+            ].map((c, i) => (
+              <Card
+                key={c.title}
+                className="border-border hover-lift reveal group"
+                style={{ transitionDelay: `${i * 80}ms` }}
+              >
+                <CardContent className="p-8">
+                  <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:bg-accent/15">
+                    <c.icon className="text-accent" size={28} />
+                  </div>
+                  <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
+                    {c.title}
+                  </h3>
+                  <p className="font-['Inter'] text-muted-foreground leading-relaxed">
+                    {c.desc}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
@@ -133,92 +95,64 @@ const Technology = () => {
       <section className="py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div className="animate-fade-in">
+            <div className="reveal group/metrics">
               <h2 className="font-['Space_Grotesk'] text-3xl font-bold text-foreground mb-6">
                 Performance Metrics
               </h2>
               <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="font-['Inter'] text-muted-foreground">Order Latency</span>
-                    <span className="font-['Space_Grotesk'] font-semibold text-accent">&lt;1μs</span>
+                {[
+                  { label: "Order Latency", value: "<1μs", width: 95 },
+                  { label: "Market Data Processing", value: "10M+ msg/sec", width: 90 },
+                  { label: "System Uptime", value: "99.99%", width: 99 },
+                  { label: "Network Reliability", value: "99.999%", width: 100 },
+                ].map((m, i) => (
+                  <div key={m.label}>
+                    <div className="flex justify-between mb-2">
+                      <span className="font-['Inter'] text-muted-foreground">
+                        {m.label}
+                      </span>
+                      <span className="font-['Space_Grotesk'] font-semibold text-accent">
+                        {m.value}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-accent rounded-full origin-left scale-x-0 group-[.is-visible]/metrics:scale-x-100 transition-transform duration-1000 ease-out"
+                        style={{
+                          width: `${m.width}%`,
+                          transitionDelay: `${200 + i * 150}ms`,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-accent w-[95%]" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="font-['Inter'] text-muted-foreground">Market Data Processing</span>
-                    <span className="font-['Space_Grotesk'] font-semibold text-accent">10M+ msg/sec</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-accent w-[90%]" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="font-['Inter'] text-muted-foreground">System Uptime</span>
-                    <span className="font-['Space_Grotesk'] font-semibold text-accent">99.99%</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-accent w-[99%]" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="font-['Inter'] text-muted-foreground">Network Reliability</span>
-                    <span className="font-['Space_Grotesk'] font-semibold text-accent">99.999%</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-accent w-[100%]" />
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            <div className="reveal" style={{ transitionDelay: "150ms" }}>
               <h2 className="font-['Space_Grotesk'] text-3xl font-bold text-foreground mb-6">
                 Innovation Focus
               </h2>
               <p className="font-['Inter'] text-muted-foreground leading-relaxed mb-4">
-                Our technology team continuously researches and implements cutting-edge 
+                Our technology team continuously researches and implements cutting-edge
                 solutions to maintain our competitive advantage. Current areas of focus include:
               </p>
               <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
-                  <span className="font-['Inter'] text-muted-foreground">
-                    FPGA-based order processing for nanosecond latencies
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
-                  <span className="font-['Inter'] text-muted-foreground">
-                    Deep learning models for market regime detection
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
-                  <span className="font-['Inter'] text-muted-foreground">
-                    Quantum-inspired optimization algorithms
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
-                  <span className="font-['Inter'] text-muted-foreground">
-                    Advanced order book simulation engines
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
-                  <span className="font-['Inter'] text-muted-foreground">
-                    Real-time sentiment analysis from alternative data
-                  </span>
-                </li>
+                {[
+                  "FPGA-based order processing for nanosecond latencies",
+                  "Deep learning models for market regime detection",
+                  "Quantum-inspired optimization algorithms",
+                  "Advanced order book simulation engines",
+                  "Real-time sentiment analysis from alternative data",
+                ].map((item) => (
+                  <li
+                    key={item}
+                    className="flex items-start gap-3 transition-transform duration-200 hover:translate-x-1"
+                  >
+                    <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
+                    <span className="font-['Inter'] text-muted-foreground">{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>

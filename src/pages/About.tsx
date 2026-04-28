@@ -4,8 +4,10 @@ import FloatingShapes from "@/components/FloatingShapes";
 import { Building2, Users, Target, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import teamPhoto from "@/assets/team-photo.jpeg";
+import { useReveal } from "@/hooks/useReveal";
 
 const About = () => {
+  useReveal();
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -33,45 +35,28 @@ const About = () => {
       <section className="py-12 md:py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border-border animate-fade-in">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                  <Building2 className="text-accent" size={24} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Established</h3>
-                <p className="font-['Inter'] text-muted-foreground">February 2025</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                  <Globe className="text-accent" size={24} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Location</h3>
-                <p className="font-['Inter'] text-muted-foreground">Mumbai, India</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                  <Target className="text-accent" size={24} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Focus</h3>
-                <p className="font-['Inter'] text-muted-foreground">US Markets HFT</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border animate-fade-in" style={{ animationDelay: "0.3s" }}>
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                  <Users className="text-accent" size={24} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Structure</h3>
-                <p className="font-['Inter'] text-muted-foreground">LLP Partnership</p>
-              </CardContent>
-            </Card>
+            {[
+              { icon: Building2, title: "Established", value: "February 2025" },
+              { icon: Globe, title: "Location", value: "Mumbai, India" },
+              { icon: Target, title: "Focus", value: "US Markets HFT" },
+              { icon: Users, title: "Structure", value: "LLP Partnership" },
+            ].map((item, i) => (
+              <Card
+                key={item.title}
+                className="border-border hover-lift reveal group"
+                style={{ transitionDelay: `${i * 90}ms` }}
+              >
+                <CardContent className="p-6">
+                  <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:bg-accent/15">
+                    <item.icon className="text-accent" size={24} />
+                  </div>
+                  <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
+                    {item.title}
+                  </h3>
+                  <p className="font-['Inter'] text-muted-foreground">{item.value}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
@@ -80,7 +65,7 @@ const About = () => {
       <section className="py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div className="animate-fade-in">
+            <div className="reveal">
               <h2 className="font-['Space_Grotesk'] text-3xl font-bold text-foreground mb-6">
                 Our Mission
               </h2>
@@ -95,7 +80,7 @@ const About = () => {
               </p>
             </div>
 
-            <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            <div className="reveal" style={{ transitionDelay: "150ms" }}>
               <h2 className="font-['Space_Grotesk'] text-3xl font-bold text-foreground mb-6">
                 Our Approach
               </h2>
@@ -121,32 +106,31 @@ const About = () => {
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center animate-fade-in">
-              <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                Innovation
-              </h3>
-              <p className="font-['Inter'] text-muted-foreground">
-                Constantly pushing boundaries with novel approaches to trading and technology
-              </p>
-            </div>
-
-            <div className="text-center animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                Precision
-              </h3>
-              <p className="font-['Inter'] text-muted-foreground">
-                Excellence in execution and attention to every detail of our operations
-              </p>
-            </div>
-
-            <div className="text-center animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
-                Integrity
-              </h3>
-              <p className="font-['Inter'] text-muted-foreground">
-                Operating with the highest ethical standards and transparency
-              </p>
-            </div>
+            {[
+              {
+                title: "Innovation",
+                desc: "Constantly pushing boundaries with novel approaches to trading and technology",
+              },
+              {
+                title: "Precision",
+                desc: "Excellence in execution and attention to every detail of our operations",
+              },
+              {
+                title: "Integrity",
+                desc: "Operating with the highest ethical standards and transparency",
+              },
+            ].map((v, i) => (
+              <div
+                key={v.title}
+                className="text-center reveal"
+                style={{ transitionDelay: `${i * 100}ms` }}
+              >
+                <h3 className="font-['Space_Grotesk'] text-xl font-semibold text-foreground mb-3">
+                  {v.title}
+                </h3>
+                <p className="font-['Inter'] text-muted-foreground">{v.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -157,11 +141,11 @@ const About = () => {
           <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
             Our Team
           </h2>
-          <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border shadow-lg bg-muted/20 animate-fade-in">
-            <img 
-              src={teamPhoto} 
-              alt="Wolfcrux Team" 
-              className="w-full h-full object-cover"
+          <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border shadow-lg bg-muted/20 reveal group">
+            <img
+              src={teamPhoto}
+              alt="Wolfcrux Team"
+              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
             />
           </div>
         </div>
