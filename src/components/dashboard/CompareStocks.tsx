@@ -361,10 +361,12 @@ const CompareStocks = () => {
   return (
     <div className="space-y-4">
       {/* Sector Peer Finder */}
-      <Card className="p-4 sm:p-5">
+      <Card className="p-4 sm:p-5 border border-border/50 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-4 h-4 text-primary" />
-          <h2 className="text-lg sm:text-xl font-bold">Find Sector Peers</h2>
+          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+          <h2 className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+            // Sector Peer Finder
+          </h2>
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mb-3">
           Enter a stock to discover peers in the same sector and add them to your comparison.
@@ -376,14 +378,15 @@ const CompareStocks = () => {
               value={peerInput}
               onChange={(e) => setPeerInput(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === "Enter" && fetchPeers()}
-              placeholder="Enter symbol (e.g. V, AAPL, JPM)"
-              className="pl-10 h-9 uppercase"
+              placeholder="Query symbol (e.g. V, AAPL, JPM)"
+              className="pl-10 h-9 font-mono text-sm uppercase"
             />
           </div>
           <Button
             size="sm"
             onClick={() => fetchPeers()}
             disabled={peerLoading || !peerInput.trim()}
+            className="font-mono text-xs uppercase tracking-wider"
           >
             {peerLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
