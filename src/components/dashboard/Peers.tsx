@@ -275,6 +275,56 @@ const Peers = () => {
         </CardContent>
       </Card>
 
+      {/* Recommended peer pairs — shown when nothing has been searched yet */}
+      {!loading && !searched && (
+        <Card className="bg-card border border-border/50 shadow-sm animate-fade-in">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              // Recommended Peer Pairs
+            </CardTitle>
+            <p className="text-[11px] font-mono text-muted-foreground mt-1">
+              Click a ticker to load its profile, quote, and full peer list.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {PEER_PAIRS.map((group, gIdx) => (
+              <div key={group.theme} className="animate-fade-in" style={{ animationDelay: `${gIdx * 40}ms` }}>
+                <h4 className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground mb-2 pb-1 border-b border-border/50">
+                  // {group.theme} <span className="text-foreground/60">[{group.pairs.length}]</span>
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {group.pairs.map(([a, b]) => (
+                    <div
+                      key={`${a}-${b}`}
+                      className="group inline-flex items-center rounded-md border border-border/60 bg-muted/20 hover:bg-muted/50 hover:border-foreground/30 transition-colors overflow-hidden"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => fetchData(a)}
+                        className="px-2 py-1 font-mono text-xs font-semibold text-foreground hover:text-emerald-600 transition-colors"
+                        title={`View ${a}`}
+                      >
+                        {a}
+                      </button>
+                      <ArrowRight className="w-3 h-3 text-muted-foreground/60 group-hover:text-foreground/80 transition-colors" />
+                      <button
+                        type="button"
+                        onClick={() => fetchData(b)}
+                        className="px-2 py-1 font-mono text-xs font-semibold text-foreground hover:text-emerald-600 transition-colors"
+                        title={`View ${b}`}
+                      >
+                        {b}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Loading */}
       {loading && (
         <div className="flex items-center gap-3 py-12 pl-4 font-mono text-xs uppercase tracking-widest text-muted-foreground">
