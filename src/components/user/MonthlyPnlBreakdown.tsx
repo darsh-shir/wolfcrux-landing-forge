@@ -89,36 +89,36 @@ const MonthlyPnlBreakdown = ({ dailySummary, softwareCosts = {} }: MonthlyPnlBre
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
+        <div className="-mx-6 px-6 overflow-x-auto">
+          <Table className="min-w-[900px]">
             <TableHeader>
               <TableRow>
-                <TableHead>Month</TableHead>
-                <TableHead className="text-right">Gross P&L</TableHead>
-                <TableHead className="text-right">Brokerage</TableHead>
-                <TableHead className="text-right">Software</TableHead>
-                <TableHead className="text-right">Net P&L</TableHead>
-                <TableHead className="text-center">Days</TableHead>
-                <TableHead className="text-center">Win Rate</TableHead>
-                <TableHead className="text-right">Best Day</TableHead>
-                <TableHead className="text-right">Worst Day</TableHead>
-                <TableHead className="text-right">Shares</TableHead>
+                <TableHead className="whitespace-nowrap">Month</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Gross P&L</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Brokerage</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Software</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Net P&L</TableHead>
+                <TableHead className="text-center whitespace-nowrap">Days</TableHead>
+                <TableHead className="text-center whitespace-nowrap">Win Rate</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Best Day</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Worst Day</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Shares</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {monthlyData.map((m) => (
                 <TableRow key={m.month}>
-                  <TableCell className="font-medium">{m.label}</TableCell>
-                  <TableCell className={`text-right font-mono ${m.grossPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  <TableCell className="font-medium whitespace-nowrap">{m.label}</TableCell>
+                  <TableCell className={`text-right font-mono whitespace-nowrap ${m.grossPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                     {fmt(m.grossPnl)}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-orange-600">
+                  <TableCell className="text-right font-mono text-orange-600 whitespace-nowrap">
                     -{fmt(m.brokerage)}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-purple-600">
+                  <TableCell className="text-right font-mono text-purple-600 whitespace-nowrap">
                     -{fmt(m.softwareCost)}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
                     <Badge
                       variant={m.netPnl >= 0 ? "default" : "destructive"}
                       className={`font-mono ${m.netPnl >= 0 ? "bg-green-600 hover:bg-green-700" : ""}`}
@@ -131,23 +131,23 @@ const MonthlyPnlBreakdown = ({ dailySummary, softwareCosts = {} }: MonthlyPnlBre
                       {fmt(m.netPnl)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center whitespace-nowrap">
                     <span className="text-green-600">{m.winningDays}W</span>
                     {" / "}
                     <span className="text-red-600">{m.losingDays}L</span>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center whitespace-nowrap">
                     <span className={m.winRate >= 50 ? "text-green-600" : "text-red-600"}>
                       {m.winRate.toFixed(0)}%
                     </span>
                   </TableCell>
-                  <TableCell className="text-right font-mono text-green-600">
+                  <TableCell className="text-right font-mono text-green-600 whitespace-nowrap">
                     {fmt(m.bestDay)}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-red-600">
+                  <TableCell className="text-right font-mono text-red-600 whitespace-nowrap">
                     {fmt(m.worstDay)}
                   </TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="text-right font-mono whitespace-nowrap">
                     {formatIndian(m.totalShares)}
                   </TableCell>
                 </TableRow>
@@ -155,6 +155,7 @@ const MonthlyPnlBreakdown = ({ dailySummary, softwareCosts = {} }: MonthlyPnlBre
             </TableBody>
           </Table>
         </div>
+        <p className="text-[10px] text-muted-foreground mt-2 sm:hidden">← Scroll horizontally to see more →</p>
       </CardContent>
     </Card>
   );

@@ -229,7 +229,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Best Day</p>
-                <p className="text-lg font-bold text-green-600">
+                <p className="text-base sm:text-lg font-bold text-green-600 leading-tight tabular-nums">
                   <AnimatedNumber value={analytics.bestDay.pnl} format={formatCurrency} resetKey={analytics.bestDay.pnl} />
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -249,7 +249,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Worst Day</p>
-                <p className="text-lg font-bold text-red-600">
+                <p className="text-base sm:text-lg font-bold text-red-600 leading-tight tabular-nums">
                   <AnimatedNumber value={analytics.worstDay.pnl} format={formatCurrency} resetKey={analytics.worstDay.pnl} />
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -269,7 +269,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Trading Days</p>
-                <p className="text-lg font-bold"><AnimatedNumber value={tradingDays} format={(n) => formatIndian(Math.round(n))} resetKey={tradingDays} /></p>
+                <p className="text-base sm:text-lg font-bold leading-tight tabular-nums"><AnimatedNumber value={tradingDays} format={(n) => formatIndian(Math.round(n))} resetKey={tradingDays} /></p>
                 <p className="text-xs text-muted-foreground">
                   {analytics.winningDays}W / {analytics.losingDays}L
                 </p>
@@ -287,7 +287,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Win Rate</p>
-                <p className="text-lg font-bold"><AnimatedNumber value={analytics.winRate} format={(n) => `${n.toFixed(1)}%`} resetKey={analytics.winRate} /></p>
+                <p className="text-base sm:text-lg font-bold leading-tight tabular-nums"><AnimatedNumber value={analytics.winRate} format={(n) => `${n.toFixed(1)}%`} resetKey={analytics.winRate} /></p>
                 <p className="text-xs text-muted-foreground">
                   PF: {analytics.profitFactor === Infinity ? "∞" : analytics.profitFactor.toFixed(2)}
                 </p>
@@ -305,7 +305,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Avg Daily P&L</p>
-                <p className={`text-lg font-bold ${analytics.avgDailyPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                <p className={`text-base sm:text-lg font-bold leading-tight tabular-nums ${analytics.avgDailyPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                   <AnimatedNumber value={analytics.avgDailyPnl} format={formatCurrency} resetKey={analytics.avgDailyPnl} />
                 </p>
               </div>
@@ -322,7 +322,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Avg Winning Day</p>
-                <p className="text-lg font-bold text-green-600">
+                <p className="text-base sm:text-lg font-bold text-green-600 leading-tight tabular-nums">
                   <AnimatedNumber value={analytics.avgWinningDay} format={formatCurrency} resetKey={analytics.avgWinningDay} />
                 </p>
               </div>
@@ -339,7 +339,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Avg Losing Day</p>
-                <p className="text-lg font-bold text-red-600">
+                <p className="text-base sm:text-lg font-bold text-red-600 leading-tight tabular-nums">
                   <AnimatedNumber value={analytics.avgLosingDay} format={formatCurrency} resetKey={analytics.avgLosingDay} />
                 </p>
               </div>
@@ -356,7 +356,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Max Streak</p>
-                <p className="text-lg font-bold">
+                <p className="text-base sm:text-lg font-bold leading-tight tabular-nums">
                   <span className="text-green-600"><AnimatedNumber value={analytics.maxConsecutiveWins} format={(n) => `${Math.round(n)}W`} resetKey={analytics.maxConsecutiveWins} /></span>
                   {" / "}
                   <span className="text-red-600"><AnimatedNumber value={analytics.maxConsecutiveLosses} format={(n) => `${Math.round(n)}L`} resetKey={analytics.maxConsecutiveLosses} /></span>
