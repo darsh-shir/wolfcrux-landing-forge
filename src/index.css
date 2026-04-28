@@ -213,6 +213,92 @@ All colors MUST be HSL.
     transition: color 0.2s ease, background-color 0.25s ease, box-shadow 0.25s ease;
   }
 
+  /* === Landing-page enhancements === */
+
+  /* Spotlight card: shows a soft radial highlight that follows the cursor */
+  .spotlight-card {
+    position: relative;
+    isolation: isolate;
+    will-change: transform;
+  }
+  .spotlight-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      420px circle at var(--mx, 50%) var(--my, 50%),
+      hsl(220 90% 55% / 0.14),
+      transparent 55%
+    );
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .spotlight-card:hover::before { opacity: 1; }
+  .spotlight-card > * { position: relative; z-index: 1; }
+
+  /* Conic gradient animated border (for premium cards) */
+  .gradient-border {
+    position: relative;
+    background: hsl(var(--card));
+    border-radius: var(--radius);
+  }
+  .gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--angle, 0deg),
+      hsl(220 90% 55%),
+      hsl(265 85% 60%),
+      hsl(190 95% 50%),
+      hsl(220 90% 55%)
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    animation: spin-conic 6s linear infinite;
+  }
+  .gradient-border:hover::before { opacity: 1; }
+  @property --angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+  @keyframes spin-conic {
+    to { --angle: 360deg; }
+  }
+
+  /* Glow on hover for icon containers */
+  .icon-glow {
+    transition: box-shadow 0.4s ease, transform 0.4s ease, background-color 0.3s ease;
+  }
+  .group:hover .icon-glow {
+    box-shadow: 0 0 0 6px hsl(220 90% 55% / 0.08),
+                0 12px 32px -10px hsl(220 90% 55% / 0.45);
+  }
+
+  /* Aurora keyframes */
+  @keyframes aurora-1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,30px) scale(1.08); } }
+  @keyframes aurora-2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-30px,40px) scale(1.1); } }
+  @keyframes aurora-3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(20px,-40px) scale(0.95); } }
+  .animate-aurora-1 { animation: aurora-1 14s ease-in-out infinite; }
+  .animate-aurora-2 { animation: aurora-2 18s ease-in-out infinite; }
+  .animate-aurora-3 { animation: aurora-3 16s ease-in-out infinite; }
+
+  /* Slow horizontal wave drift */
+  @keyframes wave-slow {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-wave-slow { animation: wave-slow 18s linear infinite; }
+
   @media (prefers-reduced-motion: reduce) {
     .reveal,
     .hover-lift,
@@ -222,7 +308,12 @@ All colors MUST be HSL.
     .skeleton-shimmer::after,
     .spinner-ring,
     .tab-anim,
-    [data-state="active"].tab-anim {
+    [data-state="active"].tab-anim,
+    .animate-aurora-1,
+    .animate-aurora-2,
+    .animate-aurora-3,
+    .animate-wave-slow,
+    .gradient-border::before {
       transition: none !important;
       animation: none !important;
     }
