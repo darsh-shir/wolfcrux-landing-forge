@@ -123,19 +123,29 @@ All colors MUST be HSL.
     transform-origin: left;
   }
 
-  /* Animated gradient text for hero accents */
+  /* Animated multi-color gradient text for hero accents */
   .text-gradient-accent {
     background: linear-gradient(
       90deg,
-      hsl(var(--accent)),
-      hsl(220 90% 55%),
-      hsl(var(--accent))
+      hsl(220 90% 55%) 0%,
+      hsl(265 85% 60%) 18%,
+      hsl(190 95% 50%) 36%,
+      hsl(155 80% 45%) 54%,
+      hsl(220 90% 55%) 72%,
+      hsl(265 85% 60%) 90%,
+      hsl(220 90% 55%) 100%
     );
-    background-size: 200% auto;
+    background-size: 300% auto;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: gradient-shift 6s ease-in-out infinite;
+    color: transparent;
+    animation: gradient-flow 8s linear infinite;
+    filter: drop-shadow(0 0 18px hsl(220 90% 55% / 0.18));
+  }
+  @keyframes gradient-flow {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
   }
 
   /* Reveal-on-scroll wrapper (used with useReveal hook) */
