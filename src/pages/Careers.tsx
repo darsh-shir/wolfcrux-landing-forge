@@ -110,9 +110,9 @@ const Careers = () => {
             {positions.map((position, index) => (
               <Card
                 key={index}
-                className="border-border hover:shadow-lg transition-all animate-fade-in group cursor-pointer"
+                className="border-border hover-lift reveal group cursor-pointer"
                 onClick={() => (window.location.href = "mailto:info@wolfcrux.com")}
-                style={{ animationDelay: `${index * 0.1}s` }}
+                style={{ transitionDelay: `${index * 100}ms` }}
               >
                 <CardContent className="p-6 sm:p-8">
                   <div className="flex items-start justify-between gap-4 sm:gap-6">
@@ -166,39 +166,28 @@ const Careers = () => {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
-
-            <div className="text-center animate-fade-in">
-              <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-4 font-['Space_Grotesk'] font-bold text-lg">
-                1
+            {[
+              { num: 1, title: "Apply", desc: "Submit your application and resume" },
+              { num: 2, title: "Screen", desc: "Technical assessment and review" },
+              { num: 3, title: "Interview", desc: "Meet with our team" },
+              { num: 4, title: "Offer", desc: "Welcome to Wolfcrux!" },
+            ].map((step, i) => (
+              <div
+                key={step.num}
+                className="text-center reveal group"
+                style={{ transitionDelay: `${i * 120}ms` }}
+              >
+                <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-4 font-['Space_Grotesk'] font-bold text-lg transition-transform duration-300 group-hover:scale-110 shadow-md">
+                  {step.num}
+                </div>
+                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
+                  {step.title}
+                </h3>
+                <p className="font-['Inter'] text-sm text-muted-foreground">
+                  {step.desc}
+                </p>
               </div>
-              <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Apply</h3>
-              <p className="font-['Inter'] text-sm text-muted-foreground">Submit your application and resume</p>
-            </div>
-
-            <div className="text-center animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-4 font-['Space_Grotesk'] font-bold text-lg">
-                2
-              </div>
-              <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Screen</h3>
-              <p className="font-['Inter'] text-sm text-muted-foreground">Technical assessment and review</p>
-            </div>
-
-            <div className="text-center animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-4 font-['Space_Grotesk'] font-bold text-lg">
-                3
-              </div>
-              <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Interview</h3>
-              <p className="font-['Inter'] text-sm text-muted-foreground">Meet with our team</p>
-            </div>
-
-            <div className="text-center animate-fade-in" style={{ animationDelay: "0.3s" }}>
-              <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center mx-auto mb-4 font-['Space_Grotesk'] font-bold text-lg">
-                4
-              </div>
-              <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Offer</h3>
-              <p className="font-['Inter'] text-sm text-muted-foreground">Welcome to Wolfcrux!</p>
-            </div>
-
+            ))}
           </div>
         </div>
       </section>
