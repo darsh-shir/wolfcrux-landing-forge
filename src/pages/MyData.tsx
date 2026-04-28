@@ -277,32 +277,34 @@ const MyData = () => {
           </div>
 
           <Tabs defaultValue="analytics" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="analytics" className="gap-2 transition-all duration-200 hover:text-foreground">
-                <LineChart className="h-4 w-4" />
-                Analytics
-              </TabsTrigger>
-              <TabsTrigger value="trading" className="gap-2 transition-all duration-200 hover:text-foreground">
-                <BarChart3 className="h-4 w-4" />
-                Trading Data
-              </TabsTrigger>
-              <TabsTrigger value="attendance" className="gap-2 transition-all duration-200 hover:text-foreground">
-                <Calendar className="h-4 w-4" />
-                Attendance
-              </TabsTrigger>
-              <TabsTrigger value="payout" className="gap-2 transition-all duration-200 hover:text-foreground">
-                <Wallet className="h-4 w-4" />
-                Payout
-              </TabsTrigger>
-              <TabsTrigger value="lto" className="gap-2 transition-all duration-200 hover:text-foreground">
-                <Heart className="h-4 w-4" />
-                LTO
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-2 transition-all duration-200 hover:text-foreground">
-                <Key className="h-4 w-4" />
-                Settings
-              </TabsTrigger>
-            </TabsList>
+            <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
+              <TabsList className="w-max sm:w-auto">
+                <TabsTrigger value="analytics" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
+                  <LineChart className="h-4 w-4" />
+                  Analytics
+                </TabsTrigger>
+                <TabsTrigger value="trading" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
+                  <BarChart3 className="h-4 w-4" />
+                  Trading Data
+                </TabsTrigger>
+                <TabsTrigger value="attendance" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
+                  <Calendar className="h-4 w-4" />
+                  Attendance
+                </TabsTrigger>
+                <TabsTrigger value="payout" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
+                  <Wallet className="h-4 w-4" />
+                  Payout
+                </TabsTrigger>
+                <TabsTrigger value="lto" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
+                  <Heart className="h-4 w-4" />
+                  LTO
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
+                  <Key className="h-4 w-4" />
+                  Settings
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* ANALYTICS TAB */}
             <TabsContent value="analytics" className="tab-anim">
