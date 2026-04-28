@@ -285,15 +285,20 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
                       {events.map((item) => {
                         const impact = impactLabel(item.impact);
                         const isExpanded = expandedId === item.id;
+                        const preMarket = isPreMarket(item.time);
                         return (
                           <div
                             key={item.id}
-                            className="border border-border/60 rounded-lg p-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                            className={`border rounded-lg p-3 transition-colors cursor-pointer ${
+                              preMarket
+                                ? "border-l-4 border-l-orange-500 border-orange-500/40 bg-orange-500/5 hover:bg-orange-500/10"
+                                : "border-border/60 hover:bg-muted/30"
+                            }`}
                             onClick={() => setExpandedId(isExpanded ? null : item.id)}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-3 min-w-0">
-                                <span className="text-xs text-muted-foreground font-mono shrink-0">
+                                <span className={`text-xs font-mono shrink-0 ${preMarket ? "text-orange-600 font-semibold" : "text-muted-foreground"}`}>
                                   {formatTime(item.time)}
                                 </span>
                                 <h4 className="text-sm font-semibold text-foreground truncate">
@@ -301,6 +306,11 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
                                 </h4>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
+                                {preMarket && (
+                                  <Badge variant="outline" className="text-[10px] bg-orange-500/15 text-orange-600 border-orange-500/40">
+                                    Pre-Market
+                                  </Badge>
+                                )}
                                 <Badge variant="outline" className={`text-[10px] ${impact.className}`}>
                                   {impact.text}
                                 </Badge>
