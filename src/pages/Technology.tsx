@@ -95,92 +95,64 @@ const Technology = () => {
       <section className="py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div className="animate-fade-in">
+            <div className="reveal group/metrics">
               <h2 className="font-['Space_Grotesk'] text-3xl font-bold text-foreground mb-6">
                 Performance Metrics
               </h2>
               <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="font-['Inter'] text-muted-foreground">Order Latency</span>
-                    <span className="font-['Space_Grotesk'] font-semibold text-accent">&lt;1μs</span>
+                {[
+                  { label: "Order Latency", value: "<1μs", width: 95 },
+                  { label: "Market Data Processing", value: "10M+ msg/sec", width: 90 },
+                  { label: "System Uptime", value: "99.99%", width: 99 },
+                  { label: "Network Reliability", value: "99.999%", width: 100 },
+                ].map((m, i) => (
+                  <div key={m.label}>
+                    <div className="flex justify-between mb-2">
+                      <span className="font-['Inter'] text-muted-foreground">
+                        {m.label}
+                      </span>
+                      <span className="font-['Space_Grotesk'] font-semibold text-accent">
+                        {m.value}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-accent rounded-full origin-left scale-x-0 group-[.is-visible]/metrics:scale-x-100 transition-transform duration-1000 ease-out"
+                        style={{
+                          width: `${m.width}%`,
+                          transitionDelay: `${200 + i * 150}ms`,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-accent w-[95%]" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="font-['Inter'] text-muted-foreground">Market Data Processing</span>
-                    <span className="font-['Space_Grotesk'] font-semibold text-accent">10M+ msg/sec</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-accent w-[90%]" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="font-['Inter'] text-muted-foreground">System Uptime</span>
-                    <span className="font-['Space_Grotesk'] font-semibold text-accent">99.99%</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-accent w-[99%]" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="font-['Inter'] text-muted-foreground">Network Reliability</span>
-                    <span className="font-['Space_Grotesk'] font-semibold text-accent">99.999%</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-accent w-[100%]" />
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            <div className="reveal" style={{ transitionDelay: "150ms" }}>
               <h2 className="font-['Space_Grotesk'] text-3xl font-bold text-foreground mb-6">
                 Innovation Focus
               </h2>
               <p className="font-['Inter'] text-muted-foreground leading-relaxed mb-4">
-                Our technology team continuously researches and implements cutting-edge 
+                Our technology team continuously researches and implements cutting-edge
                 solutions to maintain our competitive advantage. Current areas of focus include:
               </p>
               <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
-                  <span className="font-['Inter'] text-muted-foreground">
-                    FPGA-based order processing for nanosecond latencies
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
-                  <span className="font-['Inter'] text-muted-foreground">
-                    Deep learning models for market regime detection
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
-                  <span className="font-['Inter'] text-muted-foreground">
-                    Quantum-inspired optimization algorithms
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
-                  <span className="font-['Inter'] text-muted-foreground">
-                    Advanced order book simulation engines
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
-                  <span className="font-['Inter'] text-muted-foreground">
-                    Real-time sentiment analysis from alternative data
-                  </span>
-                </li>
+                {[
+                  "FPGA-based order processing for nanosecond latencies",
+                  "Deep learning models for market regime detection",
+                  "Quantum-inspired optimization algorithms",
+                  "Advanced order book simulation engines",
+                  "Real-time sentiment analysis from alternative data",
+                ].map((item) => (
+                  <li
+                    key={item}
+                    className="flex items-start gap-3 transition-transform duration-200 hover:translate-x-1"
+                  >
+                    <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
+                    <span className="font-['Inter'] text-muted-foreground">{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
