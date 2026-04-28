@@ -213,10 +213,10 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
   if (loading && data.length === 0) {
     return (
       <Card className="bg-card border border-border/50 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <CalendarClock className="w-5 h-5" />
-            Economic Calendar
+        <CardHeader className="pb-3">
+          <CardTitle className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground flex items-center gap-2">
+            <CalendarClock className="w-3.5 h-3.5" />
+            // Economic Calendar
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -238,20 +238,20 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
       <WeeklyStance events={usOnly} />
 
       <Card className="bg-card border border-border/50 shadow-sm">
-        <CardHeader className="pb-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <CalendarClock className="w-5 h-5" />
-              Economic Calendar
+        <CardHeader className="pb-3">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <CardTitle className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground flex items-center gap-2">
+              <CalendarClock className="w-3.5 h-3.5" />
+              // Economic Calendar
             </CardTitle>
             <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="w-4 h-4 text-muted-foreground" />
+              <Filter className="w-3.5 h-3.5 text-muted-foreground" />
               <Select value={impactFilter} onValueChange={setImpactFilter}>
-                <SelectTrigger className="w-[170px] h-8 text-xs">
+                <SelectTrigger className="w-[170px] h-8 text-xs font-mono uppercase tracking-wider">
                   <SelectValue placeholder="Impact" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="med-high">Medium & High (default)</SelectItem>
+                  <SelectItem value="med-high">Medium & High</SelectItem>
                   <SelectItem value="all">All Impact</SelectItem>
                   <SelectItem value="3">High only</SelectItem>
                   <SelectItem value="2">Medium only</SelectItem>
@@ -263,45 +263,51 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
         </CardHeader>
         <CardContent>
           {grouped.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No events match the selected filters
+            <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground text-center py-8">
+              // No events match filter
             </p>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {grouped.map(([dateKey, events]) => {
                 const today = new Date().toISOString().slice(0, 10);
                 const isToday = dateKey === today;
                 return (
                   <div key={dateKey}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <h3 className="text-sm font-bold text-foreground">
-                        {formatDate(dateKey + "T00:00:00")}
+                    <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-border/50">
+                      <h3 className="text-[11px] font-mono uppercase tracking-[0.25em] text-foreground">
+                        // {formatDate(dateKey + "T00:00:00")}
                       </h3>
                       {isToday && (
-                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
+                        <span className="font-mono text-[9px] uppercase tracking-widest text-emerald-600 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           Today
-                        </Badge>
+                        </span>
                       )}
-                      <span className="text-xs text-muted-foreground">({events.length} events)</span>
+                      <span className="text-[10px] font-mono text-muted-foreground tabular-nums ml-auto">
+                        [{events.length}]
+                      </span>
                     </div>
-                    <div className="space-y-2">
-                      {events.map((item) => {
+                    <div className="space-y-1.5">
+                      {events.map((item, idx) => {
                         const impact = impactLabel(item.impact);
                         const isExpanded = expandedId === item.id;
                         const preMarket = isPreMarket(item.time);
+                        const stripe = item.impact >= 3 ? "bg-destructive/70" : item.impact === 2 ? "bg-yellow-500/70" : "bg-muted-foreground/30";
                         return (
                           <div
                             key={item.id}
-                            className={`border rounded-lg p-3 transition-colors cursor-pointer ${
+                            className={`relative border rounded-md p-3 transition-colors cursor-pointer animate-fade-in ${
                               preMarket
-                                ? "border-l-4 border-l-orange-500 border-orange-500/40 bg-orange-500/5 hover:bg-orange-500/10"
+                                ? "border-orange-500/40 bg-orange-500/5 hover:bg-orange-500/10"
                                 : "border-border/60 hover:bg-muted/30"
                             }`}
+                            style={{ animationDelay: `${idx * 25}ms` }}
                             onClick={() => setExpandedId(isExpanded ? null : item.id)}
                           >
-                            <div className="flex items-center justify-between gap-2">
+                            <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${stripe} rounded-l-md`} />
+                            <div className="flex items-center justify-between gap-2 pl-1">
                               <div className="flex items-center gap-3 min-w-0">
-                                <span className={`text-xs font-mono shrink-0 ${preMarket ? "text-orange-600 font-semibold" : "text-muted-foreground"}`}>
+                                <span className={`text-xs font-mono tabular-nums shrink-0 ${preMarket ? "text-orange-600 font-semibold" : "text-muted-foreground"}`}>
                                   {formatTime(item.time)}
                                 </span>
                                 <h4 className="text-sm font-semibold text-foreground truncate">
@@ -310,11 +316,11 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
                                 {preMarket && (
-                                  <Badge variant="outline" className="text-[10px] bg-orange-500/15 text-orange-600 border-orange-500/40">
-                                    Pre-Market
+                                  <Badge variant="outline" className="text-[9px] font-mono uppercase tracking-wider bg-orange-500/15 text-orange-600 border-orange-500/40">
+                                    Pre
                                   </Badge>
                                 )}
-                                <Badge variant="outline" className={`text-[10px] ${impact.className}`}>
+                                <Badge variant="outline" className={`text-[9px] font-mono uppercase tracking-wider ${impact.className}`}>
                                   {impact.text}
                                 </Badge>
                                 {isExpanded ? (
@@ -324,26 +330,26 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
                                 )}
                               </div>
                             </div>
-                            <div className="flex items-center gap-4 mt-2 text-xs">
-                              <span className="text-muted-foreground">{item.category}</span>
+                            <div className="flex items-center gap-4 mt-2 text-[11px] font-mono pl-1">
+                              <span className="text-muted-foreground uppercase tracking-wider">{item.category}</span>
                               {item.forecast !== null && (
                                 <span className="text-muted-foreground">
-                                  Forecast: <span className="text-foreground font-medium">{item.forecast}{item.unit?.trim()}</span>
+                                  Fcst: <span className="text-foreground font-medium tabular-nums">{item.forecast}{item.unit?.trim()}</span>
                                 </span>
                               )}
                               {item.prev && (
                                 <span className="text-muted-foreground">
-                                  Prev: <span className="text-foreground font-medium">{item.prev}</span>
+                                  Prev: <span className="text-foreground font-medium tabular-nums">{item.prev}</span>
                                 </span>
                               )}
                               {item.actual !== null && (
                                 <span className="text-muted-foreground">
-                                  Actual: <span className="text-foreground font-bold">{item.actual}</span>
+                                  Actl: <span className="text-foreground font-bold tabular-nums">{item.actual}</span>
                                 </span>
                               )}
                             </div>
                             {isExpanded && item.description && (
-                              <p className="mt-3 text-xs text-muted-foreground leading-relaxed border-t border-border/50 pt-3">
+                              <p className="mt-3 text-xs text-muted-foreground leading-relaxed border-t border-border/50 pt-3 pl-1 animate-fade-in">
                                 {item.description}
                               </p>
                             )}
