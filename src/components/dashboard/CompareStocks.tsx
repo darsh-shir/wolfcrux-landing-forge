@@ -582,10 +582,10 @@ const CompareStocks = () => {
         </div>
 
         {/* Symbol legend list */}
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-1">
           {symbols.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Add a stock symbol to start comparing.
+            <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+              // Add a symbol to start comparing
             </p>
           )}
           {symbols.map((s, idx) => {
@@ -593,9 +593,14 @@ const CompareStocks = () => {
             return (
               <div
                 key={s.symbol}
-                className="flex items-center justify-between gap-2 py-1.5 border-b border-border/50 last:border-0"
+                className="relative flex items-center justify-between gap-2 py-1.5 px-2 rounded-md border border-border/50 bg-card hover:bg-muted/30 transition-colors animate-fade-in"
+                style={{ animationDelay: `${idx * 40}ms` }}
               >
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <span
+                  className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-md"
+                  style={{ background: color, opacity: s.visible ? 1 : 0.3 }}
+                />
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 pl-2">
                   <Checkbox
                     checked={s.visible}
                     onCheckedChange={() => toggleVisible(s.symbol)}
@@ -605,7 +610,7 @@ const CompareStocks = () => {
                     }}
                   />
                   <span
-                    className="font-bold text-sm sm:text-base"
+                    className="font-mono font-bold text-sm sm:text-base"
                     style={{ color }}
                   >
                     {s.symbol}
@@ -614,16 +619,16 @@ const CompareStocks = () => {
                     <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
                   )}
                   {s.error && (
-                    <span className="text-xs text-destructive">{s.error}</span>
+                    <span className="text-xs font-mono text-destructive">{s.error}</span>
                   )}
                 </div>
-                <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm shrink-0">
-                  <span className="font-mono tabular-nums hidden sm:inline">
-                    {s.latestPrice.toFixed(2)}
+                <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm shrink-0 font-mono">
+                  <span className="tabular-nums hidden sm:inline text-muted-foreground">
+                    ${s.latestPrice.toFixed(2)}
                   </span>
                   <span
-                    className={`font-mono tabular-nums font-semibold ${
-                      s.changePct >= 0 ? "text-green-500" : "text-red-500"
+                    className={`tabular-nums font-semibold ${
+                      s.changePct >= 0 ? "text-emerald-600" : "text-red-500"
                     }`}
                   >
                     {s.changePct >= 0 ? "+" : ""}
@@ -631,7 +636,7 @@ const CompareStocks = () => {
                   </span>
                   <button
                     onClick={() => removeSymbol(s.symbol)}
-                    className="text-muted-foreground hover:text-destructive"
+                    className="text-muted-foreground hover:text-destructive transition-colors"
                     aria-label={`Remove ${s.symbol}`}
                   >
                     <X className="w-4 h-4" />
