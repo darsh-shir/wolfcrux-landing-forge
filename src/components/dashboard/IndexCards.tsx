@@ -135,10 +135,10 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
           {lastUpdated && <span>Updated {lastUpdated.toLocaleTimeString()}</span>}
           <button
             onClick={onRefresh}
-            className="p-1 hover:bg-muted rounded transition-colors"
+            className="p-1.5 hover:bg-muted rounded-md transition-all duration-200 active:scale-90"
             disabled={loading}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 transition-transform ${loading ? "animate-spin" : "hover:rotate-90"}`} />
           </button>
         </div>
       </div>
