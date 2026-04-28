@@ -66,12 +66,21 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
     return a ? { name: a.account_name, number: a.account_number } : { name: "Unknown", number: null };
   };
 
+  // Parse YYYY-MM-DD safely without timezone shifts
+  const parseTradeDate = (s: string): { year: number; month: number; day: number } | null => {
+    if (!s) return null;
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return null;
+    return { year: +m[1], month: +m[2], day: +m[3] };
+  };
+
   // Filter entries for the selected month
   const monthEntries = useMemo(() => {
     return tradingData
       .filter((t) => {
-        const d = new Date(t.trade_date);
-        return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
+        const p = parseTradeDate(t.trade_date);
+        if (!p) return false;
+        return p.month === selectedMonth && p.year === selectedYear;
       })
       .sort((a, b) => {
         const nameComp = getUserName(a.user_id).localeCompare(getUserName(b.user_id));
