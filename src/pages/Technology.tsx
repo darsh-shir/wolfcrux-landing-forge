@@ -15,14 +15,14 @@ import CodeRain from "@/components/landing/CodeRain";
 const Technology = () => {
   useReveal();
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      <CodeRain />
       <ScrollProgress />
       <Navigation />
 
       {/* Hero Section — code rain signature */}
       <section className="relative pt-24 md:pt-32 pb-12 md:pb-20 overflow-hidden">
         <AuroraBackground className="opacity-70" />
-        <CodeRain />
         <FloatingShapes />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
