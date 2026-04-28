@@ -35,45 +35,28 @@ const About = () => {
       <section className="py-12 md:py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border-border animate-fade-in">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                  <Building2 className="text-accent" size={24} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Established</h3>
-                <p className="font-['Inter'] text-muted-foreground">February 2025</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                  <Globe className="text-accent" size={24} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Location</h3>
-                <p className="font-['Inter'] text-muted-foreground">Mumbai, India</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                  <Target className="text-accent" size={24} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Focus</h3>
-                <p className="font-['Inter'] text-muted-foreground">US Markets HFT</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border animate-fade-in" style={{ animationDelay: "0.3s" }}>
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                  <Users className="text-accent" size={24} />
-                </div>
-                <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">Structure</h3>
-                <p className="font-['Inter'] text-muted-foreground">LLP Partnership</p>
-              </CardContent>
-            </Card>
+            {[
+              { icon: Building2, title: "Established", value: "February 2025" },
+              { icon: Globe, title: "Location", value: "Mumbai, India" },
+              { icon: Target, title: "Focus", value: "US Markets HFT" },
+              { icon: Users, title: "Structure", value: "LLP Partnership" },
+            ].map((item, i) => (
+              <Card
+                key={item.title}
+                className="border-border hover-lift reveal group"
+                style={{ transitionDelay: `${i * 90}ms` }}
+              >
+                <CardContent className="p-6">
+                  <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:bg-accent/15">
+                    <item.icon className="text-accent" size={24} />
+                  </div>
+                  <h3 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
+                    {item.title}
+                  </h3>
+                  <p className="font-['Inter'] text-muted-foreground">{item.value}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
