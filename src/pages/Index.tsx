@@ -77,7 +77,7 @@ const Index = () => {
             <p className="font-['Inter'] text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Wolfcrux Global Markets trades{" "}
               <TypewriterText
-                words={["US equities", "futures", "options", "volatility"]}
+                words={["equities", "futures", "options", "volatility"]}
                 className="text-accent font-semibold"
               />{" "}
               with unparalleled efficiency.
