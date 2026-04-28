@@ -63,17 +63,13 @@ interface QuoteData {
 }
 
 const formatMarketCap = (cap: number): string => {
-  if (cap >= 1e12) return `$${(cap / 1e12).toFixed(2)}T`;
-  if (cap >= 1e9) return `$${(cap / 1e9).toFixed(2)}B`;
-  if (cap >= 1e6) return `$${(cap / 1e6).toFixed(2)}M`;
-  return `$${formatIndian(cap)}`;
+  return `$${formatIndian(Math.round(cap))}`;
 };
 
 const formatEmployees = (val: string): string => {
   const num = parseInt(val, 10);
   if (isNaN(num)) return val;
-  if (num >= 1000) return `${(num / 1000).toFixed(num % 1000 === 0 ? 0 : 1)}K`;
-  return val;
+  return formatIndian(num);
 };
 
 const formatDate = (dateStr: string): string => {
