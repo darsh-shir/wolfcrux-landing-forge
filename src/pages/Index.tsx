@@ -9,7 +9,6 @@ import { useReveal } from "@/hooks/useReveal";
 
 import AnimatedCounter from "@/components/landing/AnimatedCounter";
 import TypewriterText from "@/components/landing/TypewriterText";
-import EquitySparkline from "@/components/landing/EquitySparkline";
 import AuroraBackground from "@/components/landing/AuroraBackground";
 import MagneticButton from "@/components/landing/MagneticButton";
 import SpotlightTiltCard from "@/components/landing/SpotlightTiltCard";
@@ -17,7 +16,6 @@ import ScrollProgress from "@/components/landing/ScrollProgress";
 import WaveDivider from "@/components/landing/WaveDivider";
 import TestimonialsCarousel from "@/components/landing/TestimonialsCarousel";
 import TextScramble from "@/components/landing/TextScramble";
-import CursorSpotlight from "@/components/landing/CursorSpotlight";
 
 import purviPhoto from "@/assets/purvi_photo.jpg";
 import labdhiPhoto from "@/assets/labdhi_photo.jpg";
@@ -66,7 +64,6 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
         <AuroraBackground />
-        <CursorSpotlight />
         <FloatingShapes />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -108,13 +105,6 @@ const Index = () => {
                   </Button>
                 </Link>
               </MagneticButton>
-            </div>
-
-            {/* Animated equity curve under hero */}
-            <div className="max-w-3xl mx-auto pt-6">
-              <div className="h-32 md:h-40 opacity-90">
-                <EquitySparkline />
-              </div>
             </div>
 
             {/* Animated stats */}
@@ -242,7 +232,6 @@ const Index = () => {
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-primary/5" />
         <FloatingShapes />
-        <CursorSpotlight color="hsl(265 85% 60% / 0.18)" />
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <h2 className="font-['Space_Grotesk'] text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-6">
