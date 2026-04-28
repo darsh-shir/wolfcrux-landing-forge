@@ -250,7 +250,7 @@ const Dashboard = () => {
       <div className="min-h-screen bg-background flex flex-col">
         <Navigation />
 
-        <main className="pt-20 md:pt-24 pb-6 px-2 sm:px-4 max-w-7xl mx-auto flex-1 w-full">
+        <main className="pt-20 md:pt-24 pb-6 px-2 sm:px-4 max-w-7xl mx-auto flex-1 w-full animate-fade-in">
           {/* Market Sentiment Header */}
           <div className="flex justify-between items-center mb-4">
             <MarketSentiment
