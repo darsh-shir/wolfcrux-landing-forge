@@ -10,10 +10,8 @@ import { useReveal } from "@/hooks/useReveal";
 import AnimatedCounter from "@/components/landing/AnimatedCounter";
 import TypewriterText from "@/components/landing/TypewriterText";
 import AuroraBackground from "@/components/landing/AuroraBackground";
-import MagneticButton from "@/components/landing/MagneticButton";
 import SpotlightTiltCard from "@/components/landing/SpotlightTiltCard";
 import ScrollProgress from "@/components/landing/ScrollProgress";
-import WaveDivider from "@/components/landing/WaveDivider";
 import TestimonialsCarousel from "@/components/landing/TestimonialsCarousel";
 import TextScramble from "@/components/landing/TextScramble";
 
@@ -84,27 +82,23 @@ const Index = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <MagneticButton>
-                <Link to="/about">
-                  <Button
-                    size="lg"
-                    className="group bg-accent hover:bg-accent/90 text-accent-foreground font-['Inter'] shadow-lg shadow-accent/20"
-                  >
-                    Discover Our Approach
-                    <ArrowRight
-                      className="ml-2 group-hover:translate-x-1 transition-transform"
-                      size={20}
-                    />
-                  </Button>
-                </Link>
-              </MagneticButton>
-              <MagneticButton>
-                <Link to="/careers">
-                  <Button size="lg" variant="outline" className="font-['Inter']">
-                    Join Our Team
-                  </Button>
-                </Link>
-              </MagneticButton>
+              <Link to="/about">
+                <Button
+                  size="lg"
+                  className="group bg-accent hover:bg-accent/90 text-accent-foreground font-['Inter'] shadow-lg shadow-accent/20"
+                >
+                  Discover Our Approach
+                  <ArrowRight
+                    className="ml-2 group-hover:translate-x-1 transition-transform"
+                    size={20}
+                  />
+                </Button>
+              </Link>
+              <Link to="/careers">
+                <Button size="lg" variant="outline" className="font-['Inter']">
+                  Join Our Team
+                </Button>
+              </Link>
             </div>
 
             {/* Animated stats */}
@@ -138,7 +132,7 @@ const Index = () => {
         </div>
       </section>
 
-      <WaveDivider />
+      
 
       {/* Features Section */}
       <section className="py-16 md:py-24 bg-muted/30 relative overflow-hidden">
@@ -208,7 +202,7 @@ const Index = () => {
         </div>
       </section>
 
-      <WaveDivider flip />
+      
 
       {/* Testimonials carousel */}
       <section className="py-16 md:py-24 relative overflow-hidden">
@@ -241,17 +235,15 @@ const Index = () => {
             We're always looking for exceptional talent to join our team of traders,
             engineers, and researchers.
           </p>
-          <MagneticButton>
-            <Link to="/careers">
-              <Button
-                size="lg"
-                className="bg-accent hover:bg-accent/90 text-accent-foreground font-['Inter'] shadow-lg shadow-accent/20"
-              >
-                Explore Opportunities
-                <ArrowRight className="ml-2" size={20} />
-              </Button>
-            </Link>
-          </MagneticButton>
+          <Link to="/careers">
+            <Button
+              size="lg"
+              className="bg-accent hover:bg-accent/90 text-accent-foreground font-['Inter'] shadow-lg shadow-accent/20"
+            >
+              Explore Opportunities
+              <ArrowRight className="ml-2" size={20} />
+            </Button>
+          </Link>
         </div>
       </section>
 
