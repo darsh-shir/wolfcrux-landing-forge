@@ -38,6 +38,23 @@ const formatTime = (iso: string) => {
   }
 };
 
+// US market opens 9:30 AM ET. Anything earlier on the same day = pre-market.
+const isPreMarket = (iso: string) => {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(new Date(iso));
+    const hour = Number(parts.find((p) => p.type === "hour")?.value ?? "99");
+    const minute = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
+    return hour < 9 || (hour === 9 && minute < 30);
+  } catch {
+    return false;
+  }
+};
+
 const formatDate = (iso: string) => {
   try {
     return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
