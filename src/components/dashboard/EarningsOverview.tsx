@@ -196,8 +196,8 @@ const EarningsOverview = () => {
                           {Math.abs(s.change?.percent * 100).toFixed(1)}%
                         </span>
                       </div>
-                      <p className="text-muted-foreground">
-                        EPS Est: ${s.earning?.value?.toFixed(2)} • {formatMC(s.marketCap)}
+                      <p className="text-muted-foreground font-mono">
+                        {formatMC(s.marketCap)}
                       </p>
                     </div>
                   </div>
