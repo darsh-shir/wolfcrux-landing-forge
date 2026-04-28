@@ -145,23 +145,23 @@ const CompanyKPIs = ({ stats }: CompanyKPIsProps) => {
           className="border-border/50 hover-lift-sm animate-scale-in group"
           style={{ animationDelay: `${index * 50}ms` }}
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wide leading-tight break-words min-w-0 flex-1">
                 {kpi.label}
               </span>
-              <div className={`p-1.5 rounded-lg ${kpi.bgColor} transition-transform duration-300 group-hover:scale-110`}>
+              <div className={`shrink-0 p-1.5 rounded-lg ${kpi.bgColor} transition-transform duration-300 group-hover:scale-110`}>
                 <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
               </div>
             </div>
-            <div className={`text-xl font-bold ${kpi.color}`}>
+            <div className={`text-base sm:text-xl font-bold leading-tight tabular-nums break-words ${kpi.color}`}>
               <AnimatedNumber
                 value={kpi.rawValue}
                 format={kpi.format}
                 resetKey={kpi.rawValue}
               />
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-1 break-words leading-tight">
               {kpi.subLabel}
             </div>
           </CardContent>
