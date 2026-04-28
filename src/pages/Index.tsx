@@ -183,7 +183,7 @@ const Index = () => {
               >
                 <SpotlightTiltCard className="gradient-border h-full">
                   <Card className="border-0 bg-transparent group h-full">
-                    <CardContent className="p-8">
+                    <CardContent className="p-6 sm:p-8">
                       <div className="icon-glow w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-accent/15">
                         <f.icon className="text-accent" size={28} />
                       </div>
