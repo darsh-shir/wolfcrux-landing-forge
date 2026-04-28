@@ -554,14 +554,14 @@ const Earnings = () => {
             </>
           )}
 
-          <span className="ml-auto text-xs text-muted-foreground">
-            Showing {sortedStocks.length} of {dayData.length}
+          <span className="ml-auto text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            {sortedStocks.length} / {dayData.length}
           </span>
         </div>
 
         {/* HEADER */}
-        <h3 className="text-md font-semibold text-muted-foreground border-b pb-2">
-          {formatHeaderDate(selectedDate)} — {sortedStocks.length} Earnings
+        <h3 className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground border-b border-border/50 pb-2">
+          // {formatHeaderDate(selectedDate)} · {sortedStocks.length} Earnings
         </h3>
 
         {dayLoading ? (
@@ -574,12 +574,12 @@ const Earnings = () => {
               <div key={session}>
                 {grouped[session].length > 0 && (
                   <>
-                    <div className="relative flex items-center py-4">
-                      <div className="flex-grow border-t" />
-                      <span className="mx-4 text-xs font-semibold text-muted-foreground">
-                        {session === "PreMarket" ? "PRE-MARKET" : "AFTER-HOURS"}
+                    <div className="relative flex items-center py-3">
+                      <div className="flex-grow border-t border-border/50" />
+                      <span className="mx-3 text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+                        // {session === "PreMarket" ? "Pre-Market" : "After-Hours"}
                       </span>
-                      <div className="flex-grow border-t" />
+                      <div className="flex-grow border-t border-border/50" />
                     </div>
                     <div className="space-y-2">
                       {grouped[session].map((s, i) => renderStock(s, i, `${session}-`))}
@@ -590,8 +590,8 @@ const Earnings = () => {
             ))}
 
             {sortedStocks.length === 0 && (
-              <p className="text-center text-muted-foreground py-8">
-                No earnings scheduled for this date.
+              <p className="text-center font-mono text-xs uppercase tracking-wider text-muted-foreground py-8">
+                // No earnings scheduled
               </p>
             )}
           </>
