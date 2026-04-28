@@ -164,15 +164,16 @@ const WeeklyStance = ({ events }: { events: EconomicEvent[] }) => {
 };
 
 const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
-  const [impactFilter, setImpactFilter] = useState<string>("all");
+  const [impactFilter, setImpactFilter] = useState<string>("med-high");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const usOnly = useMemo(() => data.filter((e) => e.country?.toLowerCase() === "us"), [data]);
 
   const filtered = useMemo(() => {
     return usOnly.filter((e) => {
-      if (impactFilter !== "all" && e.impact !== Number(impactFilter)) return false;
-      return true;
+      if (impactFilter === "med-high") return e.impact >= 2;
+      if (impactFilter === "all") return true;
+      return e.impact === Number(impactFilter);
     });
   }, [usOnly, impactFilter]);
 
@@ -226,14 +227,15 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
             <div className="flex items-center gap-2 flex-wrap">
               <Filter className="w-4 h-4 text-muted-foreground" />
               <Select value={impactFilter} onValueChange={setImpactFilter}>
-                <SelectTrigger className="w-[130px] h-8 text-xs">
+                <SelectTrigger className="w-[170px] h-8 text-xs">
                   <SelectValue placeholder="Impact" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="med-high">Medium & High (default)</SelectItem>
                   <SelectItem value="all">All Impact</SelectItem>
-                  <SelectItem value="3">High</SelectItem>
-                  <SelectItem value="2">Medium</SelectItem>
-                  <SelectItem value="1">Low</SelectItem>
+                  <SelectItem value="3">High only</SelectItem>
+                  <SelectItem value="2">Medium only</SelectItem>
+                  <SelectItem value="1">Low only</SelectItem>
                 </SelectContent>
               </Select>
             </div>
