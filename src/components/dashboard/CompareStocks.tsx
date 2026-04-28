@@ -76,7 +76,11 @@ interface ProfileInfo {
 
 const formatMarketCap = (cap: number): string => {
   if (!cap) return "—";
-  return `$${formatIndian(Math.round(cap))}`;
+  if (cap >= 1e12) return `$${(cap / 1e12).toFixed(2)}T`;
+  if (cap >= 1e9) return `$${(cap / 1e9).toFixed(2)}B`;
+  if (cap >= 1e6) return `$${(cap / 1e6).toFixed(2)}M`;
+  if (cap >= 1e3) return `$${(cap / 1e3).toFixed(2)}K`;
+  return `$${cap.toFixed(0)}`;
 };
 
 const CompareStocks = () => {

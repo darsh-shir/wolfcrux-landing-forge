@@ -91,11 +91,21 @@ const formatHeaderDate = (dateStr: string) => {
 };
 
 const formatMarketCap = (mc: number) => {
-  return formatIndian(Math.round(mc));
+  if (!mc) return "—";
+  if (mc >= 1e12) return `${(mc / 1e12).toFixed(2)}T`;
+  if (mc >= 1e9) return `${(mc / 1e9).toFixed(2)}B`;
+  if (mc >= 1e6) return `${(mc / 1e6).toFixed(2)}M`;
+  if (mc >= 1e3) return `${(mc / 1e3).toFixed(2)}K`;
+  return mc.toFixed(0);
 };
 
 const formatSalesEstimate = (s: number) => {
-  return `$${formatIndian(Math.round(s))}`;
+  if (!s) return "—";
+  if (s >= 1e12) return `$${(s / 1e12).toFixed(2)}T`;
+  if (s >= 1e9) return `$${(s / 1e9).toFixed(2)}B`;
+  if (s >= 1e6) return `$${(s / 1e6).toFixed(2)}M`;
+  if (s >= 1e3) return `$${(s / 1e3).toFixed(2)}K`;
+  return `$${s.toFixed(0)}`;
 };
 
 const getSessionLabel = (timeOfDay: string) => {
