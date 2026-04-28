@@ -96,9 +96,9 @@ const EarningsOverview = () => {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Today's Earnings
+          <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5" />
+            // Today's Earnings
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -116,9 +116,9 @@ const EarningsOverview = () => {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
         <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <Calendar className="w-4 h-4" />
-          Today's Earnings
+        <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+          <Calendar className="w-3.5 h-3.5" />
+          // Today's Earnings
           </CardTitle>
         </CardHeader>
         <CardContent>
