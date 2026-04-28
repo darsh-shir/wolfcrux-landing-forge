@@ -264,37 +264,37 @@ const Dashboard = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="-mx-2 sm:mx-0 overflow-x-auto scrollbar-none">
               <TabsList className="w-max md:w-full md:justify-start px-2 sm:px-0">
-                <TabsTrigger value="overview" className="whitespace-nowrap text-xs sm:text-sm">
+                <TabsTrigger value="overview" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <BarChart3 className="w-4 h-4 mr-1 sm:mr-2" />
                   Overview
                 </TabsTrigger>
 
-                <TabsTrigger value="news" className="whitespace-nowrap text-xs sm:text-sm">
+                <TabsTrigger value="news" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <Newspaper className="w-4 h-4 mr-1 sm:mr-2" />
                   News
                 </TabsTrigger>
 
-                <TabsTrigger value="splits" className="whitespace-nowrap text-xs sm:text-sm">
+                <TabsTrigger value="splits" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <Scissors className="w-4 h-4 mr-1 sm:mr-2" />
                   Stock Splits
                 </TabsTrigger>
 
-                <TabsTrigger value="earnings" className="whitespace-nowrap text-xs sm:text-sm">
+                <TabsTrigger value="earnings" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <Calendar className="w-4 h-4 mr-1 sm:mr-2" />
                   Earnings
                 </TabsTrigger>
 
-                <TabsTrigger value="peers" className="whitespace-nowrap text-xs sm:text-sm">
+                <TabsTrigger value="peers" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <Users className="w-4 h-4 mr-1 sm:mr-2" />
                   Peers
                 </TabsTrigger>
 
-                <TabsTrigger value="economic" className="whitespace-nowrap text-xs sm:text-sm">
+                <TabsTrigger value="economic" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <CalendarClock className="w-4 h-4 mr-1 sm:mr-2" />
                   Economic Calendar
                 </TabsTrigger>
 
-                <TabsTrigger value="compare" className="whitespace-nowrap text-xs sm:text-sm">
+                <TabsTrigger value="compare" className="whitespace-nowrap text-xs sm:text-sm transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <LineChart className="w-4 h-4 mr-1 sm:mr-2" />
                   Compare Stocks
                 </TabsTrigger>
@@ -302,7 +302,7 @@ const Dashboard = () => {
             </div>
 
             {/* ================= OVERVIEW TAB ================= */}
-            <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+            <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6 tab-anim">
               <IndexCards
                 data={indices}
                 loading={loadingIndices}
@@ -337,32 +337,32 @@ const Dashboard = () => {
             </TabsContent>
 
             {/* ================= MARKET NEWS TAB ================= */}
-            <TabsContent value="news" className="mt-6">
+            <TabsContent value="news" className="mt-6 tab-anim">
               <MarketNews data={{ posts: newsPosts }} loading={loadingNews} />
             </TabsContent>
 
             {/* ================= FULL STOCK SPLITS TAB ================= */}
-            <TabsContent value="splits" className="mt-6">
+            <TabsContent value="splits" className="mt-6 tab-anim">
               <StockSplits />
             </TabsContent>
 
             {/* ================= EARNINGS TAB ================= */}
-            <TabsContent value="earnings" className="mt-6">
+            <TabsContent value="earnings" className="mt-6 tab-anim">
               <Earnings />
             </TabsContent>
 
             {/* ================= PEERS TAB ================= */}
-            <TabsContent value="peers" className="mt-6">
+            <TabsContent value="peers" className="mt-6 tab-anim">
               <Peers />
             </TabsContent>
 
             {/* ================= ECONOMIC CALENDAR TAB ================= */}
-            <TabsContent value="economic" className="mt-6">
+            <TabsContent value="economic" className="mt-6 tab-anim">
               <EconomicCalendar data={economicEvents} loading={economicLoading} />
             </TabsContent>
 
             {/* ================= COMPARE STOCKS TAB ================= */}
-            <TabsContent value="compare" className="mt-6">
+            <TabsContent value="compare" className="mt-6 tab-anim">
               <CompareStocks />
             </TabsContent>
           </Tabs>
