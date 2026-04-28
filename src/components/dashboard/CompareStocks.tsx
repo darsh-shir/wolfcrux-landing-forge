@@ -648,17 +648,20 @@ const CompareStocks = () => {
         </div>
       </Card>
 
-      <Card className="p-3 sm:p-5">
+      <Card className="p-3 sm:p-5 border border-border/50 shadow-sm">
         {/* Range selector */}
-        <div className="flex justify-end mb-3">
-          <div className="inline-flex rounded-lg bg-muted p-1 gap-1">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+            // Performance %
+          </span>
+          <div className="inline-flex rounded-md border border-border/50 bg-muted/40 p-0.5 gap-0.5">
             {RANGES.map((r) => (
               <button
                 key={r.label}
                 onClick={() => setDays(r.days)}
-                className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors ${
+                className={`px-2.5 sm:px-3 py-1 text-[11px] font-mono uppercase tracking-wider rounded transition-all ${
                   days === r.days
-                    ? "bg-background shadow-sm font-semibold"
+                    ? "bg-foreground text-background shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -670,10 +673,10 @@ const CompareStocks = () => {
 
         <div className="h-[320px] sm:h-[440px] w-full">
           {chartData.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+            <div className="h-full flex items-center justify-center text-xs font-mono uppercase tracking-wider text-muted-foreground">
               {symbols.some((s) => s.loading)
-                ? "Loading chart…"
-                : "No data to display"}
+                ? "// Loading chart…"
+                : "// No data"}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
