@@ -4,8 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Quote } from "lucide-react";
 
 // ✅ Import all photos correctly
-import krishaPhoto from "@/assets/krisha_photo.jpeg";
-import jenishPhoto from "@/assets/jenish_photo.jpeg";
 import purviPhoto from "@/assets/purvi_photo.jpg";      // NEW correct import
 import labdhiPhoto from "@/assets/labdhi_photo.jpg";
 import darshitPhoto from "@/assets/darshit_photo.jpeg";
@@ -13,20 +11,6 @@ import jinalPhoto from "@/assets/jinal-photo.jpeg";
 
 const Testimonials = () => {
   const testimonials = [
-    {
-      quote:
-        "Joining Wolfcrux Global pushed me to think faster and trade smarter — the team energy is unmatched. Every day I feel like I’m leveling up with people who genuinely want me to win.",
-      author: "Krisha",
-      position: "Equity Trader",
-      image: krishaPhoto,
-    },
-    {
-      quote:
-        "Wolfcrux taught me discipline and gave me a structure that actually works in live markets. The support during volatile sessions has been the biggest game-changer for my trading career.",
-      author: "Jenish",
-      position: "Senior Trader",
-      image: jenishPhoto,
-    },
     {
       quote:
         "What sets Wolfcrux apart is how the seniors break down complex ideas into simple, actionable steps. I’ve never felt this confident placing trades backed by real logic and risk control.",
