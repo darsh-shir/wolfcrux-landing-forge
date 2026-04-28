@@ -361,10 +361,12 @@ const CompareStocks = () => {
   return (
     <div className="space-y-4">
       {/* Sector Peer Finder */}
-      <Card className="p-4 sm:p-5">
+      <Card className="p-4 sm:p-5 border border-border/50 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-4 h-4 text-primary" />
-          <h2 className="text-lg sm:text-xl font-bold">Find Sector Peers</h2>
+          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+          <h2 className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+            // Sector Peer Finder
+          </h2>
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mb-3">
           Enter a stock to discover peers in the same sector and add them to your comparison.
@@ -376,14 +378,15 @@ const CompareStocks = () => {
               value={peerInput}
               onChange={(e) => setPeerInput(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === "Enter" && fetchPeers()}
-              placeholder="Enter symbol (e.g. V, AAPL, JPM)"
-              className="pl-10 h-9 uppercase"
+              placeholder="Query symbol (e.g. V, AAPL, JPM)"
+              className="pl-10 h-9 font-mono text-sm uppercase"
             />
           </div>
           <Button
             size="sm"
             onClick={() => fetchPeers()}
             disabled={peerLoading || !peerInput.trim()}
+            className="font-mono text-xs uppercase tracking-wider"
           >
             {peerLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -530,21 +533,23 @@ const CompareStocks = () => {
       </Card>
 
       {/* Comparison Card */}
-      <Card className="p-4 sm:p-5">
+      <Card className="p-4 sm:p-5 border border-border/50 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold">Compare Stocks</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">
+            <h2 className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+              // Compare Stocks
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Compare % price change across multiple tickers
             </p>
           </div>
           <div className="flex gap-2">
             <Input
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => setInput(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === "Enter" && addSymbol()}
-              placeholder="Add symbol (e.g. AAPL)"
-              className="h-9 w-full sm:w-48 uppercase"
+              placeholder="Add symbol"
+              className="h-9 w-full sm:w-48 font-mono text-sm uppercase"
               disabled={adding || symbols.length >= MAX_SYMBOLS}
             />
             <Button
@@ -577,10 +582,10 @@ const CompareStocks = () => {
         </div>
 
         {/* Symbol legend list */}
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-1">
           {symbols.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Add a stock symbol to start comparing.
+            <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+              // Add a symbol to start comparing
             </p>
           )}
           {symbols.map((s, idx) => {
@@ -588,9 +593,14 @@ const CompareStocks = () => {
             return (
               <div
                 key={s.symbol}
-                className="flex items-center justify-between gap-2 py-1.5 border-b border-border/50 last:border-0"
+                className="relative flex items-center justify-between gap-2 py-1.5 px-2 rounded-md border border-border/50 bg-card hover:bg-muted/30 transition-colors animate-fade-in"
+                style={{ animationDelay: `${idx * 40}ms` }}
               >
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <span
+                  className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-md"
+                  style={{ background: color, opacity: s.visible ? 1 : 0.3 }}
+                />
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 pl-2">
                   <Checkbox
                     checked={s.visible}
                     onCheckedChange={() => toggleVisible(s.symbol)}
@@ -600,7 +610,7 @@ const CompareStocks = () => {
                     }}
                   />
                   <span
-                    className="font-bold text-sm sm:text-base"
+                    className="font-mono font-bold text-sm sm:text-base"
                     style={{ color }}
                   >
                     {s.symbol}
@@ -609,16 +619,16 @@ const CompareStocks = () => {
                     <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
                   )}
                   {s.error && (
-                    <span className="text-xs text-destructive">{s.error}</span>
+                    <span className="text-xs font-mono text-destructive">{s.error}</span>
                   )}
                 </div>
-                <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm shrink-0">
-                  <span className="font-mono tabular-nums hidden sm:inline">
-                    {s.latestPrice.toFixed(2)}
+                <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm shrink-0 font-mono">
+                  <span className="tabular-nums hidden sm:inline text-muted-foreground">
+                    ${s.latestPrice.toFixed(2)}
                   </span>
                   <span
-                    className={`font-mono tabular-nums font-semibold ${
-                      s.changePct >= 0 ? "text-green-500" : "text-red-500"
+                    className={`tabular-nums font-semibold ${
+                      s.changePct >= 0 ? "text-emerald-600" : "text-red-500"
                     }`}
                   >
                     {s.changePct >= 0 ? "+" : ""}
@@ -626,7 +636,7 @@ const CompareStocks = () => {
                   </span>
                   <button
                     onClick={() => removeSymbol(s.symbol)}
-                    className="text-muted-foreground hover:text-destructive"
+                    className="text-muted-foreground hover:text-destructive transition-colors"
                     aria-label={`Remove ${s.symbol}`}
                   >
                     <X className="w-4 h-4" />
@@ -638,17 +648,20 @@ const CompareStocks = () => {
         </div>
       </Card>
 
-      <Card className="p-3 sm:p-5">
+      <Card className="p-3 sm:p-5 border border-border/50 shadow-sm">
         {/* Range selector */}
-        <div className="flex justify-end mb-3">
-          <div className="inline-flex rounded-lg bg-muted p-1 gap-1">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+            // Performance %
+          </span>
+          <div className="inline-flex rounded-md border border-border/50 bg-muted/40 p-0.5 gap-0.5">
             {RANGES.map((r) => (
               <button
                 key={r.label}
                 onClick={() => setDays(r.days)}
-                className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors ${
+                className={`px-2.5 sm:px-3 py-1 text-[11px] font-mono uppercase tracking-wider rounded transition-all ${
                   days === r.days
-                    ? "bg-background shadow-sm font-semibold"
+                    ? "bg-foreground text-background shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -660,10 +673,10 @@ const CompareStocks = () => {
 
         <div className="h-[320px] sm:h-[440px] w-full">
           {chartData.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+            <div className="h-full flex items-center justify-center text-xs font-mono uppercase tracking-wider text-muted-foreground">
               {symbols.some((s) => s.loading)
-                ? "Loading chart…"
-                : "No data to display"}
+                ? "// Loading chart…"
+                : "// No data"}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
