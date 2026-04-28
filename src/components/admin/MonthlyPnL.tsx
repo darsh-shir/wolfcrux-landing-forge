@@ -184,7 +184,13 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
     }
   };
 
-  const years = Array.from(new Set(tradingData.map((t) => new Date(t.trade_date).getFullYear()))).sort((a, b) => b - a);
+  const years = Array.from(
+    new Set(
+      tradingData
+        .map((t) => parseTradeDate(t.trade_date)?.year)
+        .filter((y): y is number => typeof y === "number")
+    )
+  ).sort((a, b) => b - a);
   if (!years.includes(selectedYear)) years.push(selectedYear);
   years.sort((a, b) => b - a);
 
