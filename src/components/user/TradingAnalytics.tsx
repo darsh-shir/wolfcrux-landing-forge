@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
+import AnimatedNumber from "@/components/AnimatedNumber";
 import { DollarSign, Briefcase, CalendarCheck } from "lucide-react";
 
 interface DailySummary {
@@ -174,7 +175,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">This Month Net</p>
                 <p className={`text-xl font-bold ${currentMonthNet >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {formatCurrency(currentMonthNet)}
+                  <AnimatedNumber value={currentMonthNet} format={formatCurrency} resetKey={currentMonthNet} />
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {format(new Date(), "MMMM yyyy")}
@@ -193,7 +194,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Total P&L (Till Date)</p>
                 <p className={`text-xl font-bold ${lifetimeNet >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {formatCurrency(lifetimeNet)}
+                  <AnimatedNumber value={lifetimeNet} format={formatCurrency} resetKey={lifetimeNet} />
                 </p>
                 <p className="text-xs text-muted-foreground">Net after brokerage & software</p>
               </div>
@@ -209,7 +210,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Total Days Worked</p>
-                <p className="text-xl font-bold">{lifetimeDays}</p>
+                <p className="text-xl font-bold"><AnimatedNumber value={lifetimeDays} format={(n) => formatIndian(Math.round(n))} resetKey={lifetimeDays} /></p>
                 <p className="text-xs text-muted-foreground">All trading days till date</p>
               </div>
             </div>
@@ -229,7 +230,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Best Day</p>
                 <p className="text-lg font-bold text-green-600">
-                  {formatCurrency(analytics.bestDay.pnl)}
+                  <AnimatedNumber value={analytics.bestDay.pnl} format={formatCurrency} resetKey={analytics.bestDay.pnl} />
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {analytics.bestDay.date !== "-" ? format(parseISO(analytics.bestDay.date), "MMM d, yy") : "-"}
@@ -249,7 +250,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Worst Day</p>
                 <p className="text-lg font-bold text-red-600">
-                  {formatCurrency(analytics.worstDay.pnl)}
+                  <AnimatedNumber value={analytics.worstDay.pnl} format={formatCurrency} resetKey={analytics.worstDay.pnl} />
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {analytics.worstDay.date !== "-" ? format(parseISO(analytics.worstDay.date), "MMM d, yy") : "-"}
@@ -268,7 +269,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Trading Days</p>
-                <p className="text-lg font-bold">{tradingDays}</p>
+                <p className="text-lg font-bold"><AnimatedNumber value={tradingDays} format={(n) => formatIndian(Math.round(n))} resetKey={tradingDays} /></p>
                 <p className="text-xs text-muted-foreground">
                   {analytics.winningDays}W / {analytics.losingDays}L
                 </p>
@@ -286,7 +287,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Win Rate</p>
-                <p className="text-lg font-bold">{analytics.winRate.toFixed(1)}%</p>
+                <p className="text-lg font-bold"><AnimatedNumber value={analytics.winRate} format={(n) => `${n.toFixed(1)}%`} resetKey={analytics.winRate} /></p>
                 <p className="text-xs text-muted-foreground">
                   PF: {analytics.profitFactor === Infinity ? "∞" : analytics.profitFactor.toFixed(2)}
                 </p>
@@ -305,7 +306,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Avg Daily P&L</p>
                 <p className={`text-lg font-bold ${analytics.avgDailyPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {formatCurrency(analytics.avgDailyPnl)}
+                  <AnimatedNumber value={analytics.avgDailyPnl} format={formatCurrency} resetKey={analytics.avgDailyPnl} />
                 </p>
               </div>
             </div>
@@ -322,7 +323,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Avg Winning Day</p>
                 <p className="text-lg font-bold text-green-600">
-                  {formatCurrency(analytics.avgWinningDay)}
+                  <AnimatedNumber value={analytics.avgWinningDay} format={formatCurrency} resetKey={analytics.avgWinningDay} />
                 </p>
               </div>
             </div>
@@ -339,7 +340,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Avg Losing Day</p>
                 <p className="text-lg font-bold text-red-600">
-                  {formatCurrency(analytics.avgLosingDay)}
+                  <AnimatedNumber value={analytics.avgLosingDay} format={formatCurrency} resetKey={analytics.avgLosingDay} />
                 </p>
               </div>
             </div>
@@ -356,9 +357,9 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">Max Streak</p>
                 <p className="text-lg font-bold">
-                  <span className="text-green-600">{analytics.maxConsecutiveWins}W</span>
+                  <span className="text-green-600"><AnimatedNumber value={analytics.maxConsecutiveWins} format={(n) => `${Math.round(n)}W`} resetKey={analytics.maxConsecutiveWins} /></span>
                   {" / "}
-                  <span className="text-red-600">{analytics.maxConsecutiveLosses}L</span>
+                  <span className="text-red-600"><AnimatedNumber value={analytics.maxConsecutiveLosses} format={(n) => `${Math.round(n)}L`} resetKey={analytics.maxConsecutiveLosses} /></span>
                 </p>
               </div>
             </div>
