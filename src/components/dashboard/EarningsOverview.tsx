@@ -30,7 +30,12 @@ interface EarningStock {
 }
 
 const formatMC = (mc: number) => {
-  return formatIndian(Math.round(mc));
+  if (!mc) return "—";
+  if (mc >= 1e12) return `${(mc / 1e12).toFixed(2)}T`;
+  if (mc >= 1e9) return `${(mc / 1e9).toFixed(2)}B`;
+  if (mc >= 1e6) return `${(mc / 1e6).toFixed(2)}M`;
+  if (mc >= 1e3) return `${(mc / 1e3).toFixed(2)}K`;
+  return mc.toFixed(0);
 };
 
 const EarningsOverview = () => {
