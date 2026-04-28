@@ -5,8 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import FloatingShapes from "@/components/FloatingShapes";
+import { useReveal } from "@/hooks/useReveal";
 
 const Index = () => {
+  useReveal();
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -20,7 +22,7 @@ const Index = () => {
             <h1 className="font-['Space_Grotesk'] text-4xl sm:text-5xl md:text-7xl font-bold text-foreground leading-tight">
               Precision Trading at
               <br />
-              <span className="text-accent">Microsecond Speed</span>
+              <span className="text-gradient-accent">Microsecond Speed</span>
             </h1>
             
             <p className="font-['Inter'] text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -44,18 +46,24 @@ const Index = () => {
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 max-w-3xl mx-auto">
-              <div className="text-center">
-                <div className="text-4xl font-bold text-accent font-['Space_Grotesk']">2025</div>
-                <div className="text-sm text-muted-foreground font-['Inter']">Established</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-bold text-accent font-['Space_Grotesk']">HFT</div>
-                <div className="text-sm text-muted-foreground font-['Inter']">High Frequency Trading</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-bold text-accent font-['Space_Grotesk']">Mumbai</div>
-                <div className="text-sm text-muted-foreground font-['Inter']">India</div>
-              </div>
+              {[
+                { value: "2025", label: "Established" },
+                { value: "HFT", label: "High Frequency Trading" },
+                { value: "Mumbai", label: "India" },
+              ].map((s, i) => (
+                <div
+                  key={s.label}
+                  className="text-center animate-scale-in"
+                  style={{ animationDelay: `${0.2 + i * 0.12}s` }}
+                >
+                  <div className="text-4xl font-bold text-accent font-['Space_Grotesk']">
+                    {s.value}
+                  </div>
+                  <div className="text-sm text-muted-foreground font-['Inter']">
+                    {s.label}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
