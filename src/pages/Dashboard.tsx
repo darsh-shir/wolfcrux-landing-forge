@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -22,6 +22,7 @@ import CompareStocks from "@/components/dashboard/CompareStocks";
 import TickerTape from "@/components/dashboard/TickerTape";
 import MarketClock from "@/components/dashboard/MarketClock";
 import MarketPulse from "@/components/dashboard/MarketPulse";
+import { useTickerWatchlist } from "@/hooks/useTickerWatchlist";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
@@ -243,17 +244,14 @@ const Dashboard = () => {
     return () => clearInterval(sentimentInterval);
   }, [fetchSentiment]);
 
-  /* ===================== UI ===================== */
-  const tickerItems = useMemo(
-    () =>
-      indices.map((i) => ({
-        symbol: i.symbol,
-        price: i.price,
-        change: i.change,
-        changesPercentage: i.changesPercentage,
-      })),
-    [indices]
-  );
+  /* ===================== TICKER WATCHLIST ===================== */
+  const {
+    quotes: tickerItems,
+    loading: loadingTicker,
+    userSymbols,
+    addSymbol,
+    removeSymbol,
+  } = useTickerWatchlist();
 
   return (
     <>
@@ -285,7 +283,13 @@ const Dashboard = () => {
 
         {/* Ticker tape — sits flush under the nav */}
         <div className="pt-16 md:pt-20 relative z-20">
-          <TickerTape items={tickerItems} loading={loadingIndices} />
+          <TickerTape
+            items={tickerItems}
+            loading={loadingTicker}
+            onAdd={addSymbol}
+            onRemove={removeSymbol}
+            userSymbols={userSymbols}
+          />
         </div>
 
         <main className="relative z-10 pb-10 px-2 sm:px-4 max-w-7xl mx-auto flex-1 w-full animate-fade-in">
