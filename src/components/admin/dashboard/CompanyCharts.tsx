@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  AreaChart, Area, BarChart, Bar, LineChart, Line,
+  AreaChart, Area, BarChart, Bar, LineChart, Line, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   ReferenceLine
 } from "recharts";
@@ -212,11 +212,10 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
                     dataKey="pnl" 
                     name="PnL"
                     radius={[4, 4, 0, 0]}
-                    fill="#10b981"
                   >
                     {aggregatedData.map((entry, index) => (
-                      <rect 
-                        key={index} 
+                      <Cell 
+                        key={`cell-${index}`} 
                         fill={entry.pnl >= 0 ? "#10b981" : "#ef4444"} 
                       />
                     ))}
