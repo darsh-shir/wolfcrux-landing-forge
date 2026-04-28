@@ -1,4 +1,4 @@
-import { formatCurrencyCompact } from "@/lib/utils";
+import { formatCurrencyCompact, formatCurrencyINR } from "@/lib/utils";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -61,7 +61,8 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
     return format(parseISO(value), "MMM d");
   };
 
-  const formatCurrency = (v: number) => formatCurrencyCompact(v);
+  const formatCurrency = (v: number) => formatCurrencyINR(v, "$", 0); // tooltips use full
+  const formatAxis = (v: number) => formatCurrencyCompact(v);          // axis ticks stay compact
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -128,7 +129,7 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <YAxis 
-                    tickFormatter={formatCurrency}
+                    tickFormatter={formatAxis}
                     tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
@@ -165,7 +166,7 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <YAxis 
-                    tickFormatter={formatCurrency}
+                    tickFormatter={formatAxis}
                     tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
@@ -201,7 +202,7 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <YAxis 
-                    tickFormatter={formatCurrency}
+                    tickFormatter={formatAxis}
                     tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />

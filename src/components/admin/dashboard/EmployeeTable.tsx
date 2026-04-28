@@ -1,4 +1,4 @@
-import { formatCurrencyCompact } from "@/lib/utils";
+import { formatCurrencyINR } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ const EmployeeTable = ({ employees, onSelectEmployee }: EmployeeTableProps) => {
   const [statusFilter, setStatusFilter] = useState<"all" | "Active" | "Inactive">("all");
   const [performanceFilter, setPerformanceFilter] = useState<"all" | "profit" | "loss">("all");
 
-  const formatCurrency = (v: number) => formatCurrencyCompact(v);
+  const formatCurrency = (v: number) => formatCurrencyINR(v, "$", 0);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
