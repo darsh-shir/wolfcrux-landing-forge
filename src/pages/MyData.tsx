@@ -438,7 +438,7 @@ const MyData = () => {
 
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-                <Card>
+                <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "0ms" }}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${totalPnl >= 0 ? "bg-green-100" : "bg-red-100"}`}>
@@ -458,7 +458,7 @@ const MyData = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "80ms" }}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-orange-100">
@@ -474,7 +474,7 @@ const MyData = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "160ms" }}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-purple-100">
@@ -490,7 +490,7 @@ const MyData = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "240ms" }}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${netAfterBrokerage >= 0 ? "bg-green-100" : "bg-red-100"}`}>
@@ -510,7 +510,7 @@ const MyData = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "320ms" }}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-blue-100">
