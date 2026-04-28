@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { formatIndian } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -90,16 +91,11 @@ const formatHeaderDate = (dateStr: string) => {
 };
 
 const formatMarketCap = (mc: number) => {
-  if (mc >= 1e12) return `${(mc / 1e12).toFixed(1)}T`;
-  if (mc >= 1e9) return `${(mc / 1e9).toFixed(1)}B`;
-  if (mc >= 1e6) return `${(mc / 1e6).toFixed(0)}M`;
-  return `${mc}`;
+  return formatIndian(Math.round(mc));
 };
 
 const formatSalesEstimate = (s: number) => {
-  if (s >= 1e9) return `$${(s / 1e9).toFixed(1)}B`;
-  if (s >= 1e6) return `$${(s / 1e6).toFixed(0)}M`;
-  return `$${s}`;
+  return `$${formatIndian(Math.round(s))}`;
 };
 
 const getSessionLabel = (timeOfDay: string) => {

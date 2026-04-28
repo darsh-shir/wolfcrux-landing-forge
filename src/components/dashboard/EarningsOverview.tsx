@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { formatIndian } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
@@ -29,9 +30,7 @@ interface EarningStock {
 }
 
 const formatMC = (mc: number) => {
-  if (mc >= 1e12) return `${(mc / 1e12).toFixed(1)}T`;
-  if (mc >= 1e9) return `${(mc / 1e9).toFixed(1)}B`;
-  return `${(mc / 1e6).toFixed(0)}M`;
+  return formatIndian(Math.round(mc));
 };
 
 const EarningsOverview = () => {
