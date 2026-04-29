@@ -7,6 +7,8 @@ interface Props {
   suffix?: string;
   decimals?: number;
   className?: string;
+  /** Disable thousand-separators (use for years, IDs, etc.) */
+  noGrouping?: boolean;
 }
 
 const AnimatedCounter = ({
@@ -16,6 +18,7 @@ const AnimatedCounter = ({
   suffix = "",
   decimals = 0,
   className = "",
+  noGrouping = false,
 }: Props) => {
   const [val, setVal] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
@@ -51,7 +54,9 @@ const AnimatedCounter = ({
   const formatted =
     decimals > 0
       ? val.toFixed(decimals)
-      : Math.round(val).toLocaleString("en-US");
+      : noGrouping
+        ? String(Math.round(val))
+        : Math.round(val).toLocaleString("en-US");
 
   return (
     <span ref={ref} className={`tabular-nums ${className}`}>
