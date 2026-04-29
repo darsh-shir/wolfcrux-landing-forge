@@ -12,11 +12,11 @@ export interface MilestoneLevel {
 }
 
 export const MILESTONES: MilestoneLevel[] = [
-  { level: 0, label: "Start",       stoPercent: 20, ltoPercent: 0,  daysRequired: 0,   profitRequired: 0 },
-  { level: 1, label: "Level 1",     stoPercent: 25, ltoPercent: 10, daysRequired: 125, profitRequired: 50000 },
-  { level: 2, label: "Level 2",     stoPercent: 35, ltoPercent: 15, daysRequired: 275, profitRequired: 150000 },
-  { level: 3, label: "Level 3",     stoPercent: 45, ltoPercent: 20, daysRequired: 400, profitRequired: 300000 },
-  { level: 4, label: "Level 4",     stoPercent: 55, ltoPercent: 25, daysRequired: 600, profitRequired: 500000 },
+  { level: 0, label: "Junior Equity Analyst",  stoPercent: 20, ltoPercent: 0,  daysRequired: 0,   profitRequired: 0 },
+  { level: 1, label: "Equity Analyst",         stoPercent: 25, ltoPercent: 10, daysRequired: 125, profitRequired: 50000 },
+  { level: 2, label: "Senior Equity Analyst",  stoPercent: 35, ltoPercent: 15, daysRequired: 275, profitRequired: 150000 },
+  { level: 3, label: "Lead Equity Analyst",    stoPercent: 45, ltoPercent: 20, daysRequired: 400, profitRequired: 300000 },
+  { level: 4, label: "Chief Equity Analyst",   stoPercent: 55, ltoPercent: 25, daysRequired: 600, profitRequired: 500000 },
 ];
 
 export interface LeaveBalanceSummary {
