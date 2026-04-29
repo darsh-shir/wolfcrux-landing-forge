@@ -304,7 +304,7 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="overflow-auto max-h-[400px]">
-                    <Table>
+                    <Table className="min-w-[900px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-[100px]">Date</TableHead>

@@ -555,7 +555,8 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                   No leaves or lates recorded for {format(parseISO(selectedDate), "MMM d, yyyy")}
                 </p>
               ) : (
-                <Table>
+                <div className="overflow-x-auto">
+                <Table className="min-w-[900px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Trader</TableHead>
@@ -588,6 +589,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -698,7 +700,8 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
               {filteredRecords.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">No attendance records for selected period</p>
               ) : (
-                <Table>
+                <div className="overflow-x-auto">
+                <Table className="min-w-[900px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
@@ -735,6 +738,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -762,7 +766,8 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                 </Select>
               </div>
 
-              <Table>
+              <div className="overflow-x-auto">
+              <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Trader</TableHead>
@@ -853,6 +858,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                   })}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -899,7 +905,8 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
               {holidays.length === 0 ? (
                 <p className="text-center text-muted-foreground py-4">No holidays defined</p>
               ) : (
-                <Table>
+                <div className="overflow-x-auto">
+                <Table className="min-w-[900px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
@@ -925,6 +932,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>

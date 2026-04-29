@@ -133,7 +133,7 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-x-auto">
-            <Table>
+            <Table className="min-w-[900px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Trader</TableHead>

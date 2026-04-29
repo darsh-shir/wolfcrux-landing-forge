@@ -227,7 +227,8 @@ const LtoView = ({ users }: LtoViewProps) => {
                           </div>
                         </div>
                       )}
-                      <Table>
+                      <div className="overflow-x-auto">
+                      <Table className="min-w-[900px]">
                         <TableHeader>
                           <TableRow>
                             <TableHead>Month</TableHead>
@@ -304,6 +305,7 @@ const LtoView = ({ users }: LtoViewProps) => {
                           })}
                         </TableBody>
                       </Table>
+                      </div>
                     </div>
                   </CollapsibleContent>
                 </div>

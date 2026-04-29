@@ -324,7 +324,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-x-auto">
-            <Table>
+            <Table className="min-w-[900px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
@@ -385,7 +385,8 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           <AccountDialog accounts={accounts} onRefresh={onRefresh} />
         </CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto">
+          <Table className="min-w-[900px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Account Number</TableHead>
@@ -405,6 +406,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

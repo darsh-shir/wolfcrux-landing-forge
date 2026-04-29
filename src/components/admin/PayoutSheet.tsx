@@ -855,7 +855,7 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                       <Lock className="h-4 w-4" /> LTO Lock Schedule
                     </h3>
                     <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
+                      <table className="min-w-[900px] w-full text-sm">
                         <thead className="bg-muted/50">
                           <tr>
                             <th className="text-left p-2">Period</th>
