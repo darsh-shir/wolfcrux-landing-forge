@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Lock, Unlock, Heart, Sparkles, Award, Shield, Gift, X } from "lucide-react";
 import { formatCurrencyINR } from "@/lib/utils";
+import { getLtoReleaseThreshold, isLtoEntryReleasable } from "@/lib/payoutCalculations";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
