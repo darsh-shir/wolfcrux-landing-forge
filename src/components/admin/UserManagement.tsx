@@ -295,8 +295,18 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                 <Input value={newFullName} onChange={(e) => setNewFullName(e.target.value)} placeholder="John Doe" />
               </div>
               <div className="space-y-2">
-                <Label>Trader Number</Label>
-                <Input value={newTraderNumber} onChange={(e) => setNewTraderNumber(e.target.value)} placeholder="T001" />
+                <Label>Employee ID</Label>
+                <div className="flex items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                  <span className="px-3 text-sm text-muted-foreground border-r border-border">{EMPLOYEE_ID_PREFIX}</span>
+                  <Input
+                    value={newTraderNumber}
+                    onChange={(e) => setNewTraderNumber(extractEmployeeIdDigits(e.target.value))}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    placeholder="001"
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Email *</Label>
@@ -451,10 +461,20 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
               <Label>Full Name</Label>
               <Input value={editFullName} onChange={(e) => setEditFullName(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Trader Number</Label>
-              <Input value={editTraderNumber} onChange={(e) => setEditTraderNumber(e.target.value)} placeholder="T001" />
-            </div>
+              <div className="space-y-2">
+                <Label>Employee ID</Label>
+                <div className="flex items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                  <span className="px-3 text-sm text-muted-foreground border-r border-border">{EMPLOYEE_ID_PREFIX}</span>
+                  <Input
+                    value={editTraderNumber}
+                    onChange={(e) => setEditTraderNumber(extractEmployeeIdDigits(e.target.value))}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    placeholder="001"
+                  />
+                </div>
+              </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Joining Date</Label>
@@ -465,7 +485,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                 <Input type="date" value={editBirthdate} onChange={(e) => setEditBirthdate(e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Employee Role</Label>
                 <Select value={editEmployeeRole} onValueChange={(v) => setEditEmployeeRole(v as "trainee" | "trader")}>
@@ -476,21 +495,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                   </SelectContent>
                 </Select>
               </div>
-              {editEmployeeRole === "trainee" && (
-                <div className="space-y-2">
-                  <Label>Assigned Trader</Label>
-                  <Select value={editAssignedTrader} onValueChange={setEditAssignedTrader}>
-                    <SelectTrigger><SelectValue placeholder="Select trader" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {traders.filter(t => t.user_id !== editingUser?.user_id).map(t => (
-                        <SelectItem key={t.user_id} value={t.user_id}>{t.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
             <Button type="submit" className="w-full">Save Changes</Button>
           </form>
         </DialogContent>
