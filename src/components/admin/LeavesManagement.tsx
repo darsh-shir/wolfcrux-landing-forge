@@ -447,7 +447,10 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
               <CardTitle>Daily Attendance - {format(parseISO(selectedDate), "EEEE, MMM d, yyyy")}</CardTitle>
               <Dialog open={showAttendanceDialog} onOpenChange={(open) => {
                 if (!open) resetAttendanceForm();
-                else setShowAttendanceDialog(true);
+                else {
+                  setAttendanceDate(selectedDate);
+                  setShowAttendanceDialog(true);
+                }
               }}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="gap-1">
