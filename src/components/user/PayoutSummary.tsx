@@ -340,37 +340,39 @@ const PayoutSummary = () => {
             </p>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3">Period</th>
-                    <th className="text-left p-3">Primary Trader</th>
-                    <th className="text-right p-3">Primary STO</th>
-                    <th className="text-right p-3">Your Share %</th>
-                    <th className="text-right p-3">Your Share</th>
-                    <th className="text-right p-3">Leave Deduction</th>
-                    <th className="text-right p-3">Final</th>
-                    <th className="text-right p-3">Due Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {partnerShares.map((p) => (
-                    <tr key={`${p.primary_user_id}-${p.year}-${p.month}`} className="border-t">
-                      <td className="p-3 font-medium">{MONTHS[(p.month || 1) - 1]} {p.year}</td>
-                      <td className="p-3">{p.primary_name}</td>
-                      <td className="p-3 text-right">{fmt(p.primary_sto_amount)}</td>
-                      <td className="p-3 text-right">{p.share_percent}%</td>
-                      <td className="p-3 text-right">{fmt(p.share_amount)}</td>
-                      <td className="p-3 text-right text-red-600">
-                        {p.leave_deduction_amount > 0 ? `-${fmt(p.leave_deduction_amount)} (${p.leave_deduction_percent}%)` : "-"}
-                      </td>
-                      <td className="p-3 text-right font-medium">{fmt(p.final_amount)}</td>
-                      <td className="p-3 text-right text-muted-foreground">{p.payout_due_date || "-"}</td>
+            <div className="-mx-6 px-6 overflow-x-auto">
+              <div className="border rounded-lg overflow-hidden min-w-[820px]">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-3 whitespace-nowrap">Period</th>
+                      <th className="text-left p-3 whitespace-nowrap">Primary Trader</th>
+                      <th className="text-right p-3 whitespace-nowrap">Primary STO</th>
+                      <th className="text-right p-3 whitespace-nowrap">Your Share %</th>
+                      <th className="text-right p-3 whitespace-nowrap">Your Share</th>
+                      <th className="text-right p-3 whitespace-nowrap">Leave Deduction</th>
+                      <th className="text-right p-3 whitespace-nowrap">Final</th>
+                      <th className="text-right p-3 whitespace-nowrap">Due Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {partnerShares.map((p) => (
+                      <tr key={`${p.primary_user_id}-${p.year}-${p.month}`} className="border-t">
+                        <td className="p-3 font-medium whitespace-nowrap">{MONTHS[(p.month || 1) - 1]} {p.year}</td>
+                        <td className="p-3 whitespace-nowrap">{p.primary_name}</td>
+                        <td className="p-3 text-right whitespace-nowrap">{fmt(p.primary_sto_amount)}</td>
+                        <td className="p-3 text-right whitespace-nowrap">{p.share_percent}%</td>
+                        <td className="p-3 text-right whitespace-nowrap">{fmt(p.share_amount)}</td>
+                        <td className="p-3 text-right text-red-600 whitespace-nowrap">
+                          {p.leave_deduction_amount > 0 ? `-${fmt(p.leave_deduction_amount)} (${p.leave_deduction_percent}%)` : "-"}
+                        </td>
+                        <td className="p-3 text-right font-medium whitespace-nowrap">{fmt(p.final_amount)}</td>
+                        <td className="p-3 text-right text-muted-foreground whitespace-nowrap">{p.payout_due_date || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </CardContent>
         </Card>
