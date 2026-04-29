@@ -56,7 +56,7 @@ const Navigation = () => {
             <img
               src={logoWhite}
               alt="WOLFCRUX"
-              className="h-9 w-9 sm:h-12 sm:w-12 object-contain shrink-0 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-[-8deg] hidden dark:block mix-blend-screen"
+              className="h-9 w-9 sm:h-12 sm:w-12 object-contain shrink-0 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-[-8deg] hidden dark:block"
             />
             <span className="font-['Space_Grotesk'] text-base sm:text-xl font-bold text-foreground truncate">
               WOLFCRUX
