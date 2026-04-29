@@ -44,6 +44,7 @@ interface UserManagementProps {
 
 const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => {
   const { toast } = useToast();
+  const EMPLOYEE_ID_PREFIX = "WGM";
   const [roles, setRoles] = useState<UserRole[]>([]);
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -77,6 +78,13 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   useEffect(() => {
     fetchRoles();
   }, [users]);
+
+  const formatEmployeeId = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    return digits ? `${EMPLOYEE_ID_PREFIX}${digits}` : "";
+  };
+
+  const extractEmployeeIdDigits = (value?: string | null) => (value || "").replace(/\D/g, "");
 
   const fetchRoles = async () => {
     const { data } = await supabase.from("user_roles").select("user_id, role");
@@ -113,8 +121,8 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
       if (response.error) throw new Error(response.error.message);
       if (response.data?.error) throw new Error(response.data.error);
 
-      if (response.data?.user?.id) {
-        const newUserId = response.data.user.id;
+      if (response.data?.userId) {
+        const newUserId = response.data.userId;
         // The handle_new_user trigger inserts the profile asynchronously.
         // Poll briefly until the row exists, then update it.
         let profileReady = false;
@@ -129,7 +137,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
         }
 
         const profilePayload: Record<string, any> = {
-          trader_number: newTraderNumber || null,
+          trader_number: formatEmployeeId(newTraderNumber) || null,
           joining_date: newJoiningDate || null,
           birthdate: newBirthdate || null,
           employee_role: newEmployeeRole,
@@ -176,7 +184,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     try {
       await supabase.from("profiles").update({
         full_name: editFullName,
-        trader_number: editTraderNumber || null,
+        trader_number: formatEmployeeId(editTraderNumber) || null,
         joining_date: editJoiningDate || null,
         birthdate: editBirthdate || null,
         employee_role: editEmployeeRole,
@@ -253,7 +261,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const openEditDialog = (user: Profile) => {
     setEditingUser(user);
     setEditFullName(user.full_name);
-    setEditTraderNumber(user.trader_number || "");
+    setEditTraderNumber(extractEmployeeIdDigits(user.trader_number));
     setEditJoiningDate(user.joining_date || "");
     setEditBirthdate(user.birthdate || "");
     setEditEmployeeRole((user.employee_role as "trainee" | "trader") || "trainee");
