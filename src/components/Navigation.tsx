@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import logo from "@/assets/wolfcrux-logo.png";
-import logoWhite from "@/assets/logo-white.jpeg";
+import logoWhite from "@/assets/logo-white.png";
 import BirthdayNotification from "@/components/BirthdayNotification";
 import MilestoneNotification from "@/components/MilestoneNotification";
 import ThemeToggle from "@/components/ThemeToggle";
