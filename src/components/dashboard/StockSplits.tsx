@@ -30,6 +30,7 @@ interface StockSplitsProps {
 
 const StockSplits = ({ limit, compact }: StockSplitsProps) => {
   const [splits, setSplits] = useState<SplitData[]>([]);
+  const [yesterday, setYesterday] = useState<SplitData[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchSplits = async () => {
