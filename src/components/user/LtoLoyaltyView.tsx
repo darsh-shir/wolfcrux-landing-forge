@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Lock, Unlock, Heart, Sparkles, Award, Shield, Gift, X } from "lucide-react";
 import { formatCurrencyINR } from "@/lib/utils";
+import { getLtoReleaseThreshold, isLtoEntryReleasable } from "@/lib/payoutCalculations";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -16,6 +17,7 @@ const MONTHS = [
 const LtoLoyaltyView = () => {
   const { user } = useAuth();
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
+  const [currentLevel, setCurrentLevel] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(true);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -35,16 +37,27 @@ const LtoLoyaltyView = () => {
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("lto_ledger")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("year", { ascending: false })
-      .order("month", { ascending: false });
-    setLtoHistory(data || []);
+    const [ltoRes, milestoneRes] = await Promise.all([
+      supabase
+        .from("lto_ledger")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("year", { ascending: false })
+        .order("month", { ascending: false }),
+      supabase
+        .from("trader_milestones")
+        .select("current_level")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+    setLtoHistory(ltoRes.data || []);
+    setCurrentLevel(Number(milestoneRes.data?.current_level) || 0);
     setLoading(false);
   };
 
+  const totalPool = ltoHistory.reduce((s, l) => s + Number(l.lto_amount), 0);
+  const releaseThreshold = getLtoReleaseThreshold(currentLevel);
+  const remainingToThreshold = Math.max(0, releaseThreshold - totalPool);
   const totalLocked = ltoHistory
     .filter(l => !l.is_released)
     .reduce((s, l) => s + Number(l.lto_amount), 0);
@@ -52,7 +65,11 @@ const LtoLoyaltyView = () => {
     .filter(l => l.is_released)
     .reduce((s, l) => s + Number(l.lto_amount), 0);
   const readyToRelease = ltoHistory
-    .filter(l => !l.is_released && new Date(l.unlock_date) <= new Date())
+    .filter(l => !l.is_released && isLtoEntryReleasable({
+      unlockDate: l.unlock_date,
+      currentLevel,
+      totalLtoPool: totalPool,
+    }))
     .reduce((s, l) => s + Number(l.lto_amount), 0);
 
   return (
@@ -189,7 +206,30 @@ const LtoLoyaltyView = () => {
               <Heart className="h-4 w-4 text-primary fill-current" /> Your LTO Lock Schedule
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {releaseThreshold > 0 && (
+              <div className={`flex items-start gap-3 p-3 rounded-lg border ${
+                totalPool >= releaseThreshold
+                  ? "bg-green-500/5 border-green-500/30"
+                  : "bg-amber-500/5 border-amber-500/30"
+              }`}>
+                <div className={`p-1.5 rounded-md ${totalPool >= releaseThreshold ? "bg-green-500/10" : "bg-amber-500/10"}`}>
+                  {totalPool >= releaseThreshold
+                    ? <Unlock className="h-4 w-4 text-green-600" />
+                    : <Lock className="h-4 w-4 text-amber-600" />}
+                </div>
+                <div className="text-xs">
+                  <div className="font-semibold text-foreground">
+                    Level {currentLevel} release minimum: {formatCurrencyINR(releaseThreshold)}
+                  </div>
+                  <div className="text-muted-foreground mt-0.5">
+                    {totalPool >= releaseThreshold
+                      ? `Your total LTO pool of ${formatCurrencyINR(totalPool)} meets the minimum. Entries will release as their 12-month unlock dates pass.`
+                      : `Your total LTO pool is ${formatCurrencyINR(totalPool)}. You need ${formatCurrencyINR(remainingToThreshold)} more before any LTO can be released — even after the 12-month unlock date passes.`}
+                  </div>
+                </div>
+              </div>
+            )}
             {loading ? (
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -213,7 +253,12 @@ const LtoLoyaltyView = () => {
                   </thead>
                   <tbody>
                     {ltoHistory.map((l: any) => {
-                      const isUnlocked = new Date(l.unlock_date) <= new Date();
+                      const dateReached = new Date(l.unlock_date) <= new Date();
+                      const releasable = isLtoEntryReleasable({
+                        unlockDate: l.unlock_date,
+                        currentLevel,
+                        totalLtoPool: totalPool,
+                      });
                       return (
                         <tr key={l.id} className="border-t hover:bg-muted/20 transition-colors">
                           <td className="p-3 font-medium">{MONTHS[(l.month || 1) - 1]} {l.year}</td>
@@ -222,12 +267,13 @@ const LtoLoyaltyView = () => {
                           <td className="p-3 text-right text-muted-foreground">{l.unlock_date}</td>
                           <td className="p-3 text-center">
                             <Badge
-                              variant={l.is_released ? "default" : isUnlocked ? "outline" : "secondary"}
+                              variant={l.is_released ? "default" : releasable ? "outline" : "secondary"}
                               className="text-xs gap-1"
                             >
                               {l.is_released ? <><Unlock className="h-3 w-3" /> Released</> :
-                                isUnlocked ? <><Unlock className="h-3 w-3" /> Unlocked</> :
-                                  <><Lock className="h-3 w-3" /> Locked</>}
+                                releasable ? <><Unlock className="h-3 w-3" /> Ready</> :
+                                  dateReached ? <><Lock className="h-3 w-3" /> Awaiting Min</> :
+                                    <><Lock className="h-3 w-3" /> Locked</>}
                             </Badge>
                           </td>
                         </tr>

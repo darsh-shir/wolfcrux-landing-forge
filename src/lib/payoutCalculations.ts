@@ -266,3 +266,42 @@ export function calculateMonthlyPayout(params: {
 export function monthsBetween(startDate: Date, endDate: Date): number {
   return (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
 }
+
+// ==========================================
+// LTO Release Threshold Rules
+// ==========================================
+// Minimum cumulative LTO pool required before any LTO can be released,
+// based on the trader's CURRENT milestone level. As level increases the
+// minimum requirement increases. Level 4 is TBD — using 50000 as a placeholder.
+export const LTO_RELEASE_THRESHOLDS: Record<number, number> = {
+  0: 0,
+  1: 10000,
+  2: 25000,
+  3: 50000,
+  4: 50000, // TBD — to be decided
+};
+
+export function getLtoReleaseThreshold(currentLevel: number): number {
+  return LTO_RELEASE_THRESHOLDS[currentLevel] ?? 0;
+}
+
+/**
+ * Decide if an LTO entry is eligible to be released.
+ * Eligible only when:
+ *   1. Its 12-month unlock date has passed, AND
+ *   2. The trader's TOTAL LTO pool (locked + released) has reached the
+ *      minimum threshold for their current milestone level.
+ */
+export function isLtoEntryReleasable(params: {
+  unlockDate: string | Date;
+  currentLevel: number;
+  totalLtoPool: number; // sum of all lto_amount across the trader (locked + released)
+  now?: Date;
+}): boolean {
+  const { unlockDate, currentLevel, totalLtoPool } = params;
+  const now = params.now ?? new Date();
+  const unlock = unlockDate instanceof Date ? unlockDate : new Date(unlockDate);
+  if (unlock > now) return false;
+  const threshold = getLtoReleaseThreshold(currentLevel);
+  return totalLtoPool >= threshold;
+}

@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { Landmark, ChevronDown, ChevronRight, Lock, Unlock, Calendar } from "lucide-react";
+import { Landmark, ChevronDown, ChevronRight, Lock, Unlock, Calendar, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { getLtoReleaseThreshold, isLtoEntryReleasable } from "@/lib/payoutCalculations";
 
 interface Profile {
   id: string;
@@ -43,8 +44,16 @@ const LtoView = ({ users }: LtoViewProps) => {
   const [entries, setEntries] = useState<LtoEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [openTraders, setOpenTraders] = useState<Record<string, boolean>>({});
+  const [milestones, setMilestones] = useState<Record<string, number>>({});
 
-  useEffect(() => { fetchEntries(); }, []);
+  useEffect(() => { fetchEntries(); fetchMilestones(); }, []);
+
+  const fetchMilestones = async () => {
+    const { data } = await supabase.from("trader_milestones").select("user_id,current_level");
+    const map: Record<string, number> = {};
+    (data || []).forEach((m: any) => { map[m.user_id] = Number(m.current_level) || 0; });
+    setMilestones(map);
+  };
 
   const fetchEntries = async () => {
     setLoading(true);
@@ -108,7 +117,16 @@ const LtoView = ({ users }: LtoViewProps) => {
 
   const toggle = (uid: string) => setOpenTraders(p => ({ ...p, [uid]: !p[uid] }));
 
-  const handleRelease = async (entry: LtoEntry) => {
+  const handleRelease = async (entry: LtoEntry, totalPool: number, level: number) => {
+    const threshold = getLtoReleaseThreshold(level);
+    if (totalPool < threshold) {
+      toast({
+        title: "Minimum LTO not reached",
+        description: `Trader is at Level ${level}. Total LTO pool ${formatCurrency(totalPool)} is below the ${formatCurrency(threshold)} minimum required to release.`,
+        variant: "destructive",
+      });
+      return;
+    }
     const { error } = await supabase
       .from("lto_ledger")
       .update({ is_released: true, released_at: new Date().toISOString() })
@@ -141,7 +159,12 @@ const LtoView = ({ users }: LtoViewProps) => {
           <div className="text-center py-8 text-muted-foreground">No LTO entries yet.</div>
         ) : (
           <div className="space-y-2">
-            {traderSummaries.map(({ user, summary }) => (
+            {traderSummaries.map(({ user, summary }) => {
+              const level = milestones[user.user_id] ?? 0;
+              const threshold = getLtoReleaseThreshold(level);
+              const meetsThreshold = summary.total >= threshold;
+              const remaining = Math.max(0, threshold - summary.total);
+              return (
               <Collapsible
                 key={user.user_id}
                 open={openTraders[user.user_id]}
@@ -157,6 +180,9 @@ const LtoView = ({ users }: LtoViewProps) => {
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         )}
                         <span className="font-medium">{user.full_name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          Level {level}
+                        </Badge>
                         <Badge variant="outline" className="text-xs">
                           {summary.entries.length} {summary.entries.length === 1 ? "entry" : "entries"}
                         </Badge>
@@ -174,6 +200,12 @@ const LtoView = ({ users }: LtoViewProps) => {
                           <div className="text-xs text-muted-foreground">Locked</div>
                           <div className="font-semibold text-warning">{formatCurrency(summary.locked)}</div>
                         </div>
+                        <div className="text-right min-w-[120px]">
+                          <div className="text-xs text-muted-foreground">Min to Release</div>
+                          <div className={`font-semibold text-xs ${meetsThreshold ? "text-success" : "text-warning"}`}>
+                            {formatCurrency(threshold)}
+                          </div>
+                        </div>
                         <div className="text-right min-w-[100px]">
                           <div className="text-xs text-muted-foreground">Next Unlock</div>
                           <div className="font-semibold text-xs">
@@ -184,7 +216,17 @@ const LtoView = ({ users }: LtoViewProps) => {
                     </div>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <div className="border-t bg-muted/20 p-3">
+                    <div className="border-t bg-muted/20 p-3 space-y-3">
+                      {!meetsThreshold && threshold > 0 && (
+                        <div className="flex items-start gap-2 px-3 py-2 rounded-md bg-warning/10 border border-warning/30 text-xs">
+                          <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-semibold">Level {level} minimum not reached.</span>{" "}
+                            Trader needs <span className="font-semibold">{formatCurrency(remaining)}</span> more in the LTO pool before any entry can be released
+                            (minimum {formatCurrency(threshold)} required at Level {level}).
+                          </div>
+                        </div>
+                      )}
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -198,7 +240,14 @@ const LtoView = ({ users }: LtoViewProps) => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {summary.entries.map(e => (
+                          {summary.entries.map(e => {
+                            const dateReached = new Date(e.unlock_date) <= new Date();
+                            const releasable = isLtoEntryReleasable({
+                              unlockDate: e.unlock_date,
+                              currentLevel: level,
+                              totalLtoPool: summary.total,
+                            });
+                            return (
                             <TableRow key={e.id}>
                               <TableCell className="font-medium">
                                 {MONTH_NAMES[e.month - 1]} {e.year}
@@ -217,6 +266,14 @@ const LtoView = ({ users }: LtoViewProps) => {
                                   <Badge className="bg-success/10 text-success hover:bg-success/20 gap-1">
                                     <Unlock className="h-3 w-3" /> Released
                                   </Badge>
+                                ) : releasable ? (
+                                  <Badge variant="outline" className="gap-1 border-success/40 text-success">
+                                    <Unlock className="h-3 w-3" /> Ready
+                                  </Badge>
+                                ) : dateReached ? (
+                                  <Badge variant="secondary" className="gap-1">
+                                    <Lock className="h-3 w-3" /> Awaiting Min
+                                  </Badge>
                                 ) : (
                                   <Badge variant="secondary" className="gap-1">
                                     <Lock className="h-3 w-3" /> Locked
@@ -225,20 +282,34 @@ const LtoView = ({ users }: LtoViewProps) => {
                               </TableCell>
                               <TableCell>
                                 {!e.is_released && (
-                                  <Button size="sm" variant="outline" onClick={() => handleRelease(e)}>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={!releasable}
+                                    title={
+                                      !dateReached
+                                        ? "Unlock date not reached yet"
+                                        : !meetsThreshold
+                                        ? `Min ${formatCurrency(threshold)} pool required at Level ${level}`
+                                        : "Release this LTO entry"
+                                    }
+                                    onClick={() => handleRelease(e, summary.total, level)}
+                                  >
                                     Release
                                   </Button>
                                 )}
                               </TableCell>
                             </TableRow>
-                          ))}
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>
                   </CollapsibleContent>
                 </div>
               </Collapsible>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
