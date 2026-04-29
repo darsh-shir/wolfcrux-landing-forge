@@ -8,7 +8,7 @@ import AuroraBackground from "@/components/landing/AuroraBackground";
 
 import SpotlightTiltCard from "@/components/landing/SpotlightTiltCard";
 import ScrollProgress from "@/components/landing/ScrollProgress";
-import AnimatedCounter from "@/components/landing/AnimatedCounter";
+
 
 import purviPhoto from "@/assets/purvi_photo.jpg";
 import labdhiPhoto from "@/assets/labdhi_photo.jpg";
@@ -42,11 +42,8 @@ const Testimonials = () => {
               Hear what our Traders say about working with Wolfcrux Global Markets.
             </p>
 
-            {/* Signature: animated quote-count strip */}
-            <div className="mt-8 inline-flex items-baseline gap-3">
-              <span className="text-5xl font-bold text-gradient-accent font-['Space_Grotesk']">
-                <AnimatedCounter end={testimonials.length} duration={1200} />
-              </span>
+            {/* Signature strip */}
+            <div className="mt-8 inline-flex items-baseline">
               <span className="text-sm uppercase tracking-widest text-muted-foreground">
                 Stories from the desk
               </span>
