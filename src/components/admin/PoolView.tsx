@@ -180,7 +180,7 @@ const PoolView = ({ users }: PoolViewProps) => {
     });
 
     return { contributions, totalPool, exemptTraders };
-  }, [tradingData, traderConfigs, users]);
+  }, [tradingData, traderConfigs, users, milestones]);
 
   // Auto-save pool ledger to DB whenever it recalculates
   const lastSavedRef = useRef("");
