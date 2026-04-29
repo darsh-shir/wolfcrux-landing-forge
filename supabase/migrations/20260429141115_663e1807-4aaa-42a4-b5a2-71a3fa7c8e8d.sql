@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_sync_milestone_config ON public.trader_config;
