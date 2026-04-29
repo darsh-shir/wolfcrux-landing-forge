@@ -34,8 +34,9 @@ const CodeRain = ({ className = "" }: { className?: string }) => {
     };
 
     const draw = () => {
-      // soft trail fade
-      ctx.fillStyle = "rgba(255,255,255,0.10)";
+      const isDark = document.documentElement.classList.contains("dark");
+      // soft trail fade — match the page background so the canvas blends in
+      ctx.fillStyle = isDark ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.10)";
       ctx.fillRect(0, 0, w, h);
       ctx.font = `${FONT}px ui-monospace, SFMono-Regular, Menlo, monospace`;
 
@@ -43,8 +44,12 @@ const CodeRain = ({ className = "" }: { className?: string }) => {
         const ch = chars[Math.floor(Math.random() * chars.length)];
         const x = i * FONT;
         const y = drops[i];
-        const hue = (i * 7) % 60 + 200;
-        ctx.fillStyle = `hsla(${hue}, 80%, 50%, 0.35)`;
+        // In dark mode, switch to Bloomberg-green glyphs; in light, the original blue/cyan
+        const hue = isDark ? 140 : ((i * 7) % 60 + 200);
+        const sat = isDark ? 100 : 80;
+        const light = isDark ? 55 : 50;
+        const alpha = isDark ? 0.55 : 0.35;
+        ctx.fillStyle = `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
         ctx.fillText(ch, x, y);
         if (y > h && Math.random() > 0.975) drops[i] = 0;
         drops[i] += FONT * 0.6;
