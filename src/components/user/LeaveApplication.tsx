@@ -190,7 +190,7 @@ const LeaveApplication = () => {
             <div>
               <h3 className="font-semibold font-['Space_Grotesk'] text-foreground">Leave Balance Summary</h3>
               <p className="text-xs text-muted-foreground">
-                {joiningDate ? `Cumulative from joining (${format(parseISO(joiningDate), "MMM yyyy")})` : "Cumulative balance"}
+                Cumulative from Jan 2026
               </p>
             </div>
           </div>
