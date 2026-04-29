@@ -8,7 +8,7 @@ import AuroraBackground from "@/components/landing/AuroraBackground";
 
 import SpotlightTiltCard from "@/components/landing/SpotlightTiltCard";
 import ScrollProgress from "@/components/landing/ScrollProgress";
-import AnimatedCounter from "@/components/landing/AnimatedCounter";
+
 
 import purviPhoto from "@/assets/purvi_photo.jpg";
 import labdhiPhoto from "@/assets/labdhi_photo.jpg";
