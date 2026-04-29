@@ -13,6 +13,7 @@ import {
 import logo from "@/assets/wolfcrux-logo.png";
 import BirthdayNotification from "@/components/BirthdayNotification";
 import MilestoneNotification from "@/components/MilestoneNotification";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
