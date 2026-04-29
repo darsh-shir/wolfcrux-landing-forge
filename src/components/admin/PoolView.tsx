@@ -37,6 +37,7 @@ const PoolView = ({ users }: PoolViewProps) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [tradingData, setTradingData] = useState<any[]>([]);
   const [traderConfigs, setTraderConfigs] = useState<any[]>([]);
+  const [milestones, setMilestones] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
