@@ -123,7 +123,8 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
   const overviewVisible = limit ? splits.slice(0, limit) : splits;
 
   // Full tab: show ALL entries sorted ascending by date (oldest first)
-  const fullSortedAscending = [...splits].sort((a, b) => {
+  // Full tab: include yesterday + all upcoming, sorted ascending by date
+  const fullSortedAscending = [...yesterday, ...splits].sort((a, b) => {
     const ta = a.exDate ? new Date(a.exDate).getTime() : 0;
     const tb = b.exDate ? new Date(b.exDate).getTime() : 0;
     return ta - tb;
