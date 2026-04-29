@@ -61,15 +61,17 @@ const PoolView = ({ users }: PoolViewProps) => {
     const endYear = selectedMonth === 12 ? selectedYear + 1 : selectedYear;
     const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
 
-    const [tdRes, configRes] = await Promise.all([
+    const [tdRes, configRes, milestoneRes] = await Promise.all([
       supabase.from("trading_data").select("*")
         .gte("trade_date", startDate)
         .lt("trade_date", endDate),
       supabase.from("trader_config").select("*")
         .eq("month", selectedMonth).eq("year", selectedYear),
+      supabase.from("trader_milestones").select("user_id,current_level"),
     ]);
 
     if (tdRes.data) setTradingData(tdRes.data);
+    if (milestoneRes.data) setMilestones(milestoneRes.data);
     
     // If no config for selected month, fallback to most recent config
     if (configRes.data && configRes.data.length > 0) {
