@@ -3,6 +3,7 @@ import logo from "@/assets/wolfcrux-logo.png";
 import { Linkedin } from "lucide-react";
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
   return (
     <footer className="bg-card border-t border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -29,7 +30,7 @@ const Footer = () => {
             </p>
 
             <p className="text-xs text-muted-foreground font-['Inter']">
-              © 2026 Wolfcrux Global Markets LLP. All rights reserved.
+              © {currentYear} Wolfcrux Global Markets LLP. All rights reserved.
             </p>
           </div>
 
