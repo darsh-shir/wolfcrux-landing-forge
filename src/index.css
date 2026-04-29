@@ -47,34 +47,57 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 20% 98%;
+    /* Bloomberg-terminal inspired OLED dark theme — pitch black + green accents */
+    --background: 0 0% 0%;
+    --foreground: 140 60% 88%;
 
-    --card: 222 47% 11%;
-    --card-foreground: 210 20% 98%;
+    --card: 0 0% 3%;
+    --card-foreground: 140 60% 88%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 140 60% 88%;
 
-    --primary: 210 20% 98%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 140 100% 45%;
+    --primary-foreground: 0 0% 0%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 0 0% 7%;
+    --secondary-foreground: 140 60% 88%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 6%;
+    --muted-foreground: 140 15% 65%;
 
-    --accent: 200 95% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 140 100% 45%;
+    --accent-foreground: 0 0% 0%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive: 0 90% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 212 27% 84%;
+    --border: 140 30% 14%;
+    --input: 140 30% 14%;
+    --ring: 140 100% 45%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(140 100% 45%), hsl(160 100% 40%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 0%), hsl(0 0% 3%));
+    --shadow-elegant: 0 10px 40px -10px hsl(140 100% 45% / 0.25);
+    --shadow-soft: 0 4px 20px -4px hsl(140 100% 45% / 0.18);
   }
+
+  /* Bloomberg-terminal flourishes scoped to dark mode only */
+  .dark body {
+    background-color: hsl(0 0% 0%);
+  }
+  .dark ::selection {
+    background: hsl(140 100% 45% / 0.35);
+    color: hsl(140 100% 92%);
+  }
+  .dark ::-webkit-scrollbar { width: 10px; height: 10px; }
+  .dark ::-webkit-scrollbar-track { background: hsl(0 0% 0%); }
+  .dark ::-webkit-scrollbar-thumb {
+    background: hsl(140 60% 18%);
+    border-radius: 6px;
+    border: 2px solid hsl(0 0% 0%);
+  }
+  .dark ::-webkit-scrollbar-thumb:hover { background: hsl(140 90% 35%); }
 }
 
 @layer base {
