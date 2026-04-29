@@ -10,7 +10,7 @@ import AuroraBackground from "@/components/landing/AuroraBackground";
 
 import SpotlightTiltCard from "@/components/landing/SpotlightTiltCard";
 import ScrollProgress from "@/components/landing/ScrollProgress";
-import AnimatedCounter from "@/components/landing/AnimatedCounter";
+
 
 const About = () => {
   useReveal();
@@ -91,7 +91,7 @@ const About = () => {
                 Building since
               </span>
               <span className="text-4xl md:text-5xl font-bold text-gradient-accent font-['Space_Grotesk']">
-                <AnimatedCounter end={2025} duration={1600} />
+                2025
               </span>
             </div>
           </div>
