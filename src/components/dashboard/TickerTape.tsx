@@ -177,7 +177,7 @@ const TickerTape = ({ items, loading, onAdd, onRemove, userSymbols = [] }: Ticke
       <div className="flex-1 overflow-hidden h-full">
         <div
           ref={trackRef}
-          className="flex items-center h-full animate-[ticker_90s_linear_infinite] hover:[animation-play-state:paused]"
+          className="flex items-center h-full animate-[ticker_55s_linear_infinite] hover:[animation-play-state:paused]"
         >
           {renderRow("a")}
           {renderRow("b")}
