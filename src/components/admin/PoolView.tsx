@@ -9,6 +9,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { PieChart, Pie, Cell } from "recharts";
 import { Landmark, Users } from "lucide-react";
 import { formatIndian } from "@/lib/utils";
+import { MILESTONES } from "@/lib/payoutCalculations";
 
 interface Profile {
   id: string;
@@ -36,6 +37,7 @@ const PoolView = ({ users }: PoolViewProps) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [tradingData, setTradingData] = useState<any[]>([]);
   const [traderConfigs, setTraderConfigs] = useState<any[]>([]);
+  const [milestones, setMilestones] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -60,15 +62,17 @@ const PoolView = ({ users }: PoolViewProps) => {
     const endYear = selectedMonth === 12 ? selectedYear + 1 : selectedYear;
     const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
 
-    const [tdRes, configRes] = await Promise.all([
+    const [tdRes, configRes, milestoneRes] = await Promise.all([
       supabase.from("trading_data").select("*")
         .gte("trade_date", startDate)
         .lt("trade_date", endDate),
       supabase.from("trader_config").select("*")
         .eq("month", selectedMonth).eq("year", selectedYear),
+      supabase.from("trader_milestones").select("user_id,current_level"),
     ]);
 
     if (tdRes.data) setTradingData(tdRes.data);
+    if (milestoneRes.data) setMilestones(milestoneRes.data);
     
     // If no config for selected month, fallback to most recent config
     if (configRes.data && configRes.data.length > 0) {
@@ -132,7 +136,13 @@ const PoolView = ({ users }: PoolViewProps) => {
 
       const config = traderConfigs.find(c => c.user_id === userId);
       const softwareCost = config ? Number(config.software_cost) : 0;
-      const payoutPercent = config ? Number(config.payout_percentage) : 0;
+      let payoutPercent = config ? Number(config.payout_percentage) : 0;
+      // For milestone-mode traders, if stored % is 0, fall back to milestone-level STO%
+      if ((!payoutPercent || payoutPercent === 0) && (!config || config.config_mode !== "manual")) {
+        const lvl = milestones.find(m => m.user_id === userId)?.current_level ?? 0;
+        const m = MILESTONES.find(x => x.level === lvl) || MILESTONES[0];
+        payoutPercent = m.stoPercent;
+      }
       const shareCost = (data.totalShares / 1000) * 14;
       const netProfit = data.totalPnl - shareCost - softwareCost;
 
@@ -170,7 +180,7 @@ const PoolView = ({ users }: PoolViewProps) => {
     });
 
     return { contributions, totalPool, exemptTraders };
-  }, [tradingData, traderConfigs, users]);
+  }, [tradingData, traderConfigs, users, milestones]);
 
   // Auto-save pool ledger to DB whenever it recalculates
   const lastSavedRef = useRef("");
