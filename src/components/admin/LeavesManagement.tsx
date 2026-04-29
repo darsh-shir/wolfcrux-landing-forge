@@ -19,6 +19,7 @@ interface Profile {
   user_id: string;
   full_name: string;
   email: string;
+  joining_date?: string | null;
 }
 
 interface Holiday {
@@ -178,12 +179,10 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
   }, [holidays, selectedDate]);
 
   // Calculate cumulative leave balance per trader for selected month
-  // Starting from Jan 2026, each month adds 1.5 leaves
-  // Unused leaves carry forward, every 3 lates = 0.5 day used
+  // Each trader accrues 1.5 leaves per month starting from their joining month.
+  // Unused leaves carry forward, every 3 lates = 0.5 day used.
   const traderMonthlyStats = useMemo(() => {
     const [selectedYear, selectedMon] = selectedMonth.split("-").map(Number);
-    const START_YEAR = 2026;
-    const START_MONTH = 1;
 
     const stats: Record<string, {
       fullDays: number;
@@ -200,19 +199,36 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     }> = {};
 
     users.forEach((u) => {
-      const preJanCarry = carryForwards.find(c => c.user_id === u.user_id && c.year === selectedYear)?.carry_forward_days ?? 0;
+      // Determine accrual start from joining_date (fallback: selected month so no accrual yet)
+      const joining = u.joining_date ? parseISO(u.joining_date) : null;
+      const startYear = joining ? joining.getFullYear() : selectedYear;
+      const startMonth = joining ? joining.getMonth() + 1 : selectedMon;
 
-      // Calculate cumulative balance from Jan to selected month
-      let runningBalance = preJanCarry;
+      // If selected month is before joining month, show empty
+      const selectedAbs = selectedYear * 12 + selectedMon;
+      const startAbs = startYear * 12 + startMonth;
 
-      for (let m = START_MONTH; m <= selectedMon; m++) {
-        if (selectedYear < START_YEAR || (selectedYear === START_YEAR && m < START_MONTH)) continue;
-        
+      if (selectedAbs < startAbs) {
+        stats[u.user_id] = {
+          fullDays: 0, halfDays: 0, lateCount: 0, lateConverted: 0,
+          totalUsed: 0, carryIn: 0, monthlyAllowance: 0,
+          totalAvailable: 0, balance: 0, excess: 0, deductionPct: 0,
+        };
+        return;
+      }
+
+      const preCarry = carryForwards.find(c => c.user_id === u.user_id && c.year === selectedYear)?.carry_forward_days ?? 0;
+      let runningBalance = preCarry;
+
+      // Iterate from joining month/year up to selected month/year
+      let y = startYear;
+      let m = startMonth;
+      while (y * 12 + m <= selectedAbs) {
         runningBalance += 1.5; // monthly allowance
 
         const monthRecords = attendanceRecords.filter((r) => {
           const d = parseISO(r.record_date);
-          return r.user_id === u.user_id && d.getFullYear() === selectedYear && d.getMonth() + 1 === m;
+          return r.user_id === u.user_id && d.getFullYear() === y && d.getMonth() + 1 === m;
         });
 
         const fullDays = monthRecords.filter((r) => r.status === "absent").length;
@@ -221,15 +237,13 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
         const lateConverted = Math.floor(lateCount / 3) * 0.5;
         const totalUsed = fullDays + halfDays * 0.5 + lateConverted;
 
-        if (m < selectedMon) {
-          // For prior months, just deduct used from balance
+        if (y * 12 + m < selectedAbs) {
           runningBalance = Math.max(0, runningBalance - totalUsed);
         } else {
-          // Current selected month - show details
           const totalAvailable = runningBalance;
           const balance = Math.max(0, totalAvailable - totalUsed);
           const excess = Math.max(0, totalUsed - totalAvailable);
-          const deductionPct = excess * 4; // 1 full day excess = 4%, 0.5 half day excess = 2%
+          const deductionPct = excess * 4;
 
           stats[u.user_id] = {
             fullDays,
@@ -237,7 +251,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
             lateCount,
             lateConverted,
             totalUsed,
-            carryIn: totalAvailable - 1.5, // carry from previous months
+            carryIn: totalAvailable - 1.5,
             monthlyAllowance: 1.5,
             totalAvailable,
             balance,
@@ -245,9 +259,11 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
             deductionPct,
           };
         }
+
+        m++;
+        if (m > 12) { m = 1; y++; }
       }
 
-      // If month is before start, show empty
       if (!stats[u.user_id]) {
         stats[u.user_id] = {
           fullDays: 0, halfDays: 0, lateCount: 0, lateConverted: 0,
