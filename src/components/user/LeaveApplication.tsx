@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Clock, CheckCircle, TrendingUp, ArrowUpDown } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
+import { getLeaveBalanceSummary } from "@/lib/payoutCalculations";
 
 interface AttendanceRecord {
   id: string;
@@ -27,7 +28,6 @@ const LeaveApplication = () => {
   
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [joiningDate, setJoiningDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
 
@@ -38,15 +38,13 @@ const LeaveApplication = () => {
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
-    const [attendanceRes, holidaysRes, profileRes] = await Promise.all([
+    const [attendanceRes, holidaysRes] = await Promise.all([
       supabase.from("attendance_records").select("*").eq("user_id", user.id).order("record_date", { ascending: false }),
       supabase.from("holidays").select("*").order("holiday_date"),
-      supabase.from("profiles").select("joining_date").eq("user_id", user.id).maybeSingle(),
     ]);
 
     if (attendanceRes.data) setAttendanceRecords(attendanceRes.data as AttendanceRecord[]);
     if (holidaysRes.data) setHolidays(holidaysRes.data);
-    if (profileRes.data) setJoiningDate(profileRes.data.joining_date ?? null);
     setLoading(false);
   };
 
@@ -62,76 +60,19 @@ const LeaveApplication = () => {
     });
   }, [attendanceRecords, selectedMonth]);
 
-  // Calculate stats for selected month
-  const monthlyStats = useMemo(() => {
-    const fullDays = filteredRecords.filter((r) => r.status === "absent").length;
-    const halfDays = filteredRecords.filter((r) => r.status === "half_day").length;
-    const lateCount = filteredRecords.filter((r) => r.status === "late").length;
-
-    // 2 half days = 1 full day; every 3 lates = 0.5 day; monthly allowance = 1.5 days
-    const lateDeduction = Math.floor(lateCount / 3) * 0.5;
-    const totalUsed = fullDays + halfDays * 0.5 + lateDeduction;
-    const pending = 1.5 - totalUsed;
-
-    return {
-      fullDays,
-      halfDays,
-      lateCount,
-      pending,
-    };
-  }, [filteredRecords]);
-
-  // Calculate cumulative carry forward starting from joining month
+  // Calculate cumulative carry forward starting from Jan 2026
   const carryForwardStats = useMemo(() => {
     const [selYear, selMonth] = selectedMonth.split("-").map(Number);
-    const selectedAbs = selYear * 12 + selMonth;
-
-    // Fixed accrual start: January 2026
-    const startYear = 2026;
-    const startMonth = 1;
-    const startAbs = startYear * 12 + startMonth;
-
-    if (selectedAbs < startAbs) {
-      return { carry: 0, pending: 0, totalAvailable: 0 };
-    }
-
-    let runningCarry = 0;
-    let pendingThisMonth = 1.5;
-
-    let y = startYear;
-    let m = startMonth;
-    while (y * 12 + m <= selectedAbs) {
-      const start = startOfMonth(new Date(y, m - 1));
-      const end = endOfMonth(new Date(y, m - 1));
-
-      const monthRecords = attendanceRecords.filter((r) => {
-        const d = parseISO(r.record_date);
-        return d >= start && d <= end;
-      });
-
-      const fullDays = monthRecords.filter((r) => r.status === "absent").length;
-      const halfDays = monthRecords.filter((r) => r.status === "half_day").length;
-      const lateCount = monthRecords.filter((r) => r.status === "late").length;
-      const lateDeduction = Math.floor(lateCount / 3) * 0.5;
-      const totalUsed = fullDays + halfDays * 0.5 + lateDeduction;
-      const pending = 1.5 - totalUsed;
-
-      if (y * 12 + m < selectedAbs) {
-        runningCarry += pending;
-      } else {
-        pendingThisMonth = pending;
-      }
-
-      m++;
-      if (m > 12) { m = 1; y++; }
-    }
-
+    const summary = getLeaveBalanceSummary(attendanceRecords, selMonth, selYear, 0);
     return {
-      carry: runningCarry,
-      pending: pendingThisMonth,
-      totalAvailable: runningCarry + pendingThisMonth,
+      carry: summary.carryIn,
+      pending: summary.monthPending,
+      totalAvailable: summary.balance,
+      fullDays: summary.fullDaysUsed,
+      halfDays: summary.halfDaysUsed,
+      lateCount: summary.lateCount,
     };
-  }, [attendanceRecords, selectedMonth, joiningDate]);
+  }, [attendanceRecords, selectedMonth]);
 
   // Generate months for dropdown
   const months = useMemo(() => {
@@ -231,7 +172,7 @@ const LeaveApplication = () => {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">Full Days</p>
-              <p className="text-2xl font-bold">{monthlyStats.fullDays}</p>
+              <p className="text-2xl font-bold">{carryForwardStats.fullDays}</p>
             </div>
           </CardContent>
         </Card>
@@ -245,7 +186,7 @@ const LeaveApplication = () => {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">Half Days</p>
-              <p className="text-2xl font-bold">{monthlyStats.halfDays}</p>
+              <p className="text-2xl font-bold">{carryForwardStats.halfDays}</p>
             </div>
           </CardContent>
         </Card>
@@ -259,7 +200,7 @@ const LeaveApplication = () => {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">Pending</p>
-              <p className="text-2xl font-bold text-primary">{monthlyStats.pending.toFixed(1)}</p>
+              <p className="text-2xl font-bold text-primary">{carryForwardStats.pending.toFixed(1)}</p>
             </div>
           </CardContent>
         </Card>
@@ -273,7 +214,7 @@ const LeaveApplication = () => {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">Late Count</p>
-              <p className="text-2xl font-bold">{monthlyStats.lateCount}</p>
+              <p className="text-2xl font-bold">{carryForwardStats.lateCount}</p>
             </div>
           </CardContent>
         </Card>
