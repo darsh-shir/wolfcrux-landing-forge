@@ -86,10 +86,9 @@ const LeaveApplication = () => {
     const [selYear, selMonth] = selectedMonth.split("-").map(Number);
     const selectedAbs = selYear * 12 + selMonth;
 
-    // Determine accrual start: joining month/year (fallback to selected month)
-    const joining = joiningDate ? parseISO(joiningDate) : null;
-    const startYear = joining ? joining.getFullYear() : selYear;
-    const startMonth = joining ? joining.getMonth() + 1 : selMonth;
+    // Fixed accrual start: January 2026
+    const startYear = 2026;
+    const startMonth = 1;
     const startAbs = startYear * 12 + startMonth;
 
     if (selectedAbs < startAbs) {
