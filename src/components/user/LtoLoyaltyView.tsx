@@ -17,6 +17,7 @@ const MONTHS = [
 const LtoLoyaltyView = () => {
   const { user } = useAuth();
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
+  const [currentLevel, setCurrentLevel] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(true);
   const [acknowledged, setAcknowledged] = useState(false);
