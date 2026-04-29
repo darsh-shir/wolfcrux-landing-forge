@@ -105,6 +105,18 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  /* Smooth theme transition (light <-> dark) for color-related properties only.
+     Excludes transform/opacity so animations and interactions stay snappy. */
+  html.theme-transition,
+  html.theme-transition body,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition: background-color 400ms ease, border-color 400ms ease,
+      color 400ms ease, fill 400ms ease, stroke 400ms ease,
+      box-shadow 400ms ease !important;
+  }
+
   html,
   body {
     @apply bg-background text-foreground;
