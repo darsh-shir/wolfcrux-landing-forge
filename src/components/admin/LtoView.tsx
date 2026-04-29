@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { Landmark, ChevronDown, ChevronRight, Lock, Unlock, Calendar } from "lucide-react";
+import { Landmark, ChevronDown, ChevronRight, Lock, Unlock, Calendar, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { getLtoReleaseThreshold, isLtoEntryReleasable } from "@/lib/payoutCalculations";
 
 interface Profile {
   id: string;
