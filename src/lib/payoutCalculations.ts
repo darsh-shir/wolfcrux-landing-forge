@@ -19,6 +19,22 @@ export const MILESTONES: MilestoneLevel[] = [
   { level: 4, label: "Level 4",     stoPercent: 55, ltoPercent: 25, daysRequired: 600, profitRequired: 500000 },
 ];
 
+export interface LeaveBalanceSummary {
+  fullDaysUsed: number;
+  halfDaysUsed: number;
+  lateCount: number;
+  lateConverted: number;
+  totalUsed: number;
+  carryIn: number;
+  monthlyAllowance: number;
+  monthPending: number;
+  totalAvailable: number;
+  endBalanceRaw: number;
+  balance: number;
+  excess: number;
+  deductionPercent: number;
+}
+
 /**
  * Determine milestone level based on trading days and cumulative profit.
  * Whichever milestone is reached first (days OR profit) applies.
@@ -51,6 +67,88 @@ export function getNextMilestone(currentLevel: number): MilestoneLevel | null {
  */
 export function calculateShareCost(sharesTraded: number): number {
   return (sharesTraded / 1000) * 14;
+}
+
+export function getLeaveBalanceSummary(
+  attendanceRecords: Array<{ record_date: string; status: string }>,
+  selectedMonth: number,
+  selectedYear: number,
+  previousYearCarryForward: number = 0
+): LeaveBalanceSummary {
+  if (selectedYear < 2026 || selectedMonth < 1 || selectedMonth > 12) {
+    return {
+      fullDaysUsed: 0,
+      halfDaysUsed: 0,
+      lateCount: 0,
+      lateConverted: 0,
+      totalUsed: 0,
+      carryIn: 0,
+      monthlyAllowance: 0,
+      monthPending: 0,
+      totalAvailable: 0,
+      endBalanceRaw: 0,
+      balance: 0,
+      excess: 0,
+      deductionPercent: 0,
+    };
+  }
+
+  let runningCarry = previousYearCarryForward;
+  let selectedSummary: LeaveBalanceSummary = {
+    fullDaysUsed: 0,
+    halfDaysUsed: 0,
+    lateCount: 0,
+    lateConverted: 0,
+    totalUsed: 0,
+    carryIn: previousYearCarryForward,
+    monthlyAllowance: 1.5,
+    monthPending: 1.5,
+    totalAvailable: previousYearCarryForward + 1.5,
+    endBalanceRaw: previousYearCarryForward + 1.5,
+    balance: Math.max(0, previousYearCarryForward + 1.5),
+    excess: Math.max(0, -(previousYearCarryForward + 1.5)),
+    deductionPercent: 0,
+  };
+
+  for (let m = 1; m <= selectedMonth; m++) {
+    const monthRecords = attendanceRecords.filter((r) => {
+      const d = new Date(r.record_date);
+      return d.getFullYear() === selectedYear && d.getMonth() + 1 === m;
+    });
+
+    const fullDaysUsed = monthRecords.filter((r) => r.status === "absent").length;
+    const halfDaysUsed = monthRecords.filter((r) => r.status === "half_day").length;
+    const lateCount = monthRecords.filter((r) => r.status === "late").length;
+    const lateConverted = Math.floor(lateCount / 3) * 0.5;
+    const totalUsed = fullDaysUsed + halfDaysUsed * 0.5 + lateConverted;
+    const carryIn = runningCarry;
+    const monthlyAllowance = 1.5;
+    const monthPending = monthlyAllowance - totalUsed;
+    const totalAvailable = carryIn + monthlyAllowance;
+    const endBalanceRaw = carryIn + monthPending;
+    const balance = Math.max(0, endBalanceRaw);
+    const excess = Math.max(0, -endBalanceRaw);
+
+    selectedSummary = {
+      fullDaysUsed,
+      halfDaysUsed,
+      lateCount,
+      lateConverted,
+      totalUsed,
+      carryIn,
+      monthlyAllowance,
+      monthPending,
+      totalAvailable,
+      endBalanceRaw,
+      balance,
+      excess,
+      deductionPercent: excess * 4,
+    };
+
+    runningCarry = balance;
+  }
+
+  return selectedSummary;
 }
 
 /**
@@ -124,12 +222,21 @@ export function calculateLeaveDeduction(
     balance: number;
   }>;
 } {
+  if (selectedYear < 2026) {
+    return {
+      deductionPercent: 0,
+      carryForwardBalance: 0,
+      monthlyBreakdown: [],
+    };
+  }
+
   let runningBalance = previousYearCarryForward;
   const monthlyBreakdown: Array<any> = [];
   let deductionPercent = 0;
 
   for (let m = 1; m <= selectedMonth; m++) {
     // Add monthly entitlement
+    const carryIn = runningBalance;
     runningBalance += 1.5;
 
     const monthRecords = attendanceRecords.filter((r) => {
@@ -144,36 +251,28 @@ export function calculateLeaveDeduction(
 
     const totalUsed = fullDaysUsed + halfDaysUsed * 0.5 + lateConverted;
 
-    runningBalance -= totalUsed;
+    const rawBalance = runningBalance - totalUsed;
+    const balance = Math.max(0, rawBalance);
+    const excess = Math.max(0, -rawBalance);
 
     monthlyBreakdown.push({
       month: m,
       entitlement: 1.5,
+      carryIn,
       fullDaysUsed,
       halfDaysUsed,
       lateCount,
       lateConverted,
       totalUsed,
-      balance: runningBalance,
+      balance,
+      excess,
     });
 
-    // Calculate deduction only for the selected month
-    if (m === selectedMonth && runningBalance < 0) {
-      // The negative balance represents excess usage
-      const excessDays = Math.abs(runningBalance);
-      
-      // Calculate deduction: each full day excess = 4%, each half day = 2%
-      // We need to figure out how many full and half days of excess
-      // The excess comes from THIS month's usage beyond what was available
-      const availableBeforeThisMonth = runningBalance + totalUsed;
-      const excessThisMonth = Math.max(0, totalUsed - Math.max(0, availableBeforeThisMonth));
-      
-      // Excess full days and half days from THIS month
-      // We calculate as: excess in terms of "day units"
-      // Each full excess day = 4%, each half excess day = 2%
-      // Simplification: deductionPercent = excessDays * 4 (since 0.5 day * 4 = 2%)
-      deductionPercent = excessThisMonth * 4;
+    if (m === selectedMonth) {
+      deductionPercent = excess * 4;
     }
+
+    runningBalance = balance;
   }
 
   return {
