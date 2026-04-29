@@ -314,9 +314,11 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     }
 
     const [year, month] = attendanceDate.split("-").map(Number);
+    // Only consider MANUAL records for monthly limit checks (ignore auto-derived from trading_data)
     const existingRecords = attendanceRecords.filter((r) => {
       const recordDate = parseISO(r.record_date);
-      return r.user_id === attendanceTrader &&
+      return r.source !== "trading" &&
+        r.user_id === attendanceTrader &&
         recordDate.getFullYear() === year &&
         recordDate.getMonth() + 1 === month &&
         r.id !== editingAttendance?.id;
@@ -351,22 +353,22 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
         fetchData();
       }
     } else {
-      const { error } = await supabase.from("attendance_records").insert({
+      // Use upsert so re-marking the same date overwrites instead of erroring
+      const { error } = await supabase.from("attendance_records").upsert({
         user_id: attendanceTrader,
         record_date: attendanceDate,
         status: attendanceStatus,
         is_deductible: isDeductible,
         notes: attendanceNotes || null,
-      });
+      }, { onConflict: "user_id,record_date" });
 
       if (error) {
-        if (error.code === "23505") {
-          toast({ title: "Error", description: "Record already exists for this date", variant: "destructive" });
-        } else {
-          toast({ title: "Error", description: error.message, variant: "destructive" });
-        }
+        toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: "Success", description: `Marked as ${attendanceStatus}${isDeductible ? " (Deductible)" : ""}` });
+        toast({
+          title: "Success",
+          description: `Marked ${format(parseISO(attendanceDate), "MMM d, yyyy")} as ${attendanceStatus}${isDeductible ? " (Deductible)" : ""}`,
+        });
         resetAttendanceForm();
         fetchData();
       }
