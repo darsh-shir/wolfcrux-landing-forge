@@ -31,7 +31,12 @@ const ThemeToggle = () => {
     localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 
-  const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+  const toggle = () => {
+    const root = document.documentElement;
+    root.classList.add("theme-transition");
+    window.setTimeout(() => root.classList.remove("theme-transition"), 500);
+    setTheme((t) => (t === "dark" ? "light" : "dark"));
+  };
   const isDark = theme === "dark";
 
   return (
