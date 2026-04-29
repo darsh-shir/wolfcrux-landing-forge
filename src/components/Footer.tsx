@@ -29,7 +29,7 @@ const Footer = () => {
             </p>
 
             <p className="text-xs text-muted-foreground font-['Inter']">
-              © 2025 Wolfcrux Global Markets LLP. All rights reserved.
+              © 2026 Wolfcrux Global Markets LLP. All rights reserved.
             </p>
           </div>
 
