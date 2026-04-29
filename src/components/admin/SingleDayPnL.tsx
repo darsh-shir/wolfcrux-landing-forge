@@ -279,7 +279,7 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
             <p className="text-center text-muted-foreground py-8">No entries for this date.</p>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8"></TableHead>

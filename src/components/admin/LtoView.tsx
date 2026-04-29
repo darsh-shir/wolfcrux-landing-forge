@@ -227,7 +227,7 @@ const LtoView = ({ users }: LtoViewProps) => {
                           </div>
                         </div>
                       )}
-                      <Table>
+                      <Table className="min-w-[900px]">
                         <TableHeader>
                           <TableRow>
                             <TableHead>Month</TableHead>

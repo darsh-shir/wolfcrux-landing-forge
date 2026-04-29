@@ -326,7 +326,7 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
             <p className="text-center text-muted-foreground py-8">No entries for this month.</p>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>

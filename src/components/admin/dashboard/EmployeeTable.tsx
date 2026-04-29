@@ -141,7 +141,7 @@ const EmployeeTable = ({ employees, onSelectEmployee }: EmployeeTableProps) => {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-[900px]">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <SortableHeader field="name">Name</SortableHeader>

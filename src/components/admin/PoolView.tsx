@@ -294,7 +294,7 @@ const PoolView = ({ users }: PoolViewProps) => {
               </p>
             ) : (
               <div className="rounded-md border overflow-auto">
-                <Table>
+                <Table className="min-w-[900px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Trader</TableHead>

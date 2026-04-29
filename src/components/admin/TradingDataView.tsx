@@ -258,7 +258,7 @@ const TradingDataView = ({ users, accounts, tradingData, onRefresh, filterByTrad
                       {formatCurrencyINR(totalPnl)}
                     </div>
                   </div>
-                  <Table>
+                  <Table className="min-w-[900px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Date</TableHead>

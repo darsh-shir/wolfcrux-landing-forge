@@ -185,7 +185,7 @@ const PayoutTracker = ({ users }: PayoutTrackerProps) => {
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-x-auto">
-            <Table>
+            <Table className="min-w-[900px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Trader</TableHead>
@@ -241,7 +241,7 @@ const PayoutTracker = ({ users }: PayoutTrackerProps) => {
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-x-auto">
-            <Table>
+            <Table className="min-w-[900px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Trader</TableHead>
