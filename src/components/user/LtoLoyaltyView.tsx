@@ -37,16 +37,27 @@ const LtoLoyaltyView = () => {
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("lto_ledger")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("year", { ascending: false })
-      .order("month", { ascending: false });
-    setLtoHistory(data || []);
+    const [ltoRes, milestoneRes] = await Promise.all([
+      supabase
+        .from("lto_ledger")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("year", { ascending: false })
+        .order("month", { ascending: false }),
+      supabase
+        .from("trader_milestones")
+        .select("current_level")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+    setLtoHistory(ltoRes.data || []);
+    setCurrentLevel(Number(milestoneRes.data?.current_level) || 0);
     setLoading(false);
   };
 
+  const totalPool = ltoHistory.reduce((s, l) => s + Number(l.lto_amount), 0);
+  const releaseThreshold = getLtoReleaseThreshold(currentLevel);
+  const remainingToThreshold = Math.max(0, releaseThreshold - totalPool);
   const totalLocked = ltoHistory
     .filter(l => !l.is_released)
     .reduce((s, l) => s + Number(l.lto_amount), 0);
@@ -54,7 +65,11 @@ const LtoLoyaltyView = () => {
     .filter(l => l.is_released)
     .reduce((s, l) => s + Number(l.lto_amount), 0);
   const readyToRelease = ltoHistory
-    .filter(l => !l.is_released && new Date(l.unlock_date) <= new Date())
+    .filter(l => !l.is_released && isLtoEntryReleasable({
+      unlockDate: l.unlock_date,
+      currentLevel,
+      totalLtoPool: totalPool,
+    }))
     .reduce((s, l) => s + Number(l.lto_amount), 0);
 
   return (
