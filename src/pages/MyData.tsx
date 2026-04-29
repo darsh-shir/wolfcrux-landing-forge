@@ -545,16 +545,16 @@ const MyData = () => {
                       No trading data for the selected period.
                     </p>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
+                    <div className="-mx-6 px-6 overflow-x-auto">
+                      <Table className="min-w-[700px]">
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Accounts</TableHead>
-                            <TableHead className="text-right">Gross P&L</TableHead>
-                            <TableHead className="text-right">Shares</TableHead>
-                            <TableHead className="text-right">Brokerage</TableHead>
-                            <TableHead className="text-right">Net P&L</TableHead>
+                            <TableHead className="whitespace-nowrap">Date</TableHead>
+                            <TableHead className="whitespace-nowrap">Accounts</TableHead>
+                            <TableHead className="text-right whitespace-nowrap">Gross P&L</TableHead>
+                            <TableHead className="text-right whitespace-nowrap">Shares</TableHead>
+                            <TableHead className="text-right whitespace-nowrap">Brokerage</TableHead>
+                            <TableHead className="text-right whitespace-nowrap">Net P&L</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -575,7 +575,7 @@ const MyData = () => {
                                     });
                                   }}
                                 >
-                                  <TableCell className="font-medium">
+                                  <TableCell className="font-medium whitespace-nowrap">
                                     <div className="flex items-center gap-1">
                                       {hasMultipleEntries && (
                                         isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -586,22 +586,22 @@ const MyData = () => {
                                   <TableCell>
                                     <div className="flex flex-wrap gap-1">
                                       {day.entries.map((e) => (
-                                        <Badge key={e.id} variant="outline" className="text-xs">
+                                        <Badge key={e.id} variant="outline" className="text-xs whitespace-nowrap">
                                           {getAccountName(e.account_id)}
                                         </Badge>
                                       ))}
                                     </div>
                                   </TableCell>
-                                  <TableCell className={`text-right font-semibold ${day.combinedPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                  <TableCell className={`text-right font-semibold whitespace-nowrap ${day.combinedPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                                     {formatCurrencyINR(day.combinedPnl)}
                                   </TableCell>
-                                  <TableCell className="text-right">
+                                  <TableCell className="text-right whitespace-nowrap">
                                     {formatIndian(day.totalShares)}
                                   </TableCell>
-                                  <TableCell className="text-right text-orange-600">
+                                  <TableCell className="text-right text-orange-600 whitespace-nowrap">
                                     -{formatCurrencyINR(day.brokerage)}
                                   </TableCell>
-                                  <TableCell className={`text-right font-bold ${day.netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                  <TableCell className={`text-right font-bold whitespace-nowrap ${day.netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
                                     {formatCurrencyINR(day.netAfterBrokerage)}
                                   </TableCell>
                                 </TableRow>
@@ -610,22 +610,22 @@ const MyData = () => {
                                   const entryNet = Number(entry.net_pnl) - entryBrokerage;
                                   return (
                                     <TableRow key={entry.id} className="bg-muted/30">
-                                      <TableCell className="pl-10 text-muted-foreground text-sm">↳</TableCell>
+                                      <TableCell className="pl-10 text-muted-foreground text-sm whitespace-nowrap">↳</TableCell>
                                       <TableCell>
-                                        <Badge variant="secondary" className="text-xs">
+                                        <Badge variant="secondary" className="text-xs whitespace-nowrap">
                                           {getAccountName(entry.account_id)}
                                         </Badge>
                                       </TableCell>
-                                      <TableCell className={`text-right text-sm ${Number(entry.net_pnl) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                      <TableCell className={`text-right text-sm whitespace-nowrap ${Number(entry.net_pnl) >= 0 ? "text-green-600" : "text-red-600"}`}>
                                         {formatCurrencyINR(Number(entry.net_pnl))}
                                       </TableCell>
-                                      <TableCell className="text-right text-sm">
+                                      <TableCell className="text-right text-sm whitespace-nowrap">
                                         {formatIndian(entry.shares_traded)}
                                       </TableCell>
-                                      <TableCell className="text-right text-sm text-orange-600">
+                                      <TableCell className="text-right text-sm text-orange-600 whitespace-nowrap">
                                         -{formatCurrencyINR(entryBrokerage)}
                                       </TableCell>
-                                      <TableCell className={`text-right text-sm font-semibold ${entryNet >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                      <TableCell className={`text-right text-sm font-semibold whitespace-nowrap ${entryNet >= 0 ? "text-green-600" : "text-red-600"}`}>
                                         {formatCurrencyINR(entryNet)}
                                       </TableCell>
                                     </TableRow>
