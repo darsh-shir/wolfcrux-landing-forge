@@ -575,7 +575,7 @@ const MyData = () => {
                                     });
                                   }}
                                 >
-                                  <TableCell className="font-medium">
+                                  <TableCell className="font-medium whitespace-nowrap">
                                     <div className="flex items-center gap-1">
                                       {hasMultipleEntries && (
                                         isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -586,22 +586,22 @@ const MyData = () => {
                                   <TableCell>
                                     <div className="flex flex-wrap gap-1">
                                       {day.entries.map((e) => (
-                                        <Badge key={e.id} variant="outline" className="text-xs">
+                                        <Badge key={e.id} variant="outline" className="text-xs whitespace-nowrap">
                                           {getAccountName(e.account_id)}
                                         </Badge>
                                       ))}
                                     </div>
                                   </TableCell>
-                                  <TableCell className={`text-right font-semibold ${day.combinedPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                  <TableCell className={`text-right font-semibold whitespace-nowrap ${day.combinedPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                                     {formatCurrencyINR(day.combinedPnl)}
                                   </TableCell>
-                                  <TableCell className="text-right">
+                                  <TableCell className="text-right whitespace-nowrap">
                                     {formatIndian(day.totalShares)}
                                   </TableCell>
-                                  <TableCell className="text-right text-orange-600">
+                                  <TableCell className="text-right text-orange-600 whitespace-nowrap">
                                     -{formatCurrencyINR(day.brokerage)}
                                   </TableCell>
-                                  <TableCell className={`text-right font-bold ${day.netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                  <TableCell className={`text-right font-bold whitespace-nowrap ${day.netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
                                     {formatCurrencyINR(day.netAfterBrokerage)}
                                   </TableCell>
                                 </TableRow>
