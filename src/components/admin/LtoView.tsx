@@ -171,15 +171,15 @@ const LtoView = ({ users }: LtoViewProps) => {
                 onOpenChange={() => toggle(user.user_id)}
               >
                 <div className="border rounded-md overflow-hidden">
-                  <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors">
-                      <div className="flex items-center gap-3">
+                  <CollapsibleTrigger className="w-full text-left">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 px-3 md:px-4 py-3 hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
                         {openTraders[user.user_id] ? (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                         ) : (
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                         )}
-                        <span className="font-medium">{user.full_name}</span>
+                        <span className="font-medium truncate">{user.full_name}</span>
                         <Badge variant="outline" className="text-xs">
                           Level {level}
                         </Badge>
@@ -187,26 +187,26 @@ const LtoView = ({ users }: LtoViewProps) => {
                           {summary.entries.length} {summary.entries.length === 1 ? "entry" : "entries"}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="text-right">
+                      <div className="grid grid-cols-2 md:flex md:items-center gap-3 md:gap-4 text-sm">
+                        <div className="text-left md:text-right">
                           <div className="text-xs text-muted-foreground">Total Pooled</div>
                           <div className="font-bold">{formatCurrency(summary.total)}</div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left md:text-right">
                           <div className="text-xs text-muted-foreground">Released</div>
                           <div className="font-semibold text-success">{formatCurrency(summary.released)}</div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left md:text-right">
                           <div className="text-xs text-muted-foreground">Locked</div>
                           <div className="font-semibold text-warning">{formatCurrency(summary.locked)}</div>
                         </div>
-                        <div className="text-right min-w-[120px]">
+                        <div className="text-left md:text-right md:min-w-[120px]">
                           <div className="text-xs text-muted-foreground">Min to Release</div>
                           <div className={`font-semibold text-xs ${meetsThreshold ? "text-success" : "text-warning"}`}>
                             {formatCurrency(threshold)}
                           </div>
                         </div>
-                        <div className="text-right min-w-[100px]">
+                        <div className="text-left md:text-right md:min-w-[100px] col-span-2">
                           <div className="text-xs text-muted-foreground">Next Unlock</div>
                           <div className="font-semibold text-xs">
                             {summary.nextUnlock ? format(new Date(summary.nextUnlock), "dd MMM yyyy") : "—"}
