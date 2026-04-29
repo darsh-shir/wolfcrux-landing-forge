@@ -136,7 +136,13 @@ const PoolView = ({ users }: PoolViewProps) => {
 
       const config = traderConfigs.find(c => c.user_id === userId);
       const softwareCost = config ? Number(config.software_cost) : 0;
-      const payoutPercent = config ? Number(config.payout_percentage) : 0;
+      let payoutPercent = config ? Number(config.payout_percentage) : 0;
+      // For milestone-mode traders, if stored % is 0, fall back to milestone-level STO%
+      if ((!payoutPercent || payoutPercent === 0) && (!config || config.config_mode !== "manual")) {
+        const lvl = milestones.find(m => m.user_id === userId)?.current_level ?? 0;
+        const m = MILESTONES.find(x => x.level === lvl) || MILESTONES[0];
+        payoutPercent = m.stoPercent;
+      }
       const shareCost = (data.totalShares / 1000) * 14;
       const netProfit = data.totalPnl - shareCost - softwareCost;
 
