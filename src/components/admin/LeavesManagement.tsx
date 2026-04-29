@@ -199,12 +199,10 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     }> = {};
 
     users.forEach((u) => {
-      // Determine accrual start from joining_date (fallback: selected month so no accrual yet)
-      const joining = u.joining_date ? parseISO(u.joining_date) : null;
-      const startYear = joining ? joining.getFullYear() : selectedYear;
-      const startMonth = joining ? joining.getMonth() + 1 : selectedMon;
+      // Accrual fixed start: January 2026 for everyone
+      const startYear = 2026;
+      const startMonth = 1;
 
-      // If selected month is before joining month, show empty
       const selectedAbs = selectedYear * 12 + selectedMon;
       const startAbs = startYear * 12 + startMonth;
 
