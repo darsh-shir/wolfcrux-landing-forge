@@ -610,22 +610,22 @@ const MyData = () => {
                                   const entryNet = Number(entry.net_pnl) - entryBrokerage;
                                   return (
                                     <TableRow key={entry.id} className="bg-muted/30">
-                                      <TableCell className="pl-10 text-muted-foreground text-sm">↳</TableCell>
+                                      <TableCell className="pl-10 text-muted-foreground text-sm whitespace-nowrap">↳</TableCell>
                                       <TableCell>
-                                        <Badge variant="secondary" className="text-xs">
+                                        <Badge variant="secondary" className="text-xs whitespace-nowrap">
                                           {getAccountName(entry.account_id)}
                                         </Badge>
                                       </TableCell>
-                                      <TableCell className={`text-right text-sm ${Number(entry.net_pnl) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                      <TableCell className={`text-right text-sm whitespace-nowrap ${Number(entry.net_pnl) >= 0 ? "text-green-600" : "text-red-600"}`}>
                                         {formatCurrencyINR(Number(entry.net_pnl))}
                                       </TableCell>
-                                      <TableCell className="text-right text-sm">
+                                      <TableCell className="text-right text-sm whitespace-nowrap">
                                         {formatIndian(entry.shares_traded)}
                                       </TableCell>
-                                      <TableCell className="text-right text-sm text-orange-600">
+                                      <TableCell className="text-right text-sm text-orange-600 whitespace-nowrap">
                                         -{formatCurrencyINR(entryBrokerage)}
                                       </TableCell>
-                                      <TableCell className={`text-right text-sm font-semibold ${entryNet >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                      <TableCell className={`text-right text-sm font-semibold whitespace-nowrap ${entryNet >= 0 ? "text-green-600" : "text-red-600"}`}>
                                         {formatCurrencyINR(entryNet)}
                                       </TableCell>
                                     </TableRow>
