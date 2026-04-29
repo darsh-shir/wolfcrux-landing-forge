@@ -258,6 +258,7 @@ const TradingDataView = ({ users, accounts, tradingData, onRefresh, filterByTrad
                       {formatCurrencyINR(totalPnl)}
                     </div>
                   </div>
+                  <div className="overflow-x-auto">
                   <Table className="min-w-[900px]">
                     <TableHeader>
                       <TableRow>
@@ -300,6 +301,7 @@ const TradingDataView = ({ users, accounts, tradingData, onRefresh, filterByTrad
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </div>
               );
             })}

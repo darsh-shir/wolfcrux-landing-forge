@@ -385,6 +385,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           <AccountDialog accounts={accounts} onRefresh={onRefresh} />
         </CardHeader>
         <CardContent>
+          <div className="overflow-x-auto">
           <Table className="min-w-[900px]">
             <TableHeader>
               <TableRow>
@@ -405,6 +406,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
