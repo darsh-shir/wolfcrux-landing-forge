@@ -516,8 +516,8 @@ const MyData = () => {
                 <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "320ms" }}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-100">
-                        <BarChart3 className="h-5 w-5 text-blue-600" />
+                      <div className="p-2 rounded-lg bg-accent/10">
+                        <BarChart3 className="h-5 w-5 text-accent" />
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Shares Traded</p>
