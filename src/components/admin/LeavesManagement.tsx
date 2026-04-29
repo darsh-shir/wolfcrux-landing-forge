@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Calendar, Trash2, Edit, UserCheck, Clock, CalendarDays, Save } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
+import { getLeaveBalanceSummary } from "@/lib/payoutCalculations";
 
 interface Profile {
   id: string;
@@ -178,9 +179,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     return holidays.find((h) => h.holiday_date === selectedDate);
   }, [holidays, selectedDate]);
 
-  // Calculate cumulative leave balance per trader for selected month
-  // Each trader accrues 1.5 leaves per month starting from their joining month.
-  // Unused leaves carry forward, every 3 lates = 0.5 day used.
+  // Calculate cumulative leave balance per trader for selected month from Jan 2026.
   const traderMonthlyStats = useMemo(() => {
     const [selectedYear, selectedMon] = selectedMonth.split("-").map(Number);
 
@@ -199,14 +198,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
     }> = {};
 
     users.forEach((u) => {
-      // Accrual fixed start: January 2026 for everyone
-      const startYear = 2026;
-      const startMonth = 1;
-
-      const selectedAbs = selectedYear * 12 + selectedMon;
-      const startAbs = startYear * 12 + startMonth;
-
-      if (selectedAbs < startAbs) {
+      if (selectedYear < 2026) {
         stats[u.user_id] = {
           fullDays: 0, halfDays: 0, lateCount: 0, lateConverted: 0,
           totalUsed: 0, carryIn: 0, monthlyAllowance: 0,
@@ -216,59 +208,22 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
       }
 
       const preCarry = carryForwards.find(c => c.user_id === u.user_id && c.year === selectedYear)?.carry_forward_days ?? 0;
-      let runningBalance = preCarry;
+      const userAttendance = attendanceRecords.filter((r) => r.user_id === u.user_id);
+      const summary = getLeaveBalanceSummary(userAttendance, selectedMon, selectedYear, preCarry);
 
-      // Iterate from joining month/year up to selected month/year
-      let y = startYear;
-      let m = startMonth;
-      while (y * 12 + m <= selectedAbs) {
-        runningBalance += 1.5; // monthly allowance
-
-        const monthRecords = attendanceRecords.filter((r) => {
-          const d = parseISO(r.record_date);
-          return r.user_id === u.user_id && d.getFullYear() === y && d.getMonth() + 1 === m;
-        });
-
-        const fullDays = monthRecords.filter((r) => r.status === "absent").length;
-        const halfDays = monthRecords.filter((r) => r.status === "half_day").length;
-        const lateCount = monthRecords.filter((r) => r.status === "late").length;
-        const lateConverted = Math.floor(lateCount / 3) * 0.5;
-        const totalUsed = fullDays + halfDays * 0.5 + lateConverted;
-
-        if (y * 12 + m < selectedAbs) {
-          runningBalance = Math.max(0, runningBalance - totalUsed);
-        } else {
-          const totalAvailable = runningBalance;
-          const balance = Math.max(0, totalAvailable - totalUsed);
-          const excess = Math.max(0, totalUsed - totalAvailable);
-          const deductionPct = excess * 4;
-
-          stats[u.user_id] = {
-            fullDays,
-            halfDays,
-            lateCount,
-            lateConverted,
-            totalUsed,
-            carryIn: totalAvailable - 1.5,
-            monthlyAllowance: 1.5,
-            totalAvailable,
-            balance,
-            excess,
-            deductionPct,
-          };
-        }
-
-        m++;
-        if (m > 12) { m = 1; y++; }
-      }
-
-      if (!stats[u.user_id]) {
-        stats[u.user_id] = {
-          fullDays: 0, halfDays: 0, lateCount: 0, lateConverted: 0,
-          totalUsed: 0, carryIn: 0, monthlyAllowance: 1.5,
-          totalAvailable: 1.5, balance: 1.5, excess: 0, deductionPct: 0,
-        };
-      }
+      stats[u.user_id] = {
+        fullDays: summary.fullDaysUsed,
+        halfDays: summary.halfDaysUsed,
+        lateCount: summary.lateCount,
+        lateConverted: summary.lateConverted,
+        totalUsed: summary.totalUsed,
+        carryIn: summary.carryIn,
+        monthlyAllowance: summary.monthlyAllowance,
+        totalAvailable: summary.totalAvailable,
+        balance: summary.balance,
+        excess: summary.excess,
+        deductionPct: summary.deductionPercent,
+      };
     });
 
     return stats;
