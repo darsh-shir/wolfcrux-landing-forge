@@ -117,7 +117,16 @@ const LtoView = ({ users }: LtoViewProps) => {
 
   const toggle = (uid: string) => setOpenTraders(p => ({ ...p, [uid]: !p[uid] }));
 
-  const handleRelease = async (entry: LtoEntry) => {
+  const handleRelease = async (entry: LtoEntry, totalPool: number, level: number) => {
+    const threshold = getLtoReleaseThreshold(level);
+    if (totalPool < threshold) {
+      toast({
+        title: "Minimum LTO not reached",
+        description: `Trader is at Level ${level}. Total LTO pool ${formatCurrency(totalPool)} is below the ${formatCurrency(threshold)} minimum required to release.`,
+        variant: "destructive",
+      });
+      return;
+    }
     const { error } = await supabase
       .from("lto_ledger")
       .update({ is_released: true, released_at: new Date().toISOString() })
