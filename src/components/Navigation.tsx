@@ -163,7 +163,6 @@ const Navigation = () => {
                 <LogIn className="h-4 w-4" />
               </Button>
             )}
-            <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="text-foreground"
@@ -189,6 +188,12 @@ const Navigation = () => {
                 {link.name}
               </Link>
             ))}
+            <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
+              <span className="font-['Inter'] text-sm font-medium text-muted-foreground">
+                Theme
+              </span>
+              <ThemeToggle />
+            </div>
           </div>
         )}
       </div>
