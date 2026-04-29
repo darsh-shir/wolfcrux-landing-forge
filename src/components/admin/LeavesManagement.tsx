@@ -36,6 +36,7 @@ interface AttendanceRecord {
   status: "present" | "absent" | "half_day" | "late";
   is_deductible: boolean;
   notes: string | null;
+  source?: "manual" | "trading";
 }
 
 interface MonthlySummary {
@@ -104,15 +105,44 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [holidaysRes, attendanceRes, summariesRes] = await Promise.all([
+    const [holidaysRes, attendanceRes, summariesRes, tradingRes] = await Promise.all([
       supabase.from("holidays").select("*").order("holiday_date"),
       supabase.from("attendance_records").select("*").order("record_date", { ascending: false }),
       supabase.from("monthly_leave_summary").select("*"),
+      supabase.from("trading_data").select("id,user_id,trader2_id,trade_date,trader1_attendance,trader2_attendance,late_remarks").order("trade_date", { ascending: false }),
     ]);
 
     if (holidaysRes.data) setHolidays(holidaysRes.data);
-    if (attendanceRes.data) setAttendanceRecords(attendanceRes.data as AttendanceRecord[]);
     if (summariesRes.data) setMonthlySummaries(summariesRes.data as MonthlySummary[]);
+
+    // Merge manual attendance with auto-derived attendance from trading_data
+    const manual: AttendanceRecord[] = (attendanceRes.data || []).map((r: any) => ({ ...r, source: "manual" as const }));
+    const derived: AttendanceRecord[] = [];
+    const seen = new Set(manual.map((r) => `${r.user_id}|${r.record_date}`));
+
+    (tradingRes.data || []).forEach((row: any) => {
+      const addEntry = (uid: string | null, status: string, isLate: boolean) => {
+        if (!uid) return;
+        const norm = status === "absent" ? "absent" : status === "half_day" ? "half_day" : isLate ? "late" : null;
+        if (!norm) return;
+        const key = `${uid}|${row.trade_date}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        derived.push({
+          id: `td-${row.id}-${uid}`,
+          user_id: uid,
+          record_date: row.trade_date,
+          status: norm as any,
+          is_deductible: norm !== "late",
+          notes: isLate ? (row.late_remarks || "Late (from trading entry)") : `Auto-marked from trading entry`,
+          source: "trading",
+        });
+      };
+      addEntry(row.user_id, row.trader1_attendance, !!row.late_remarks && row.trader1_attendance === "present");
+      addEntry(row.trader2_id, row.trader2_attendance, false);
+    });
+
+    setAttendanceRecords([...manual, ...derived]);
     setLoading(false);
   };
 
@@ -537,18 +567,31 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                   <TableBody>
                     {dailyRecords.map((record) => (
                       <TableRow key={record.id}>
-                        <TableCell className="font-medium">{getUserName(record.user_id)}</TableCell>
+                        <TableCell className="font-medium">
+                          {getUserName(record.user_id)}
+                          {record.source === "trading" && (
+                            <Badge variant="outline" className="ml-2 text-xs">Auto</Badge>
+                          )}
+                        </TableCell>
                         <TableCell>{getStatusBadge(record.status)}</TableCell>
                         <TableCell className="text-muted-foreground">{record.notes || "—"}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => openEditAttendance(record)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditAttendance(record)}
+                              disabled={record.source === "trading"}
+                              title={record.source === "trading" ? "Edit via trading data entry" : ""}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => setDeleteTarget({ type: "attendance", id: record.id })}
+                              disabled={record.source === "trading"}
+                              title={record.source === "trading" ? "Edit via trading data entry" : ""}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
