@@ -10,13 +10,11 @@ import AuroraBackground from "@/components/landing/AuroraBackground";
 import SpotlightTiltCard from "@/components/landing/SpotlightTiltCard";
 import ScrollProgress from "@/components/landing/ScrollProgress";
 import AnimatedCounter from "@/components/landing/AnimatedCounter";
-import CodeRain from "@/components/landing/CodeRain";
 
 const Technology = () => {
   useReveal();
   return (
     <div className="min-h-screen bg-background relative">
-      <CodeRain />
       <ScrollProgress />
       <Navigation />
 
