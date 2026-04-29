@@ -545,16 +545,16 @@ const MyData = () => {
                       No trading data for the selected period.
                     </p>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
+                    <div className="-mx-6 px-6 overflow-x-auto">
+                      <Table className="min-w-[700px]">
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Accounts</TableHead>
-                            <TableHead className="text-right">Gross P&L</TableHead>
-                            <TableHead className="text-right">Shares</TableHead>
-                            <TableHead className="text-right">Brokerage</TableHead>
-                            <TableHead className="text-right">Net P&L</TableHead>
+                            <TableHead className="whitespace-nowrap">Date</TableHead>
+                            <TableHead className="whitespace-nowrap">Accounts</TableHead>
+                            <TableHead className="text-right whitespace-nowrap">Gross P&L</TableHead>
+                            <TableHead className="text-right whitespace-nowrap">Shares</TableHead>
+                            <TableHead className="text-right whitespace-nowrap">Brokerage</TableHead>
+                            <TableHead className="text-right whitespace-nowrap">Net P&L</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
