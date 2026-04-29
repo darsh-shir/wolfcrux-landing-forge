@@ -44,7 +44,7 @@ const Careers = () => {
         • Additional Monthly Incentives paid can go upto ₹12 Lakhs 
 
         **Timings**
-        • Monday to Friday — 1:30 PM to 8:00 PM
+        • Monday to Friday — 1:30 PM to 7:00 PM
       `,
     },
   ];
