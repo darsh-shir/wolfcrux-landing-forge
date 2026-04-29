@@ -56,7 +56,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const [newTraderNumber, setNewTraderNumber] = useState("");
   const [newJoiningDate, setNewJoiningDate] = useState("");
   const [newBirthdate, setNewBirthdate] = useState("");
-  const [newAssignedTrader, setNewAssignedTrader] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
@@ -65,7 +64,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const [editJoiningDate, setEditJoiningDate] = useState("");
   const [editBirthdate, setEditBirthdate] = useState("");
   const [editEmployeeRole, setEditEmployeeRole] = useState<"trainee" | "trader">("trainee");
-  const [editAssignedTrader, setEditAssignedTrader] = useState("");
 
   const [resetPasswordUser, setResetPasswordUser] = useState<Profile | null>(null);
   const [newPasswordValue, setNewPasswordValue] = useState("");
@@ -95,8 +93,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     const r = roles.find((role) => role.user_id === userId);
     return r?.role || "user";
   };
-
-  const traders = users.filter(u => u.employee_role === "trader");
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,7 +164,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
       setShowCreateDialog(false);
       setNewEmail(""); setNewPassword(""); setNewFullName(""); setNewRole("user");
       setNewEmployeeRole("trainee"); setNewTraderNumber(""); setNewJoiningDate("");
-      setNewBirthdate(""); setNewAssignedTrader("");
+      setNewBirthdate("");
       onRefresh();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -182,14 +178,15 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     if (!editingUser) return;
 
     try {
-      await supabase.from("profiles").update({
+      const { error } = await supabase.from("profiles").update({
         full_name: editFullName,
         trader_number: formatEmployeeId(editTraderNumber) || null,
         joining_date: editJoiningDate || null,
         birthdate: editBirthdate || null,
         employee_role: editEmployeeRole,
-        assigned_trader_id: editEmployeeRole === "trainee" && editAssignedTrader && editAssignedTrader !== "none" ? editAssignedTrader : null,
+        assigned_trader_id: null,
       }).eq("user_id", editingUser.user_id);
+      if (error) throw error;
       toast({ title: "Success", description: "User updated successfully" });
       setEditingUser(null);
       onRefresh();
@@ -265,13 +262,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     setEditJoiningDate(user.joining_date || "");
     setEditBirthdate(user.birthdate || "");
     setEditEmployeeRole((user.employee_role as "trainee" | "trader") || "trainee");
-    setEditAssignedTrader(user.assigned_trader_id || "");
-  };
-
-  const getAssignedTraderName = (traderId: string | null | undefined) => {
-    if (!traderId) return "—";
-    const trader = users.find(u => u.user_id === traderId);
-    return trader?.full_name || "—";
   };
 
   return (
