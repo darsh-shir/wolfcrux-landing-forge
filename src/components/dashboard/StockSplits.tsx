@@ -30,34 +30,54 @@ interface StockSplitsProps {
 
 const StockSplits = ({ limit, compact }: StockSplitsProps) => {
   const [splits, setSplits] = useState<SplitData[]>([]);
+  const [yesterday, setYesterday] = useState<SplitData[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchSplits = async () => {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "https://tr-cdn.tipranks.com/calendars/prod/calendars/stock-splits/upcoming/payload.json"
-      );
+      const [upcomingRes, historicalRes] = await Promise.all([
+        fetch("https://tr-cdn.tipranks.com/calendars/prod/calendars/stock-splits/upcoming/payload.json"),
+        fetch("https://tr-cdn.tipranks.com/calendars/prod/calendars/stock-splits/historical/payload.json").catch(() => null),
+      ]);
 
-      if (!response.ok) throw new Error("Failed to fetch splits");
+      if (!upcomingRes.ok) throw new Error("Failed to fetch splits");
 
-      const json = await response.json();
+      const upcomingJson = await upcomingRes.json();
+      const upcomingList = upcomingJson?.StockSplitCalendar?.data?.list || [];
 
-      // RAW LIST exactly as provided in JSON
-      const rawList = json?.StockSplitCalendar?.data?.list || [];
-
-      // Map keeping the original rawList order (do NOT sort here)
-      const mappedSplits: SplitData[] = rawList.map((item: any) => ({
+      const mappedUpcoming: SplitData[] = upcomingList.map((item: any) => ({
         companyName: item.name || "",
         ticker: item.ticker || "",
-        splitType: (item.split?.type || "").toString().toLowerCase(), // forward / reverse
+        splitType: (item.split?.type || "").toString().toLowerCase(),
         splitRatio: item.split?.ratio?.text || "",
         exDate: item.split?.date || "",
       }));
 
-      // do not reorder mappedSplits here — keep JSON order for overview
-      setSplits(mappedSplits);
+      // Pull yesterday's splits from historical feed (for the Split tab)
+      let yesterdaySplits: SplitData[] = [];
+      if (historicalRes && historicalRes.ok) {
+        const histJson = await historicalRes.json();
+        const histList = histJson?.StockSplitCalendar?.data?.list || [];
+        const yesterday = new Date();
+        yesterday.setHours(0, 0, 0, 0);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yISO = yesterday.toISOString().slice(0, 10);
+        yesterdaySplits = histList
+          .filter((item: any) => (item.split?.date || "").slice(0, 10) === yISO)
+          .map((item: any) => ({
+            companyName: item.name || "",
+            ticker: item.ticker || "",
+            splitType: (item.split?.type || "").toString().toLowerCase(),
+            splitRatio: item.split?.ratio?.text || "",
+            exDate: item.split?.date || "",
+          }));
+      }
+
+      // Overview keeps upcoming-only JSON order; full tab will merge yesterday in
+      setSplits(mappedUpcoming);
+      setYesterday(yesterdaySplits);
     } catch (err) {
       console.error("Error fetching splits:", err);
       setSplits(getFallbackSplits());
@@ -87,6 +107,8 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
       const diff = Math.ceil((d.getTime() - today.getTime()) / 86400000);
       if (diff === 0) return "Today";
       if (diff === 1) return "Tomorrow";
+      if (diff === -1) return "Yesterday";
+      if (diff < 0) return `${Math.abs(diff)} days ago`;
       return `${diff} days`;
     } catch {
       return "";
@@ -103,7 +125,8 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
   const overviewVisible = limit ? splits.slice(0, limit) : splits;
 
   // Full tab: show ALL entries sorted ascending by date (oldest first)
-  const fullSortedAscending = [...splits].sort((a, b) => {
+  // Full tab: include yesterday + all upcoming, sorted ascending by date
+  const fullSortedAscending = [...yesterday, ...splits].sort((a, b) => {
     const ta = a.exDate ? new Date(a.exDate).getTime() : 0;
     const tb = b.exDate ? new Date(b.exDate).getTime() : 0;
     return ta - tb;
