@@ -44,8 +44,16 @@ const LtoView = ({ users }: LtoViewProps) => {
   const [entries, setEntries] = useState<LtoEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [openTraders, setOpenTraders] = useState<Record<string, boolean>>({});
+  const [milestones, setMilestones] = useState<Record<string, number>>({});
 
-  useEffect(() => { fetchEntries(); }, []);
+  useEffect(() => { fetchEntries(); fetchMilestones(); }, []);
+
+  const fetchMilestones = async () => {
+    const { data } = await supabase.from("trader_milestones").select("user_id,current_level");
+    const map: Record<string, number> = {};
+    (data || []).forEach((m: any) => { map[m.user_id] = Number(m.current_level) || 0; });
+    setMilestones(map);
+  };
 
   const fetchEntries = async () => {
     setLoading(true);
