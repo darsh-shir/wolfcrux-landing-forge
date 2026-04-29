@@ -36,28 +36,47 @@ const StockSplits = ({ limit, compact }: StockSplitsProps) => {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "https://tr-cdn.tipranks.com/calendars/prod/calendars/stock-splits/upcoming/payload.json"
-      );
+      const [upcomingRes, historicalRes] = await Promise.all([
+        fetch("https://tr-cdn.tipranks.com/calendars/prod/calendars/stock-splits/upcoming/payload.json"),
+        fetch("https://tr-cdn.tipranks.com/calendars/prod/calendars/stock-splits/historical/payload.json").catch(() => null),
+      ]);
 
-      if (!response.ok) throw new Error("Failed to fetch splits");
+      if (!upcomingRes.ok) throw new Error("Failed to fetch splits");
 
-      const json = await response.json();
+      const upcomingJson = await upcomingRes.json();
+      const upcomingList = upcomingJson?.StockSplitCalendar?.data?.list || [];
 
-      // RAW LIST exactly as provided in JSON
-      const rawList = json?.StockSplitCalendar?.data?.list || [];
-
-      // Map keeping the original rawList order (do NOT sort here)
-      const mappedSplits: SplitData[] = rawList.map((item: any) => ({
+      const mappedUpcoming: SplitData[] = upcomingList.map((item: any) => ({
         companyName: item.name || "",
         ticker: item.ticker || "",
-        splitType: (item.split?.type || "").toString().toLowerCase(), // forward / reverse
+        splitType: (item.split?.type || "").toString().toLowerCase(),
         splitRatio: item.split?.ratio?.text || "",
         exDate: item.split?.date || "",
       }));
 
-      // do not reorder mappedSplits here — keep JSON order for overview
-      setSplits(mappedSplits);
+      // Pull yesterday's splits from historical feed (for the Split tab)
+      let yesterdaySplits: SplitData[] = [];
+      if (historicalRes && historicalRes.ok) {
+        const histJson = await historicalRes.json();
+        const histList = histJson?.StockSplitCalendar?.data?.list || [];
+        const yesterday = new Date();
+        yesterday.setHours(0, 0, 0, 0);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yISO = yesterday.toISOString().slice(0, 10);
+        yesterdaySplits = histList
+          .filter((item: any) => (item.split?.date || "").slice(0, 10) === yISO)
+          .map((item: any) => ({
+            companyName: item.name || "",
+            ticker: item.ticker || "",
+            splitType: (item.split?.type || "").toString().toLowerCase(),
+            splitRatio: item.split?.ratio?.text || "",
+            exDate: item.split?.date || "",
+          }));
+      }
+
+      // Overview keeps upcoming-only JSON order; full tab will merge yesterday in
+      setSplits(mappedUpcoming);
+      setYesterday(yesterdaySplits);
     } catch (err) {
       console.error("Error fetching splits:", err);
       setSplits(getFallbackSplits());
