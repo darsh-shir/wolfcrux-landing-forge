@@ -567,18 +567,31 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                   <TableBody>
                     {dailyRecords.map((record) => (
                       <TableRow key={record.id}>
-                        <TableCell className="font-medium">{getUserName(record.user_id)}</TableCell>
+                        <TableCell className="font-medium">
+                          {getUserName(record.user_id)}
+                          {record.source === "trading" && (
+                            <Badge variant="outline" className="ml-2 text-xs">Auto</Badge>
+                          )}
+                        </TableCell>
                         <TableCell>{getStatusBadge(record.status)}</TableCell>
                         <TableCell className="text-muted-foreground">{record.notes || "—"}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => openEditAttendance(record)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditAttendance(record)}
+                              disabled={record.source === "trading"}
+                              title={record.source === "trading" ? "Edit via trading data entry" : ""}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => setDeleteTarget({ type: "attendance", id: record.id })}
+                              disabled={record.source === "trading"}
+                              title={record.source === "trading" ? "Edit via trading data entry" : ""}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
