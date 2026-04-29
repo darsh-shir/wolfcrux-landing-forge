@@ -36,6 +36,7 @@ interface AttendanceRecord {
   status: "present" | "absent" | "half_day" | "late";
   is_deductible: boolean;
   notes: string | null;
+  source?: "manual" | "trading";
 }
 
 interface MonthlySummary {
