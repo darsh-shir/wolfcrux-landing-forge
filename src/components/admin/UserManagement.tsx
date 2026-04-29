@@ -44,6 +44,7 @@ interface UserManagementProps {
 
 const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => {
   const { toast } = useToast();
+  const EMPLOYEE_ID_PREFIX = "WGM";
   const [roles, setRoles] = useState<UserRole[]>([]);
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -55,7 +56,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const [newTraderNumber, setNewTraderNumber] = useState("");
   const [newJoiningDate, setNewJoiningDate] = useState("");
   const [newBirthdate, setNewBirthdate] = useState("");
-  const [newAssignedTrader, setNewAssignedTrader] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
@@ -64,7 +64,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const [editJoiningDate, setEditJoiningDate] = useState("");
   const [editBirthdate, setEditBirthdate] = useState("");
   const [editEmployeeRole, setEditEmployeeRole] = useState<"trainee" | "trader">("trainee");
-  const [editAssignedTrader, setEditAssignedTrader] = useState("");
 
   const [resetPasswordUser, setResetPasswordUser] = useState<Profile | null>(null);
   const [newPasswordValue, setNewPasswordValue] = useState("");
@@ -78,6 +77,13 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     fetchRoles();
   }, [users]);
 
+  const formatEmployeeId = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    return digits ? `${EMPLOYEE_ID_PREFIX}${digits}` : "";
+  };
+
+  const extractEmployeeIdDigits = (value?: string | null) => (value || "").replace(/\D/g, "");
+
   const fetchRoles = async () => {
     const { data } = await supabase.from("user_roles").select("user_id, role");
     if (data) setRoles(data as UserRole[]);
@@ -87,8 +93,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     const r = roles.find((role) => role.user_id === userId);
     return r?.role || "user";
   };
-
-  const traders = users.filter(u => u.employee_role === "trader");
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,8 +117,8 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
       if (response.error) throw new Error(response.error.message);
       if (response.data?.error) throw new Error(response.data.error);
 
-      if (response.data?.user?.id) {
-        const newUserId = response.data.user.id;
+      if (response.data?.userId) {
+        const newUserId = response.data.userId;
         // The handle_new_user trigger inserts the profile asynchronously.
         // Poll briefly until the row exists, then update it.
         let profileReady = false;
@@ -129,7 +133,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
         }
 
         const profilePayload: Record<string, any> = {
-          trader_number: newTraderNumber || null,
+          trader_number: formatEmployeeId(newTraderNumber) || null,
           joining_date: newJoiningDate || null,
           birthdate: newBirthdate || null,
           employee_role: newEmployeeRole,
@@ -160,7 +164,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
       setShowCreateDialog(false);
       setNewEmail(""); setNewPassword(""); setNewFullName(""); setNewRole("user");
       setNewEmployeeRole("trainee"); setNewTraderNumber(""); setNewJoiningDate("");
-      setNewBirthdate(""); setNewAssignedTrader("");
+      setNewBirthdate("");
       onRefresh();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -174,14 +178,15 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     if (!editingUser) return;
 
     try {
-      await supabase.from("profiles").update({
+      const { error } = await supabase.from("profiles").update({
         full_name: editFullName,
-        trader_number: editTraderNumber || null,
+        trader_number: formatEmployeeId(editTraderNumber) || null,
         joining_date: editJoiningDate || null,
         birthdate: editBirthdate || null,
         employee_role: editEmployeeRole,
-        assigned_trader_id: editEmployeeRole === "trainee" && editAssignedTrader && editAssignedTrader !== "none" ? editAssignedTrader : null,
+        assigned_trader_id: null,
       }).eq("user_id", editingUser.user_id);
+      if (error) throw error;
       toast({ title: "Success", description: "User updated successfully" });
       setEditingUser(null);
       onRefresh();
@@ -253,17 +258,10 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const openEditDialog = (user: Profile) => {
     setEditingUser(user);
     setEditFullName(user.full_name);
-    setEditTraderNumber(user.trader_number || "");
+    setEditTraderNumber(extractEmployeeIdDigits(user.trader_number));
     setEditJoiningDate(user.joining_date || "");
     setEditBirthdate(user.birthdate || "");
     setEditEmployeeRole((user.employee_role as "trainee" | "trader") || "trainee");
-    setEditAssignedTrader(user.assigned_trader_id || "");
-  };
-
-  const getAssignedTraderName = (traderId: string | null | undefined) => {
-    if (!traderId) return "—";
-    const trader = users.find(u => u.user_id === traderId);
-    return trader?.full_name || "—";
   };
 
   return (
@@ -287,8 +285,18 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                 <Input value={newFullName} onChange={(e) => setNewFullName(e.target.value)} placeholder="John Doe" />
               </div>
               <div className="space-y-2">
-                <Label>Trader Number</Label>
-                <Input value={newTraderNumber} onChange={(e) => setNewTraderNumber(e.target.value)} placeholder="T001" />
+                <Label>Employee ID</Label>
+                <div className="flex items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                  <span className="px-3 text-sm text-muted-foreground border-r border-border">{EMPLOYEE_ID_PREFIX}</span>
+                  <Input
+                    value={newTraderNumber}
+                    onChange={(e) => setNewTraderNumber(extractEmployeeIdDigits(e.target.value))}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    placeholder="001"
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Email *</Label>
@@ -443,10 +451,20 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
               <Label>Full Name</Label>
               <Input value={editFullName} onChange={(e) => setEditFullName(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Trader Number</Label>
-              <Input value={editTraderNumber} onChange={(e) => setEditTraderNumber(e.target.value)} placeholder="T001" />
-            </div>
+              <div className="space-y-2">
+                <Label>Employee ID</Label>
+                <div className="flex items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                  <span className="px-3 text-sm text-muted-foreground border-r border-border">{EMPLOYEE_ID_PREFIX}</span>
+                  <Input
+                    value={editTraderNumber}
+                    onChange={(e) => setEditTraderNumber(extractEmployeeIdDigits(e.target.value))}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    placeholder="001"
+                  />
+                </div>
+              </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Joining Date</Label>
@@ -457,7 +475,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                 <Input type="date" value={editBirthdate} onChange={(e) => setEditBirthdate(e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Employee Role</Label>
                 <Select value={editEmployeeRole} onValueChange={(v) => setEditEmployeeRole(v as "trainee" | "trader")}>
@@ -468,21 +485,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                   </SelectContent>
                 </Select>
               </div>
-              {editEmployeeRole === "trainee" && (
-                <div className="space-y-2">
-                  <Label>Assigned Trader</Label>
-                  <Select value={editAssignedTrader} onValueChange={setEditAssignedTrader}>
-                    <SelectTrigger><SelectValue placeholder="Select trader" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {traders.filter(t => t.user_id !== editingUser?.user_id).map(t => (
-                        <SelectItem key={t.user_id} value={t.user_id}>{t.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
             <Button type="submit" className="w-full">Save Changes</Button>
           </form>
         </DialogContent>
