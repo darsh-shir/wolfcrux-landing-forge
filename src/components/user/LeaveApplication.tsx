@@ -81,22 +81,29 @@ const LeaveApplication = () => {
     };
   }, [filteredRecords]);
 
-  // Calculate cumulative carry forward from January of current year
+  // Calculate cumulative carry forward starting from joining month
   const carryForwardStats = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1; // 1-based
     const [selYear, selMonth] = selectedMonth.split("-").map(Number);
+    const selectedAbs = selYear * 12 + selMonth;
 
-    // Only calculate for current year (2026+)
-    const year = selYear;
-    const monthsToCalc = selMonth;
+    // Determine accrual start: joining month/year (fallback to selected month)
+    const joining = joiningDate ? parseISO(joiningDate) : null;
+    const startYear = joining ? joining.getFullYear() : selYear;
+    const startMonth = joining ? joining.getMonth() + 1 : selMonth;
+    const startAbs = startYear * 12 + startMonth;
 
-    const monthlyBalances: { month: number; pending: number; carry: number }[] = [];
+    if (selectedAbs < startAbs) {
+      return { carry: 0, pending: 0, totalAvailable: 0 };
+    }
+
     let runningCarry = 0;
+    let pendingThisMonth = 1.5;
 
-    for (let m = 1; m <= monthsToCalc; m++) {
-      const start = startOfMonth(new Date(year, m - 1));
-      const end = endOfMonth(new Date(year, m - 1));
+    let y = startYear;
+    let m = startMonth;
+    while (y * 12 + m <= selectedAbs) {
+      const start = startOfMonth(new Date(y, m - 1));
+      const end = endOfMonth(new Date(y, m - 1));
 
       const monthRecords = attendanceRecords.filter((r) => {
         const d = parseISO(r.record_date);
@@ -110,17 +117,22 @@ const LeaveApplication = () => {
       const totalUsed = fullDays + halfDays * 0.5 + lateDeduction;
       const pending = 1.5 - totalUsed;
 
-      monthlyBalances.push({ month: m, pending, carry: runningCarry });
-      runningCarry += pending;
+      if (y * 12 + m < selectedAbs) {
+        runningCarry += pending;
+      } else {
+        pendingThisMonth = pending;
+      }
+
+      m++;
+      if (m > 12) { m = 1; y++; }
     }
 
-    const currentMonthData = monthlyBalances[monthlyBalances.length - 1];
     return {
-      carry: currentMonthData?.carry ?? 0,
-      pending: currentMonthData?.pending ?? 1.5,
-      totalAvailable: (currentMonthData?.carry ?? 0) + (currentMonthData?.pending ?? 1.5),
+      carry: runningCarry,
+      pending: pendingThisMonth,
+      totalAvailable: runningCarry + pendingThisMonth,
     };
-  }, [attendanceRecords, selectedMonth]);
+  }, [attendanceRecords, selectedMonth, joiningDate]);
 
   // Generate months for dropdown
   const months = useMemo(() => {
