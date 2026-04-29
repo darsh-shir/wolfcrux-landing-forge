@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import logo from "@/assets/wolfcrux-logo.png";
+import logoWhite from "@/assets/logo-white.jpeg";
 import BirthdayNotification from "@/components/BirthdayNotification";
 import MilestoneNotification from "@/components/MilestoneNotification";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -50,7 +51,12 @@ const Navigation = () => {
             <img
               src={logo}
               alt="WOLFCRUX"
-              className="h-9 w-9 sm:h-12 sm:w-12 object-contain shrink-0 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-[-8deg]"
+              className="h-9 w-9 sm:h-12 sm:w-12 object-contain shrink-0 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-[-8deg] block dark:hidden"
+            />
+            <img
+              src={logoWhite}
+              alt="WOLFCRUX"
+              className="h-9 w-9 sm:h-12 sm:w-12 object-contain shrink-0 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-[-8deg] hidden dark:block mix-blend-screen"
             />
             <span className="font-['Space_Grotesk'] text-base sm:text-xl font-bold text-foreground truncate">
               WOLFCRUX
