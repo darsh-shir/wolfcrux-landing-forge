@@ -9,6 +9,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { PieChart, Pie, Cell } from "recharts";
 import { Landmark, Users } from "lucide-react";
 import { formatIndian } from "@/lib/utils";
+import { MILESTONES } from "@/lib/payoutCalculations";
 
 interface Profile {
   id: string;
