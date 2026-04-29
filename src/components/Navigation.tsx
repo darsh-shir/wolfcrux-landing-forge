@@ -40,11 +40,7 @@ const Navigation = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-      {/* Theme toggle pinned to the extreme right edge of the viewport */}
-      <div className="absolute top-1/2 -translate-y-1/2 right-2 sm:right-3 z-[60]">
-        <ThemeToggle />
-      </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pr-16 sm:pr-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 sm:gap-3 hover:opacity-90 transition-opacity min-w-0 group">
@@ -128,6 +124,7 @@ const Navigation = () => {
                 Login
               </Button>
             )}
+            <ThemeToggle />
           </div>
 
           {/* Mobile Menu Button */}
@@ -166,6 +163,7 @@ const Navigation = () => {
                 <LogIn className="h-4 w-4" />
               </Button>
             )}
+            <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="text-foreground"
