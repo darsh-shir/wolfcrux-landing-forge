@@ -114,13 +114,46 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
       if (response.data?.error) throw new Error(response.data.error);
 
       if (response.data?.user?.id) {
-        await supabase.from("profiles").update({
+        const newUserId = response.data.user.id;
+        // The handle_new_user trigger inserts the profile asynchronously.
+        // Poll briefly until the row exists, then update it.
+        let profileReady = false;
+        for (let i = 0; i < 10; i++) {
+          const { data: existing } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("user_id", newUserId)
+            .maybeSingle();
+          if (existing) { profileReady = true; break; }
+          await new Promise((r) => setTimeout(r, 300));
+        }
+
+        const profilePayload: Record<string, any> = {
           trader_number: newTraderNumber || null,
           joining_date: newJoiningDate || null,
           birthdate: newBirthdate || null,
           employee_role: newEmployeeRole,
-          assigned_trader_id: newEmployeeRole === "trainee" && newAssignedTrader ? newAssignedTrader : null,
-        }).eq("user_id", response.data.user.id);
+          assigned_trader_id: null,
+        };
+
+        if (profileReady) {
+          const { error: updErr } = await supabase
+            .from("profiles")
+            .update(profilePayload)
+            .eq("user_id", newUserId);
+          if (updErr) throw new Error(`Profile details not saved: ${updErr.message}`);
+        } else {
+          // Fallback: insert if trigger somehow didn't fire
+          const { error: insErr } = await supabase
+            .from("profiles")
+            .insert({
+              user_id: newUserId,
+              full_name: newFullName,
+              email: newEmail,
+              ...profilePayload,
+            });
+          if (insErr) throw new Error(`Profile details not saved: ${insErr.message}`);
+        }
       }
 
       toast({ title: "Success", description: "User created successfully" });
@@ -297,19 +330,6 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                   </Select>
                 </div>
               </div>
-              {newEmployeeRole === "trainee" && (
-                <div className="space-y-2">
-                  <Label>Assigned Trader</Label>
-                  <Select value={newAssignedTrader} onValueChange={setNewAssignedTrader}>
-                    <SelectTrigger><SelectValue placeholder="Select trader" /></SelectTrigger>
-                    <SelectContent>
-                      {traders.map(t => (
-                        <SelectItem key={t.user_id} value={t.user_id}>{t.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
               <Button type="submit" className="w-full" disabled={isCreating}>
                 {isCreating ? "Creating..." : "Create Employee"}
               </Button>
