@@ -350,6 +350,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                   <TableHead>ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Birthday</TableHead>
                   <TableHead>Employee Role</TableHead>
                   <TableHead>Joining Date</TableHead>
                   <TableHead>System Role</TableHead>
@@ -366,6 +367,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                     <TableCell className="font-mono text-sm">{user.trader_number || "—"}</TableCell>
                     <TableCell className="font-medium">{user.full_name}</TableCell>
                     <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.birthdate ? new Date(user.birthdate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</TableCell>
                     <TableCell>
                       <Badge variant={user.employee_role === "trader" ? "default" : "secondary"}>
                         {user.employee_role === "trader" ? "Trader" : "Trainee"}
