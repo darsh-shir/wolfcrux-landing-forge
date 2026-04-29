@@ -282,45 +282,47 @@ const PayoutSummary = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3">Period</th>
-                    <th className="text-right p-3">Net Profit</th>
-                    <th className="text-right p-3">STO %</th>
-                    <th className="text-right p-3">STO Amount</th>
-                    <th className="text-right p-3">Deductions</th>
-                    <th className="text-right p-3">Final STO</th>
-                    <th className="text-right p-3">Due Date</th>
-                    <th className="text-center p-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stoHistory.map((s: any) => (
-                    <tr key={s.id} className="border-t">
-                      <td className="p-3 font-medium">{MONTHS[(s.month || 1) - 1]} {s.year}</td>
-                      <td className={`p-3 text-right ${Number(s.net_profit) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        {fmt(Number(s.net_profit))}
-                      </td>
-                      <td className="p-3 text-right">{s.sto_percentage}%</td>
-                      <td className="p-3 text-right">{fmt(Number(s.sto_amount))}</td>
-                      <td className="p-3 text-right text-red-600">
-                        {Number(s.leave_deduction_amount) + Number(s.trainee_pool_contribution) > 0
-                          ? `-${fmt(Number(s.leave_deduction_amount) + Number(s.trainee_pool_contribution))}`
-                          : "-"}
-                      </td>
-                      <td className="p-3 text-right font-medium">{fmt(Number(s.final_sto_amount))}</td>
-                      <td className="p-3 text-right text-muted-foreground">{s.payout_due_date}</td>
-                      <td className="p-3 text-center">
-                        <Badge variant={s.is_paid ? "default" : "secondary"} className="text-xs">
-                          {s.is_paid ? "Paid" : "Pending"}
-                        </Badge>
-                      </td>
+            <div className="-mx-6 px-6 overflow-x-auto">
+              <div className="border rounded-lg overflow-hidden min-w-[820px]">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-3 whitespace-nowrap">Period</th>
+                      <th className="text-right p-3 whitespace-nowrap">Net Profit</th>
+                      <th className="text-right p-3 whitespace-nowrap">STO %</th>
+                      <th className="text-right p-3 whitespace-nowrap">STO Amount</th>
+                      <th className="text-right p-3 whitespace-nowrap">Deductions</th>
+                      <th className="text-right p-3 whitespace-nowrap">Final STO</th>
+                      <th className="text-right p-3 whitespace-nowrap">Due Date</th>
+                      <th className="text-center p-3 whitespace-nowrap">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {stoHistory.map((s: any) => (
+                      <tr key={s.id} className="border-t">
+                        <td className="p-3 font-medium whitespace-nowrap">{MONTHS[(s.month || 1) - 1]} {s.year}</td>
+                        <td className={`p-3 text-right whitespace-nowrap ${Number(s.net_profit) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {fmt(Number(s.net_profit))}
+                        </td>
+                        <td className="p-3 text-right whitespace-nowrap">{s.sto_percentage}%</td>
+                        <td className="p-3 text-right whitespace-nowrap">{fmt(Number(s.sto_amount))}</td>
+                        <td className="p-3 text-right text-red-600 whitespace-nowrap">
+                          {Number(s.leave_deduction_amount) + Number(s.trainee_pool_contribution) > 0
+                            ? `-${fmt(Number(s.leave_deduction_amount) + Number(s.trainee_pool_contribution))}`
+                            : "-"}
+                        </td>
+                        <td className="p-3 text-right font-medium whitespace-nowrap">{fmt(Number(s.final_sto_amount))}</td>
+                        <td className="p-3 text-right text-muted-foreground whitespace-nowrap">{s.payout_due_date}</td>
+                        <td className="p-3 text-center whitespace-nowrap">
+                          <Badge variant={s.is_paid ? "default" : "secondary"} className="text-xs">
+                            {s.is_paid ? "Paid" : "Pending"}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -338,37 +340,39 @@ const PayoutSummary = () => {
             </p>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3">Period</th>
-                    <th className="text-left p-3">Primary Trader</th>
-                    <th className="text-right p-3">Primary STO</th>
-                    <th className="text-right p-3">Your Share %</th>
-                    <th className="text-right p-3">Your Share</th>
-                    <th className="text-right p-3">Leave Deduction</th>
-                    <th className="text-right p-3">Final</th>
-                    <th className="text-right p-3">Due Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {partnerShares.map((p) => (
-                    <tr key={`${p.primary_user_id}-${p.year}-${p.month}`} className="border-t">
-                      <td className="p-3 font-medium">{MONTHS[(p.month || 1) - 1]} {p.year}</td>
-                      <td className="p-3">{p.primary_name}</td>
-                      <td className="p-3 text-right">{fmt(p.primary_sto_amount)}</td>
-                      <td className="p-3 text-right">{p.share_percent}%</td>
-                      <td className="p-3 text-right">{fmt(p.share_amount)}</td>
-                      <td className="p-3 text-right text-red-600">
-                        {p.leave_deduction_amount > 0 ? `-${fmt(p.leave_deduction_amount)} (${p.leave_deduction_percent}%)` : "-"}
-                      </td>
-                      <td className="p-3 text-right font-medium">{fmt(p.final_amount)}</td>
-                      <td className="p-3 text-right text-muted-foreground">{p.payout_due_date || "-"}</td>
+            <div className="-mx-6 px-6 overflow-x-auto">
+              <div className="border rounded-lg overflow-hidden min-w-[820px]">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-3 whitespace-nowrap">Period</th>
+                      <th className="text-left p-3 whitespace-nowrap">Primary Trader</th>
+                      <th className="text-right p-3 whitespace-nowrap">Primary STO</th>
+                      <th className="text-right p-3 whitespace-nowrap">Your Share %</th>
+                      <th className="text-right p-3 whitespace-nowrap">Your Share</th>
+                      <th className="text-right p-3 whitespace-nowrap">Leave Deduction</th>
+                      <th className="text-right p-3 whitespace-nowrap">Final</th>
+                      <th className="text-right p-3 whitespace-nowrap">Due Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {partnerShares.map((p) => (
+                      <tr key={`${p.primary_user_id}-${p.year}-${p.month}`} className="border-t">
+                        <td className="p-3 font-medium whitespace-nowrap">{MONTHS[(p.month || 1) - 1]} {p.year}</td>
+                        <td className="p-3 whitespace-nowrap">{p.primary_name}</td>
+                        <td className="p-3 text-right whitespace-nowrap">{fmt(p.primary_sto_amount)}</td>
+                        <td className="p-3 text-right whitespace-nowrap">{p.share_percent}%</td>
+                        <td className="p-3 text-right whitespace-nowrap">{fmt(p.share_amount)}</td>
+                        <td className="p-3 text-right text-red-600 whitespace-nowrap">
+                          {p.leave_deduction_amount > 0 ? `-${fmt(p.leave_deduction_amount)} (${p.leave_deduction_percent}%)` : "-"}
+                        </td>
+                        <td className="p-3 text-right font-medium whitespace-nowrap">{fmt(p.final_amount)}</td>
+                        <td className="p-3 text-right text-muted-foreground whitespace-nowrap">{p.payout_due_date || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </CardContent>
         </Card>
