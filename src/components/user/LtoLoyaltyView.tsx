@@ -76,7 +76,12 @@ const LtoLoyaltyView = () => {
     <>
       {/* Animated Loyalty Welcome Popup */}
       <Dialog open={showWelcome} onOpenChange={(open) => { if (!open) { setAcknowledged(true); setShowWelcome(false); } }}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden border-0 bg-gradient-to-br from-primary/5 via-background to-primary/10">
+        <DialogContent
+          className="max-w-lg p-0 overflow-hidden border-0 bg-gradient-to-br from-primary/5 via-background to-primary/10 [&>button.absolute]:hidden"
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           {/* Floating sparkles background */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {[...Array(12)].map((_, i) => (
