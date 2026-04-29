@@ -40,7 +40,10 @@ const TickerTape = ({ items, loading, onAdd, onRemove, userSymbols = [] }: Ticke
     el.style.animation = "none";
     void el.offsetWidth;
     el.style.animation = "";
-  }, [items.length]);
+    // Only re-trigger when the actual ticker SET changes (symbols added/removed),
+    // not when prices update during auto-refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.map((i) => i.symbol).join(",")]);
 
   useEffect(() => {
     if (adding) inputRef.current?.focus();
