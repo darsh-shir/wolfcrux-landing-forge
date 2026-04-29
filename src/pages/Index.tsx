@@ -107,7 +107,7 @@ const Index = () => {
                 { end: 10, suffix: "M+", label: "Trades / day" },
                 { end: 99.9, suffix: "%", decimals: 1, label: "Uptime" },
                 { end: 5, prefix: "<", suffix: "μs", label: "Latency" },
-                { end: 2025, label: "Established" },
+                { end: 2025, label: "Established", noGrouping: true },
               ].map((s, i) => (
                 <div
                   key={s.label}
@@ -120,6 +120,7 @@ const Index = () => {
                       prefix={s.prefix}
                       suffix={s.suffix}
                       decimals={s.decimals}
+                      noGrouping={s.noGrouping}
                     />
                   </div>
                   <div className="text-xs md:text-sm text-muted-foreground font-['Inter'] mt-1">
