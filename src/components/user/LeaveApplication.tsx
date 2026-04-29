@@ -86,10 +86,9 @@ const LeaveApplication = () => {
     const [selYear, selMonth] = selectedMonth.split("-").map(Number);
     const selectedAbs = selYear * 12 + selMonth;
 
-    // Determine accrual start: joining month/year (fallback to selected month)
-    const joining = joiningDate ? parseISO(joiningDate) : null;
-    const startYear = joining ? joining.getFullYear() : selYear;
-    const startMonth = joining ? joining.getMonth() + 1 : selMonth;
+    // Fixed accrual start: January 2026
+    const startYear = 2026;
+    const startMonth = 1;
     const startAbs = startYear * 12 + startMonth;
 
     if (selectedAbs < startAbs) {
@@ -191,7 +190,7 @@ const LeaveApplication = () => {
             <div>
               <h3 className="font-semibold font-['Space_Grotesk'] text-foreground">Leave Balance Summary</h3>
               <p className="text-xs text-muted-foreground">
-                {joiningDate ? `Cumulative from joining (${format(parseISO(joiningDate), "MMM yyyy")})` : "Cumulative balance"}
+                Cumulative from Jan 2026
               </p>
             </div>
           </div>
