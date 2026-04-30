@@ -205,6 +205,8 @@ const TraderProgress = () => {
         nextLevel: next,
         daysProgress: next ? Math.min(100, (tradingDays / next.daysRequired) * 100) : 100,
         profitProgress: next ? Math.min(100, (Math.max(0, totalPnl) / next.profitRequired) * 100) : 100,
+        baselineDays: baseline?.days || 0,
+        baselineProfit: baseline?.profit || 0,
       };
     });
 
