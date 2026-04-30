@@ -48,6 +48,7 @@ const MyData = () => {
   const [dataLoading, setDataLoading] = useState(true);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [firstName, setFirstName] = useState<string>("");
+  const [employeeRole, setEmployeeRole] = useState<string>("");
 
   // Filters
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("monthly");
