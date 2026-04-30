@@ -972,6 +972,14 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                     Calculations auto-save. Enter Salary / Cash / Bank amount to save the payment record.
                   </p>
                 )}
+
+                {/* P&L Calendar Heatmap (both accounts) — bottom */}
+                <PayoutCalendarHeatmap
+                  primaryTrades={tradingData}
+                  partnerTrades={trader2TradingData}
+                  month={selectedMonth}
+                  year={selectedYear}
+                />
               </>
             )}
           </CardContent>
