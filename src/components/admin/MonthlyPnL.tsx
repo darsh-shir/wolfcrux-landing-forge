@@ -168,15 +168,23 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
       map[t.user_id].days.add(t.trade_date);
     });
     return Object.entries(map)
-      .map(([userId, data]) => ({
-        userId,
-        name: getUserName(userId),
-        pnl: data.pnl,
-        shares: data.shares,
-        days: data.days.size,
-      }))
-      .sort((a, b) => b.pnl - a.pnl);
-  }, [monthEntries, users]);
+      .map(([userId, data]) => {
+        const brokerage = (data.shares / 1000) * BROKERAGE_PER_1000;
+        const swCost = softwareCosts[userId] ?? DEFAULT_SOFTWARE_COST;
+        const net = data.pnl - brokerage - swCost;
+        return {
+          userId,
+          name: getUserName(userId),
+          pnl: data.pnl,
+          shares: data.shares,
+          days: data.days.size,
+          brokerage,
+          softwareCost: swCost,
+          net,
+        };
+      })
+      .sort((a, b) => b.net - a.net);
+  }, [monthEntries, users, softwareCosts]);
 
   const navigateMonth = (dir: number) => {
     let m = selectedMonth + dir;
