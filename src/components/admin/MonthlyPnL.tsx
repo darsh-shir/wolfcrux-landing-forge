@@ -333,10 +333,10 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
                   <div className="flex justify-between items-start gap-2">
                     <p className="font-medium text-sm">{t.name}</p>
                     <div className="text-right">
-                      <p className={cn("font-bold text-sm", t.net >= 0 ? "text-green-600" : "text-red-600")}>
+                      <p className={cn("font-bold text-xl leading-tight", t.net >= 0 ? "text-green-600" : "text-red-600")}>
                         {formatCurrencyINR(t.net)}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">Net</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Net</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-x-2 text-[11px] text-muted-foreground">
