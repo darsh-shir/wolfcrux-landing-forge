@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Save } from "lucide-react";
 import { cn, formatCurrencyINR, formatIndian } from "@/lib/utils";
+
+const BROKERAGE_PER_1000 = 14;
+const DEFAULT_SOFTWARE_COST = 1000;
 
 interface Profile {
   id: string;
