@@ -28,7 +28,7 @@ let cachedUpcoming: UpcomingBirthday[] | null = null;
 let cachedMonth: MonthBirthday[] | null = null;
 let cachedForUserId: string | null = null;
 let lastFetchedAt = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 30 * 1000; // 30 seconds — pick up newly added members quickly
 
 const BirthdayNotification = () => {
   const { user } = useAuth();
@@ -51,12 +51,9 @@ const BirthdayNotification = () => {
     }
 
     const fetchBirthdays = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, birthdate")
-        .not("birthdate", "is", null);
+      const { data, error } = await supabase.rpc("get_company_birthdays");
 
-      if (!data) return;
+      if (error || !data) return;
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
