@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Save } from "lucide-react";
 import { cn, formatCurrencyINR, formatIndian } from "@/lib/utils";
+
+const BROKERAGE_PER_1000 = 14;
+const DEFAULT_SOFTWARE_COST = 1000;
 
 interface Profile {
   id: string;
@@ -55,6 +58,23 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [editingRows, setEditingRows] = useState<Record<string, { net_pnl: string; shares_traded: string }>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [softwareCosts, setSoftwareCosts] = useState<Record<string, number>>({});
+
+  // Fetch software costs for selected month from trader_config
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("trader_config")
+        .select("user_id, software_cost")
+        .eq("month", selectedMonth)
+        .eq("year", selectedYear);
+      const map: Record<string, number> = {};
+      (data || []).forEach((c: any) => {
+        map[c.user_id] = Number(c.software_cost) || 0;
+      });
+      setSoftwareCosts(map);
+    })();
+  }, [selectedMonth, selectedYear]);
 
   const getUserName = (userId: string) => {
     const u = users.find((p) => p.user_id === userId);
@@ -92,6 +112,22 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
   const companyPnl = useMemo(() => monthEntries.reduce((sum, t) => sum + Number(t.net_pnl), 0), [monthEntries]);
   const totalShares = useMemo(() => monthEntries.reduce((sum, t) => sum + t.shares_traded, 0), [monthEntries]);
   const tradingDays = useMemo(() => new Set(monthEntries.map((t) => t.trade_date)).size, [monthEntries]);
+  const totalBrokerage = useMemo(() => (totalShares / 1000) * BROKERAGE_PER_1000, [totalShares]);
+
+  // Software costs charged per active primary trader this month
+  const activePrimaryUserIds = useMemo(
+    () => Array.from(new Set(monthEntries.map((t) => t.user_id))),
+    [monthEntries]
+  );
+  const totalSoftwareCost = useMemo(
+    () =>
+      activePrimaryUserIds.reduce(
+        (sum, uid) => sum + (softwareCosts[uid] ?? DEFAULT_SOFTWARE_COST),
+        0
+      ),
+    [activePrimaryUserIds, softwareCosts]
+  );
+  const companyNetPnl = companyPnl - totalBrokerage - totalSoftwareCost;
 
   // Account-wise breakdown
   const accountBreakdown = useMemo(() => {
@@ -132,15 +168,23 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
       map[t.user_id].days.add(t.trade_date);
     });
     return Object.entries(map)
-      .map(([userId, data]) => ({
-        userId,
-        name: getUserName(userId),
-        pnl: data.pnl,
-        shares: data.shares,
-        days: data.days.size,
-      }))
-      .sort((a, b) => b.pnl - a.pnl);
-  }, [monthEntries, users]);
+      .map(([userId, data]) => {
+        const brokerage = (data.shares / 1000) * BROKERAGE_PER_1000;
+        const swCost = softwareCosts[userId] ?? DEFAULT_SOFTWARE_COST;
+        const net = data.pnl - brokerage - swCost;
+        return {
+          userId,
+          name: getUserName(userId),
+          pnl: data.pnl,
+          shares: data.shares,
+          days: data.days.size,
+          brokerage,
+          softwareCost: swCost,
+          net,
+        };
+      })
+      .sort((a, b) => b.net - a.net);
+  }, [monthEntries, users, softwareCosts]);
 
   const navigateMonth = (dir: number) => {
     let m = selectedMonth + dir;
@@ -232,18 +276,33 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className={cn(
               "rounded-lg p-4 border",
               companyPnl >= 0 ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
             )}>
-              <p className="text-sm text-muted-foreground">Company P&L</p>
+              <p className="text-sm text-muted-foreground">Company Gross P&L</p>
               <div className="flex items-center gap-2">
                 {companyPnl >= 0 ? <TrendingUp className="h-5 w-5 text-green-600" /> : <TrendingDown className="h-5 w-5 text-red-600" />}
                 <p className={cn("text-2xl font-bold", companyPnl >= 0 ? "text-green-600" : "text-red-600")}>
                   {formatCurrencyINR(companyPnl)}
                 </p>
               </div>
+            </div>
+            <div className={cn(
+              "rounded-lg p-4 border",
+              companyNetPnl >= 0 ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+            )}>
+              <p className="text-sm text-muted-foreground">Company Net P&L</p>
+              <div className="flex items-center gap-2">
+                {companyNetPnl >= 0 ? <TrendingUp className="h-5 w-5 text-green-600" /> : <TrendingDown className="h-5 w-5 text-red-600" />}
+                <p className={cn("text-2xl font-bold", companyNetPnl >= 0 ? "text-green-600" : "text-red-600")}>
+                  {formatCurrencyINR(companyNetPnl)}
+                </p>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Gross − Brokerage ({formatCurrencyINR(totalBrokerage)}) − Software ({formatCurrencyINR(totalSoftwareCost)})
+              </p>
             </div>
             <div className="rounded-lg p-4 border bg-muted/30">
               <p className="text-sm text-muted-foreground">Total Entries</p>
@@ -256,6 +315,10 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
             <div className="rounded-lg p-4 border bg-muted/30">
               <p className="text-sm text-muted-foreground">Total Shares</p>
               <p className="text-2xl font-bold">{formatIndian(totalShares)}</p>
+            </div>
+            <div className="rounded-lg p-4 border bg-muted/30">
+              <p className="text-sm text-muted-foreground">Brokerage</p>
+              <p className="text-2xl font-bold text-orange-600">-{formatCurrencyINR(totalBrokerage)}</p>
             </div>
           </div>
         </CardContent>
@@ -270,14 +333,27 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {traderBreakdown.map((t) => (
-                <div key={t.userId} className="rounded-lg border p-3 space-y-1">
-                  <div className="flex justify-between items-start">
+                <div key={t.userId} className="rounded-lg border p-3 space-y-1.5">
+                  <div className="flex justify-between items-start gap-2">
                     <p className="font-medium text-sm">{t.name}</p>
-                    <p className={cn("font-bold text-sm", t.pnl >= 0 ? "text-green-600" : "text-red-600")}>
-                      {formatCurrencyINR(t.pnl)}
-                    </p>
+                    <div className="text-right">
+                      <p className={cn("font-bold text-sm", t.net >= 0 ? "text-green-600" : "text-red-600")}>
+                        {formatCurrencyINR(t.net)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Net</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="grid grid-cols-2 gap-x-2 text-[11px] text-muted-foreground">
+                    <span>Gross:</span>
+                    <span className={cn("text-right font-medium", t.pnl >= 0 ? "text-green-600" : "text-red-600")}>
+                      {formatCurrencyINR(t.pnl)}
+                    </span>
+                    <span>Brokerage:</span>
+                    <span className="text-right text-orange-600">-{formatCurrencyINR(t.brokerage)}</span>
+                    <span>Software:</span>
+                    <span className="text-right text-orange-600">-{formatCurrencyINR(t.softwareCost)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground border-t pt-1">
                     {t.days} days • {formatIndian(t.shares)} shares
                   </p>
                 </div>
