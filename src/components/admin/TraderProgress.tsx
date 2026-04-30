@@ -429,13 +429,29 @@ const TraderProgress = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="font-semibold text-foreground">{trader.tradingDays}</span>
-                      <span className="text-xs text-muted-foreground ml-1">days</span>
+                      <div className="flex flex-col items-center">
+                        <div>
+                          <span className="font-semibold text-foreground">{trader.tradingDays}</span>
+                          <span className="text-xs text-muted-foreground ml-1">days</span>
+                        </div>
+                        {trader.baselineDays > 0 && (
+                          <span className="text-[10px] text-muted-foreground italic mt-0.5">
+                            incl. {trader.baselineDays} baseline
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className={`font-semibold ${trader.totalPnl >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                        {trader.totalPnl >= 0 ? "+" : "-"}${formatIndian(Math.abs(trader.totalPnl))}
-                      </span>
+                      <div className="flex flex-col items-end">
+                        <span className={`font-semibold ${trader.totalPnl >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                          {trader.totalPnl >= 0 ? "+" : "-"}${formatIndian(Math.abs(trader.totalPnl))}
+                        </span>
+                        {trader.baselineProfit !== 0 && (
+                          <span className="text-[10px] text-muted-foreground italic mt-0.5">
+                            incl. ${formatIndian(trader.baselineProfit)} baseline
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant={trader.milestoneLevel > 0 ? "default" : "secondary"} className="text-xs">
