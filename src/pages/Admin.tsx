@@ -245,7 +245,12 @@ const Admin = () => {
 
             {/* PAYOUT SHEET TAB */}
             <TabsContent value="payouts">
-              <PayoutSheet users={users} />
+              <PayoutSheet
+                users={users}
+                initialTraderId={payoutInitial?.traderId}
+                initialMonth={payoutInitial?.month}
+                initialYear={payoutInitial?.year}
+              />
             </TabsContent>
 
             {/* PAYOUT TRACKER TAB */}
