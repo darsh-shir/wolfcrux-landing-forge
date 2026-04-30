@@ -312,6 +312,11 @@ const Admin = () => {
             <TabsContent value="progress">
               <TraderProgress />
             </TabsContent>
+
+            {/* BASELINE SEEDER TAB */}
+            <TabsContent value="baseline">
+              <BaselineSeeder users={users} />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
