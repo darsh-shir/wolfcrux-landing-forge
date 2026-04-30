@@ -64,16 +64,26 @@ const TraderProgress = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [profilesRes, milestonesRes, configRes, tradingData] = await Promise.all([
+    const [profilesRes, milestonesRes, configRes, baselinesRes, tradingData] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, trader_number, employee_role"),
       supabase.from("trader_milestones").select("id, user_id, current_level, cumulative_net_profit"),
       supabase.from("trader_config").select("user_id, month, year, software_cost"),
+      supabase.from("trader_baselines" as any).select("user_id, baseline_days, baseline_net_profit, baseline_level"),
       fetchAllTradingData(),
     ]);
 
     const profiles = profilesRes.data || [];
     const milestones = milestonesRes.data || [];
     const configs = configRes.data || [];
+    const baselines = (baselinesRes.data || []) as any[];
+    const baselineMap = new Map<string, { days: number; profit: number; level: number }>();
+    baselines.forEach((b) => {
+      baselineMap.set(b.user_id, {
+        days: Number(b.baseline_days || 0),
+        profit: Number(b.baseline_net_profit || 0),
+        level: Number(b.baseline_level || 0),
+      });
+    });
 
     // Brokerage = $14 per 1000 shares; per-trader monthly software cost from trader_config (default $1000)
     const DEFAULT_SOFTWARE_COST = 1000;
