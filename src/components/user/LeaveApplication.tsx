@@ -36,6 +36,7 @@ const LeaveApplication = () => {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [carryForwards, setCarryForwards] = useState<CarryForward[]>([]);
+  const [joiningDate, setJoiningDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
 
