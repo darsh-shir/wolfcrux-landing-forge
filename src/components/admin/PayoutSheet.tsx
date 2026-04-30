@@ -21,6 +21,7 @@ import {
   getLTOUnlockDate,
 } from "@/lib/payoutCalculations";
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
+import PayoutCalendarHeatmap from "./PayoutCalendarHeatmap";
 
 interface Profile {
   id: string;
