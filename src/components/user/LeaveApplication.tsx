@@ -86,7 +86,7 @@ const LeaveApplication = () => {
       halfDays: summary.halfDaysUsed,
       lateCount: summary.lateCount,
     };
-  }, [attendanceRecords, carryForwards, selectedMonth]);
+  }, [attendanceRecords, carryForwards, selectedMonth, joiningDate]);
 
   // Generate months for dropdown
   const months = useMemo(() => {
