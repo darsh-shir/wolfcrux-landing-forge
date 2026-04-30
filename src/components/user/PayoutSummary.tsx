@@ -329,7 +329,8 @@ const PayoutSummary = () => {
                           </Badge>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
