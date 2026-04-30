@@ -195,6 +195,10 @@ const Admin = () => {
                   <TrendingUp className="h-4 w-4" />
                   Trader Progress
                 </TabsTrigger>
+                <TabsTrigger value="baseline" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <History className="h-4 w-4" />
+                  Baseline Seeder
+                </TabsTrigger>
               </TabsList>
             </div>
 
