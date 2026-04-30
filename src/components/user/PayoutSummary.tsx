@@ -37,6 +37,7 @@ const PayoutSummary = () => {
   const [stoHistory, setStoHistory] = useState<any[]>([]);
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
   const [partnerShares, setPartnerShares] = useState<PartnerShare[]>([]);
+  const [computedNetByPeriod, setComputedNetByPeriod] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
