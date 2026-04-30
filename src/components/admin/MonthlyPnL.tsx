@@ -44,6 +44,7 @@ interface MonthlyPnLProps {
   accounts: TradingAccount[];
   tradingData: TradingData[];
   onRefresh: () => void;
+  onOpenPayout?: (traderId: string, month: number, year: number) => void;
 }
 
 const MONTHS = [
