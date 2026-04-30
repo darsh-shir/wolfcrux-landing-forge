@@ -280,6 +280,11 @@ const MyData = () => {
              <h1 className="text-2xl sm:text-3xl font-bold font-['Space_Grotesk'] text-foreground">
                Hi{firstName ? `, ${firstName}` : ""} 👋
              </h1>
+            {employeeRole && (
+              <p className="text-sm sm:text-base font-semibold text-primary font-['Inter'] mt-1">
+                {employeeRole}
+              </p>
+            )}
             <p className="text-sm sm:text-base text-muted-foreground font-['Inter'] mt-1.5 sm:mt-2">
               View your trading performance and attendance
             </p>
