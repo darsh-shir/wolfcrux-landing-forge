@@ -46,9 +46,10 @@ interface TradingAnalyticsProps {
   allTradingData: TradingDataRaw[];
   allDailySummary: AllDailySummary[];
   softwareCosts?: Record<string, number>;
+  calendarMonth?: string;
 }
 
-const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDays, allTradingData, allDailySummary, softwareCosts = {} }: TradingAnalyticsProps) => {
+const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDays, allTradingData, allDailySummary, softwareCosts = {}, calendarMonth }: TradingAnalyticsProps) => {
   const analytics = useMemo(() => {
     if (dailySummary.length === 0) {
       return {
@@ -486,7 +487,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
       </div>
 
       {/* Calendar Heatmap */}
-      <CalendarHeatmap allTradingData={allTradingData} />
+      <CalendarHeatmap allTradingData={allTradingData} calendarMonth={calendarMonth} />
 
       {/* Monthly P&L Breakdown */}
       <MonthlyPnlBreakdown dailySummary={allDailySummary} softwareCosts={softwareCosts} />
