@@ -276,18 +276,33 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className={cn(
               "rounded-lg p-4 border",
               companyPnl >= 0 ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
             )}>
-              <p className="text-sm text-muted-foreground">Company P&L</p>
+              <p className="text-sm text-muted-foreground">Company Gross P&L</p>
               <div className="flex items-center gap-2">
                 {companyPnl >= 0 ? <TrendingUp className="h-5 w-5 text-green-600" /> : <TrendingDown className="h-5 w-5 text-red-600" />}
                 <p className={cn("text-2xl font-bold", companyPnl >= 0 ? "text-green-600" : "text-red-600")}>
                   {formatCurrencyINR(companyPnl)}
                 </p>
               </div>
+            </div>
+            <div className={cn(
+              "rounded-lg p-4 border",
+              companyNetPnl >= 0 ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+            )}>
+              <p className="text-sm text-muted-foreground">Company Net P&L</p>
+              <div className="flex items-center gap-2">
+                {companyNetPnl >= 0 ? <TrendingUp className="h-5 w-5 text-green-600" /> : <TrendingDown className="h-5 w-5 text-red-600" />}
+                <p className={cn("text-2xl font-bold", companyNetPnl >= 0 ? "text-green-600" : "text-red-600")}>
+                  {formatCurrencyINR(companyNetPnl)}
+                </p>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Gross − Brokerage ({formatCurrencyINR(totalBrokerage)}) − Software ({formatCurrencyINR(totalSoftwareCost)})
+              </p>
             </div>
             <div className="rounded-lg p-4 border bg-muted/30">
               <p className="text-sm text-muted-foreground">Total Entries</p>
@@ -300,6 +315,10 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
             <div className="rounded-lg p-4 border bg-muted/30">
               <p className="text-sm text-muted-foreground">Total Shares</p>
               <p className="text-2xl font-bold">{formatIndian(totalShares)}</p>
+            </div>
+            <div className="rounded-lg p-4 border bg-muted/30">
+              <p className="text-sm text-muted-foreground">Brokerage</p>
+              <p className="text-2xl font-bold text-orange-600">-{formatCurrencyINR(totalBrokerage)}</p>
             </div>
           </div>
         </CardContent>
