@@ -111,7 +111,9 @@ const BaselineSeeder = ({ users }: Props) => {
 
     setSaving(user.user_id);
     try {
-      // 1. Upsert baseline
+      // Only upsert the baseline row. Trader Progress reads this directly
+      // and adds it on top of actual trades. We do NOT touch trader_milestones
+      // or trader_config — future progress is driven purely by performance.
       const { error: upErr } = await supabase
         .from("trader_baselines" as any)
         .upsert(
@@ -126,59 +128,6 @@ const BaselineSeeder = ({ users }: Props) => {
           { onConflict: "user_id" }
         );
       if (upErr) throw upErr;
-
-      // 2. Upsert trader_milestones — cumulative starts from baseline
-      const { data: existingMs } = await supabase
-        .from("trader_milestones")
-        .select("id, cumulative_net_profit")
-        .eq("user_id", user.user_id)
-        .maybeSingle();
-
-      const stoSum = await supabase
-        .from("sto_ledger")
-        .select("net_profit")
-        .eq("user_id", user.user_id);
-      const actual = (stoSum.data ?? []).reduce(
-        (s: number, r: any) => s + Number(r.net_profit || 0),
-        0
-      );
-      const cumulative = profit + actual;
-
-      if (existingMs?.id) {
-        await supabase
-          .from("trader_milestones")
-          .update({
-            current_level: level,
-            cumulative_net_profit: cumulative,
-            account_start_date: d.as_of_date,
-            last_evaluated_at: new Date().toISOString(),
-          })
-          .eq("id", existingMs.id);
-      } else {
-        await supabase.from("trader_milestones").insert({
-          user_id: user.user_id,
-          account_start_date: d.as_of_date,
-          current_level: level,
-          cumulative_net_profit: cumulative,
-        });
-      }
-
-      // 3. Switch all trader_config rows for this user to milestone mode.
-      // The DB trigger sync_milestone_config_on_mode_change will auto-set sto/lto%.
-      const { data: configs } = await supabase
-        .from("trader_config")
-        .select("id")
-        .eq("user_id", user.user_id);
-      if (configs && configs.length > 0) {
-        await Promise.all(
-          configs.map((c: any) =>
-            supabase
-              .from("trader_config")
-              .update({ config_mode: "milestone" })
-              .eq("id", c.id)
-          )
-        );
-      }
 
       toast.success(`Baseline saved for ${user.full_name}`);
       await fetchBaselines();
@@ -237,9 +186,10 @@ const BaselineSeeder = ({ users }: Props) => {
               </CardTitle>
               <CardDescription className="mt-1">
                 Seed historical days &amp; net profit for traders whose entries weren't recorded
-                from Jan 2025. Saving a baseline will switch all of that trader's monthly configs
-                to <strong>milestone mode</strong>. From the as-of date onward, real trade entries
-                are added to the baseline automatically.
+                from Jan 2025. This <strong>only affects the Trader Progress tab</strong> —
+                the baseline is added on top of their actual trades for level eligibility. Their
+                future progress is driven entirely by their real performance going forward.
+                Milestone records and monthly configs are <strong>not</strong> changed.
               </CardDescription>
             </div>
             <Input
