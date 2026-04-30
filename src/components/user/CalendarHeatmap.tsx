@@ -1,5 +1,5 @@
 import { formatCurrencyINR } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
@@ -14,12 +14,24 @@ interface TradingDataRaw {
 
 interface CalendarHeatmapProps {
   allTradingData: TradingDataRaw[];
+  calendarMonth?: string;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const CalendarHeatmap = ({ allTradingData }: CalendarHeatmapProps) => {
+const CalendarHeatmap = ({ allTradingData, calendarMonth }: CalendarHeatmapProps) => {
   const [viewDate, setViewDate] = useState(() => new Date());
+
+  // Sync view to externally-controlled month (e.g., MyData month dropdown)
+  useEffect(() => {
+    if (!calendarMonth) return;
+    const [y, m] = calendarMonth.split("-").map(Number);
+    if (!y || !m) return;
+    setViewDate((prev) => {
+      if (prev.getFullYear() === y && prev.getMonth() === m - 1) return prev;
+      return new Date(y, m - 1, 1);
+    });
+  }, [calendarMonth]);
 
   // Build pnlMap from ALL trading data (not filtered by parent)
   const pnlMap = useMemo(() => {
