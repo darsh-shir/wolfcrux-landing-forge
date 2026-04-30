@@ -18,6 +18,7 @@ import TradingAnalytics from "@/components/user/TradingAnalytics";
 import PayoutSummary from "@/components/user/PayoutSummary";
 import LtoLoyaltyView from "@/components/user/LtoLoyaltyView";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, parseISO } from "date-fns";
+import { MILESTONES } from "@/lib/payoutCalculations";
 
 interface TradingAccount {
   id: string;
@@ -68,24 +69,18 @@ const MyData = () => {
   useEffect(() => {
     if (user) {
       fetchData();
-      supabase
-        .from("profiles")
-        .select("full_name, employee_role")
-        .eq("user_id", user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data?.full_name) {
-            setFirstName(data.full_name.split(" ")[0]);
-          }
-          if (data?.employee_role) {
-            const formatted = data.employee_role
-              .replace(/[_-]+/g, " ")
-              .split(" ")
-              .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-              .join(" ");
-            setEmployeeRole(formatted);
-          }
-        });
+      // Fetch profile for first name, then milestone level for the title
+      Promise.all([
+        supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle(),
+        supabase.from("trader_milestones").select("current_level").eq("user_id", user.id).maybeSingle(),
+      ]).then(([profileRes, milestoneRes]) => {
+        if (profileRes.data?.full_name) {
+          setFirstName(profileRes.data.full_name.split(" ")[0]);
+        }
+        const lvl = milestoneRes.data?.current_level ?? 0;
+        const milestone = MILESTONES.find((m) => m.level === lvl) || MILESTONES[0];
+        setEmployeeRole(milestone.label);
+      });
     }
   }, [user]);
 
