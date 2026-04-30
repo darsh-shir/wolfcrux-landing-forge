@@ -239,7 +239,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
 
       const preCarry = carryForwards.find(c => c.user_id === u.user_id && c.year === selectedYear)?.carry_forward_days ?? 0;
       const userAttendance = attendanceRecords.filter((r) => r.user_id === u.user_id);
-      const summary = getLeaveBalanceSummary(userAttendance, selectedMon, selectedYear, preCarry);
+      const summary = getLeaveBalanceSummary(userAttendance, selectedMon, selectedYear, preCarry, u.joining_date);
 
       stats[u.user_id] = {
         fullDays: summary.fullDaysUsed,

@@ -36,6 +36,7 @@ const LeaveApplication = () => {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [carryForwards, setCarryForwards] = useState<CarryForward[]>([]);
+  const [joiningDate, setJoiningDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
 
@@ -46,15 +47,17 @@ const LeaveApplication = () => {
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
-    const [attendanceRes, holidaysRes, carryRes] = await Promise.all([
+    const [attendanceRes, holidaysRes, carryRes, profileRes] = await Promise.all([
       supabase.from("attendance_records").select("*").eq("user_id", user.id).order("record_date", { ascending: false }),
       supabase.from("holidays").select("*").order("holiday_date"),
       supabase.from("leave_carry_forward").select("*").eq("user_id", user.id),
+      supabase.from("profiles").select("joining_date").eq("user_id", user.id).maybeSingle(),
     ]);
 
     if (attendanceRes.data) setAttendanceRecords(attendanceRes.data as AttendanceRecord[]);
     if (holidaysRes.data) setHolidays(holidaysRes.data);
     if (carryRes.data) setCarryForwards(carryRes.data as CarryForward[]);
+    if (profileRes.data) setJoiningDate(profileRes.data.joining_date ?? null);
     setLoading(false);
   };
 
@@ -74,7 +77,7 @@ const LeaveApplication = () => {
   const carryForwardStats = useMemo(() => {
     const [selYear, selMonth] = selectedMonth.split("-").map(Number);
     const preCarry = carryForwards.find((entry) => entry.year === selYear)?.carry_forward_days ?? 0;
-    const summary = getLeaveBalanceSummary(attendanceRecords, selMonth, selYear, preCarry);
+    const summary = getLeaveBalanceSummary(attendanceRecords, selMonth, selYear, preCarry, joiningDate);
     return {
       carry: summary.carryIn,
       pending: summary.monthPending,
@@ -83,7 +86,7 @@ const LeaveApplication = () => {
       halfDays: summary.halfDaysUsed,
       lateCount: summary.lateCount,
     };
-  }, [attendanceRecords, carryForwards, selectedMonth]);
+  }, [attendanceRecords, carryForwards, selectedMonth, joiningDate]);
 
   // Generate months for dropdown
   const months = useMemo(() => {

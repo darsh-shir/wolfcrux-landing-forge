@@ -73,8 +73,40 @@ export function getLeaveBalanceSummary(
   attendanceRecords: Array<{ record_date: string; status: string }>,
   selectedMonth: number,
   selectedYear: number,
-  previousYearCarryForward: number = 0
+  previousYearCarryForward: number = 0,
+  joiningDate?: string | null
 ): LeaveBalanceSummary {
+  // One-time adjustment: traders who joined in/after 2026 only accrue leaves
+  // from their joining month onward. Pre-2026 joiners accrue from Jan 2026.
+  let startMonth = 1;
+  if (joiningDate) {
+    const jd = new Date(joiningDate);
+    const jy = jd.getFullYear();
+    const jm = jd.getMonth() + 1;
+    if (jy >= 2026) {
+      if (jy > selectedYear || (jy === selectedYear && jm > selectedMonth)) {
+        // Selected month is before joining — no accrual yet
+        return {
+          fullDaysUsed: 0,
+          halfDaysUsed: 0,
+          lateCount: 0,
+          lateConverted: 0,
+          totalUsed: 0,
+          carryIn: 0,
+          monthlyAllowance: 0,
+          monthPending: 0,
+          totalAvailable: 0,
+          endBalanceRaw: 0,
+          balance: 0,
+          excess: 0,
+          deductionPercent: 0,
+        };
+      }
+      if (jy === selectedYear) startMonth = jm;
+      // If jy < selectedYear (joined in a prior year >=2026), accrual ran full year
+    }
+  }
+
   if (selectedYear < 2026 || selectedMonth < 1 || selectedMonth > 12) {
     return {
       fullDaysUsed: 0,
@@ -110,7 +142,7 @@ export function getLeaveBalanceSummary(
     deductionPercent: 0,
   };
 
-  for (let m = 1; m <= selectedMonth; m++) {
+  for (let m = startMonth; m <= selectedMonth; m++) {
     const monthRecords = attendanceRecords.filter((r) => {
       const d = new Date(r.record_date);
       return d.getFullYear() === selectedYear && d.getMonth() + 1 === m;
