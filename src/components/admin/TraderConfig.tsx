@@ -229,12 +229,6 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
           config_mode: payload.config_mode,
           software_cost: payload.software_cost,
         }).eq("id", fc.id);
-
-        // Re-sync each future month's ledgers too
-        await syncLedgersForMonth(
-          userId, fc.month, fc.year,
-          payload.sto_percentage, payload.lto_percentage, payload.software_cost
-        );
       }
     }
   };
