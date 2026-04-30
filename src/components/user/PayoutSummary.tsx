@@ -291,27 +291,37 @@ const PayoutSummary = () => {
                       <th className="text-right p-3 whitespace-nowrap">Net Profit</th>
                       <th className="text-right p-3 whitespace-nowrap">STO %</th>
                       <th className="text-right p-3 whitespace-nowrap">STO Amount</th>
-                      <th className="text-right p-3 whitespace-nowrap">Deductions</th>
+                      <th className="text-right p-3 whitespace-nowrap">Partner Share</th>
+                      <th className="text-right p-3 whitespace-nowrap">Leave / Pool</th>
                       <th className="text-right p-3 whitespace-nowrap">Final STO</th>
                       <th className="text-right p-3 whitespace-nowrap">Due Date</th>
                       <th className="text-center p-3 whitespace-nowrap">Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {stoHistory.map((s: any) => (
+                    {stoHistory.map((s: any) => {
+                      const sto = Number(s.sto_amount);
+                      const leave = Number(s.leave_deduction_amount);
+                      const pool = Number(s.trainee_pool_contribution);
+                      const final = Number(s.final_sto_amount);
+                      // Partner share is whatever else was subtracted to reach final
+                      const partnerShare = Math.max(0, sto - leave - pool - final);
+                      const otherDeductions = leave + pool;
+                      return (
                       <tr key={s.id} className="border-t">
                         <td className="p-3 font-medium whitespace-nowrap">{MONTHS[(s.month || 1) - 1]} {s.year}</td>
                         <td className={`p-3 text-right whitespace-nowrap ${Number(s.net_profit) >= 0 ? "text-green-600" : "text-red-600"}`}>
                           {fmt(Number(s.net_profit))}
                         </td>
                         <td className="p-3 text-right whitespace-nowrap">{s.sto_percentage}%</td>
-                        <td className="p-3 text-right whitespace-nowrap">{fmt(Number(s.sto_amount))}</td>
+                        <td className="p-3 text-right whitespace-nowrap">{fmt(sto)}</td>
                         <td className="p-3 text-right text-red-600 whitespace-nowrap">
-                          {Number(s.leave_deduction_amount) + Number(s.trainee_pool_contribution) > 0
-                            ? `-${fmt(Number(s.leave_deduction_amount) + Number(s.trainee_pool_contribution))}`
-                            : "-"}
+                          {partnerShare > 0.01 ? `-${fmt(partnerShare)}` : "-"}
                         </td>
-                        <td className="p-3 text-right font-medium whitespace-nowrap">{fmt(Number(s.final_sto_amount))}</td>
+                        <td className="p-3 text-right text-red-600 whitespace-nowrap">
+                          {otherDeductions > 0.01 ? `-${fmt(otherDeductions)}` : "-"}
+                        </td>
+                        <td className="p-3 text-right font-medium whitespace-nowrap">{fmt(final)}</td>
                         <td className="p-3 text-right text-muted-foreground whitespace-nowrap">{s.payout_due_date}</td>
                         <td className="p-3 text-center whitespace-nowrap">
                           <Badge variant={s.is_paid ? "default" : "secondary"} className="text-xs">
