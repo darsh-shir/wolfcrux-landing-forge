@@ -338,8 +338,8 @@ const PayoutSummary = () => {
                       return (
                       <tr key={s.id} className="border-t">
                         <td className="p-3 font-medium whitespace-nowrap">{MONTHS[(s.month || 1) - 1]} {s.year}</td>
-                        <td className={`p-3 text-right whitespace-nowrap ${Number(s.net_profit) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {fmt(Number(s.net_profit))}
+                        <td className={`p-3 text-right whitespace-nowrap ${(computedNetByPeriod.get(`${s.year}-${s.month}`) ?? Number(s.net_profit)) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {fmt(computedNetByPeriod.get(`${s.year}-${s.month}`) ?? Number(s.net_profit))}
                         </td>
                         <td className="p-3 text-right whitespace-nowrap">{s.sto_percentage}%</td>
                         <td className="p-3 text-right whitespace-nowrap">{fmt(sto)}</td>
