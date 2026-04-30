@@ -64,16 +64,26 @@ const TraderProgress = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [profilesRes, milestonesRes, configRes, tradingData] = await Promise.all([
+    const [profilesRes, milestonesRes, configRes, baselinesRes, tradingData] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, trader_number, employee_role"),
       supabase.from("trader_milestones").select("id, user_id, current_level, cumulative_net_profit"),
       supabase.from("trader_config").select("user_id, month, year, software_cost"),
+      supabase.from("trader_baselines" as any).select("user_id, baseline_days, baseline_net_profit, baseline_level"),
       fetchAllTradingData(),
     ]);
 
     const profiles = profilesRes.data || [];
     const milestones = milestonesRes.data || [];
     const configs = configRes.data || [];
+    const baselines = (baselinesRes.data || []) as any[];
+    const baselineMap = new Map<string, { days: number; profit: number; level: number }>();
+    baselines.forEach((b) => {
+      baselineMap.set(b.user_id, {
+        days: Number(b.baseline_days || 0),
+        profit: Number(b.baseline_net_profit || 0),
+        level: Number(b.baseline_level || 0),
+      });
+    });
 
     // Brokerage = $14 per 1000 shares; per-trader monthly software cost from trader_config (default $1000)
     const DEFAULT_SOFTWARE_COST = 1000;
@@ -147,11 +157,12 @@ const TraderProgress = () => {
     });
     setCompanyPnl(companyPrimaryGross - companySoftware);
 
-    // Auto-detect traders: anyone with at least 1 trading day
+    // Auto-detect traders: anyone with at least 1 trading day OR a seeded baseline
     const qualifiedUserIds = new Set<string>();
     Object.entries(tradingDaysMap).forEach(([userId, days]) => {
       if (days.size >= 1) qualifiedUserIds.add(userId);
     });
+    baselineMap.forEach((_, uid) => qualifiedUserIds.add(uid));
 
     const traderProfiles = profiles.filter((p) => qualifiedUserIds.has(p.user_id));
 
@@ -168,10 +179,13 @@ const TraderProgress = () => {
     }
 
     const result: TraderProgressData[] = traderProfiles.map((p) => {
-      const tradingDays = tradingDaysMap[p.user_id]?.size || 0;
+      const baseline = baselineMap.get(p.user_id);
+      const actualDays = tradingDaysMap[p.user_id]?.size || 0;
+      const tradingDays = actualDays + (baseline?.days || 0);
       const ms = milestones.find((m) => m.user_id === p.user_id);
-      const totalPnl = totalPnlMap[p.user_id] || 0;
-      // Use computed totalPnl for level eligibility (same source as table)
+      const actualPnl = totalPnlMap[p.user_id] || 0;
+      const totalPnl = actualPnl + (baseline?.profit || 0);
+      // Use baseline+actual for level eligibility
       const milestone = getMilestoneLevel(tradingDays, totalPnl);
       const next = getNextMilestone(milestone.level);
 
@@ -183,7 +197,7 @@ const TraderProgress = () => {
         totalPnl,
         milestoneLevel: milestone.level,
         milestoneLabel: milestone.label,
-        storedLevel: ms?.current_level ?? 0,
+        storedLevel: ms?.current_level ?? (baseline?.level ?? 0),
         milestoneId: ms?.id ?? null,
         firstTradeDate: firstTradeDateMap[p.user_id] || null,
         nextLevel: next,

@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History } from "lucide-react";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
 import TradingDataView from "@/components/admin/TradingDataView";
@@ -22,6 +22,7 @@ import SingleDayPnL from "@/components/admin/SingleDayPnL";
 import MonthlyPnL from "@/components/admin/MonthlyPnL";
 import TraderProgress from "@/components/admin/TraderProgress";
 import LtoView from "@/components/admin/LtoView";
+import BaselineSeeder from "@/components/admin/BaselineSeeder";
 
 interface Profile {
   id: string;
@@ -194,6 +195,10 @@ const Admin = () => {
                   <TrendingUp className="h-4 w-4" />
                   Trader Progress
                 </TabsTrigger>
+                <TabsTrigger value="baseline" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <History className="h-4 w-4" />
+                  Baseline Seeder
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -306,6 +311,11 @@ const Admin = () => {
             {/* TRADER PROGRESS TAB */}
             <TabsContent value="progress">
               <TraderProgress />
+            </TabsContent>
+
+            {/* BASELINE SEEDER TAB */}
+            <TabsContent value="baseline">
+              <BaselineSeeder users={users} />
             </TabsContent>
           </Tabs>
         </div>

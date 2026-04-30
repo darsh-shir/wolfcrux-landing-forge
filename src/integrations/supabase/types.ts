@@ -478,6 +478,42 @@ export type Database = {
           },
         ]
       }
+      trader_baselines: {
+        Row: {
+          as_of_date: string
+          baseline_days: number
+          baseline_level: number
+          baseline_net_profit: number
+          created_at: string
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          as_of_date: string
+          baseline_days?: number
+          baseline_level?: number
+          baseline_net_profit?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          as_of_date?: string
+          baseline_days?: number
+          baseline_level?: number
+          baseline_net_profit?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trader_config: {
         Row: {
           config_mode: string
