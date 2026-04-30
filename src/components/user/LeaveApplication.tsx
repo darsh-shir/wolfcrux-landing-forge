@@ -47,15 +47,17 @@ const LeaveApplication = () => {
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
-    const [attendanceRes, holidaysRes, carryRes] = await Promise.all([
+    const [attendanceRes, holidaysRes, carryRes, profileRes] = await Promise.all([
       supabase.from("attendance_records").select("*").eq("user_id", user.id).order("record_date", { ascending: false }),
       supabase.from("holidays").select("*").order("holiday_date"),
       supabase.from("leave_carry_forward").select("*").eq("user_id", user.id),
+      supabase.from("profiles").select("joining_date").eq("user_id", user.id).maybeSingle(),
     ]);
 
     if (attendanceRes.data) setAttendanceRecords(attendanceRes.data as AttendanceRecord[]);
     if (holidaysRes.data) setHolidays(holidaysRes.data);
     if (carryRes.data) setCarryForwards(carryRes.data as CarryForward[]);
+    if (profileRes.data) setJoiningDate(profileRes.data.joining_date ?? null);
     setLoading(false);
   };
 
