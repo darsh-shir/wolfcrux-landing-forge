@@ -221,18 +221,18 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Best Day */}
-        <Card className="border-green-200 bg-green-50/50">
+        <Card className="border-green-200 bg-green-50/50 dark:border-green-500/30 dark:bg-green-500/5">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <Award className="h-4 w-4 text-green-600" />
+              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-500/15">
+                <Award className="h-4 w-4 text-green-600 dark:text-green-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Best Day</p>
-                <p className="text-base sm:text-lg font-bold text-green-600 leading-tight tabular-nums">
+                <p className="text-xs text-muted-foreground dark:text-green-300/80 truncate">Best Day</p>
+                <p className="text-base sm:text-lg font-bold text-green-600 dark:text-green-400 leading-tight tabular-nums">
                   <AnimatedNumber value={analytics.bestDay.pnl} format={formatCurrency} resetKey={analytics.bestDay.pnl} />
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground dark:text-green-300/70">
                   {analytics.bestDay.date !== "-" ? format(parseISO(analytics.bestDay.date), "MMM d, yy") : "-"}
                 </p>
               </div>
@@ -241,18 +241,18 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
         </Card>
 
         {/* Worst Day */}
-        <Card className="border-red-200 bg-red-50/50">
+        <Card className="border-red-200 bg-red-50/50 dark:border-red-500/30 dark:bg-red-500/5">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-red-100">
-                <AlertTriangle className="h-4 w-4 text-red-600" />
+              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-500/15">
+                <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Worst Day</p>
-                <p className="text-base sm:text-lg font-bold text-red-600 leading-tight tabular-nums">
+                <p className="text-xs text-muted-foreground dark:text-red-300/80 truncate">Worst Day</p>
+                <p className="text-base sm:text-lg font-bold text-red-600 dark:text-red-400 leading-tight tabular-nums">
                   <AnimatedNumber value={analytics.worstDay.pnl} format={formatCurrency} resetKey={analytics.worstDay.pnl} />
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground dark:text-red-300/70">
                   {analytics.worstDay.date !== "-" ? format(parseISO(analytics.worstDay.date), "MMM d, yy") : "-"}
                 </p>
               </div>
