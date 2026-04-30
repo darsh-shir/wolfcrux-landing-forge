@@ -387,6 +387,7 @@ const MyData = () => {
                   allTradingData={tradingData}
                   allDailySummary={allDailySummary}
                   softwareCosts={softwareCosts}
+                  calendarMonth={timeFilter === "monthly" ? selectedMonth : undefined}
                 />
               )}
             </TabsContent>
