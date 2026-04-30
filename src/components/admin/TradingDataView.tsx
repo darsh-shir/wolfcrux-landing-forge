@@ -129,9 +129,9 @@ const TradingDataView = ({ users, accounts, tradingData, onRefresh, filterByTrad
   // Generate months for dropdown
   const months = useMemo(() => {
     const result = [];
+    const now = new Date();
     for (let i = 0; i < 12; i++) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       result.push(format(date, "yyyy-MM"));
     }
     return result;
