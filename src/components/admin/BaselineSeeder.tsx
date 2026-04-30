@@ -186,9 +186,10 @@ const BaselineSeeder = ({ users }: Props) => {
               </CardTitle>
               <CardDescription className="mt-1">
                 Seed historical days &amp; net profit for traders whose entries weren't recorded
-                from Jan 2025. Saving a baseline will switch all of that trader's monthly configs
-                to <strong>milestone mode</strong>. From the as-of date onward, real trade entries
-                are added to the baseline automatically.
+                from Jan 2025. This <strong>only affects the Trader Progress tab</strong> —
+                the baseline is added on top of their actual trades for level eligibility. Their
+                future progress is driven entirely by their real performance going forward.
+                Milestone records and monthly configs are <strong>not</strong> changed.
               </CardDescription>
             </div>
             <Input
