@@ -64,58 +64,88 @@ const TraderProgress = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [profilesRes, milestonesRes, tradingData] = await Promise.all([
+    const [profilesRes, milestonesRes, configRes, tradingData] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, trader_number, employee_role"),
       supabase.from("trader_milestones").select("id, user_id, current_level, cumulative_net_profit"),
+      supabase.from("trader_config").select("user_id, month, year, software_cost"),
       fetchAllTradingData(),
     ]);
 
     const profiles = profilesRes.data || [];
     const milestones = milestonesRes.data || [];
+    const configs = configRes.data || [];
 
-    // Count distinct trading days, total PnL and earliest trade date per user
+    // Brokerage = $14 per 1000 shares; per-trader monthly software cost from trader_config (default $1000)
+    const DEFAULT_SOFTWARE_COST = 1000;
+    const swCostMap = new Map<string, number>(); // key: userId|year|month
+    configs.forEach((c: any) => {
+      swCostMap.set(`${c.user_id}|${c.year}|${c.month}`, Number(c.software_cost) || 0);
+    });
+
+    // Per-trader aggregates (combined own + partner sessions, mirroring what user sees in Trading Data)
     const tradingDaysMap: Record<string, Set<string>> = {};
-    const totalPnlMap: Record<string, number> = {};
+    const grossMap: Record<string, number> = {};
+    const sharesMap: Record<string, number> = {};
+    const monthsActiveMap: Record<string, Set<string>> = {}; // userId -> Set<"YYYY-M">
     const firstTradeDateMap: Record<string, string> = {};
 
-    // Brokerage = $14 per 1000 shares; Software cost = $1000 flat per trader
-    const SOFTWARE_COST = 1000;
-    tradingData.forEach((t) => {
+    const addToTrader = (uid: string, t: any) => {
       const shares = Number(t.shares_traded || 0);
-      const brokerage = (shares / 1000) * 14;
-      const netAfterBrokerage = Number(t.net_pnl) - brokerage;
-
-      // Primary trader
-      if (!tradingDaysMap[t.user_id]) tradingDaysMap[t.user_id] = new Set();
-      tradingDaysMap[t.user_id].add(t.trade_date);
-      totalPnlMap[t.user_id] = (totalPnlMap[t.user_id] || 0) + netAfterBrokerage;
-      if (!firstTradeDateMap[t.user_id] || t.trade_date < firstTradeDateMap[t.user_id]) {
-        firstTradeDateMap[t.user_id] = t.trade_date;
+      if (!tradingDaysMap[uid]) tradingDaysMap[uid] = new Set();
+      tradingDaysMap[uid].add(t.trade_date);
+      grossMap[uid] = (grossMap[uid] || 0) + Number(t.net_pnl);
+      sharesMap[uid] = (sharesMap[uid] || 0) + shares;
+      const d = new Date(t.trade_date);
+      const ym = `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`;
+      if (!monthsActiveMap[uid]) monthsActiveMap[uid] = new Set();
+      monthsActiveMap[uid].add(ym);
+      if (!firstTradeDateMap[uid] || t.trade_date < firstTradeDateMap[uid]) {
+        firstTradeDateMap[uid] = t.trade_date;
       }
+    };
 
-      // Partner gets mirrored P&L and trading day count
+    tradingData.forEach((t) => {
+      addToTrader(t.user_id, t);
       if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") {
-        if (!tradingDaysMap[t.trader2_id]) tradingDaysMap[t.trader2_id] = new Set();
-        tradingDaysMap[t.trader2_id].add(t.trade_date);
-        totalPnlMap[t.trader2_id] = (totalPnlMap[t.trader2_id] || 0) + netAfterBrokerage;
-        if (!firstTradeDateMap[t.trader2_id] || t.trade_date < firstTradeDateMap[t.trader2_id]) {
-          firstTradeDateMap[t.trader2_id] = t.trade_date;
-        }
+        addToTrader(t.trader2_id, t);
       }
     });
 
-    // Subtract flat software cost per trader who has any trading activity
-    Object.keys(totalPnlMap).forEach((uid) => {
-      totalPnlMap[uid] -= SOFTWARE_COST;
+    // Net P&L per trader = gross − brokerage − Σ(software_cost for each active month)
+    const totalPnlMap: Record<string, number> = {};
+    Object.keys(grossMap).forEach((uid) => {
+      const brokerage = (sharesMap[uid] / 1000) * 14;
+      let softwareTotal = 0;
+      monthsActiveMap[uid].forEach((ym) => {
+        const [y, m] = ym.split("-");
+        const key = `${uid}|${y}|${m}`;
+        softwareTotal += swCostMap.has(key) ? (swCostMap.get(key) as number) : DEFAULT_SOFTWARE_COST;
+      });
+      totalPnlMap[uid] = grossMap[uid] - brokerage - softwareTotal;
     });
 
-    // Company P&L = sum of all primary trader net (after brokerage), minus software per active trader
-    const companyTotal =
-      tradingData.reduce((sum, t) => {
-        const shares = Number(t.shares_traded || 0);
-        return sum + Number(t.net_pnl) - (shares / 1000) * 14;
-      }, 0) - Object.keys(tradingDaysMap).length * SOFTWARE_COST;
-    setCompanyPnl(companyTotal);
+    // Company P&L = sum of all PRIMARY trades' net (after brokerage), minus software cost across
+    // primary trader-months (no double-counting from partner mirror).
+    const companyPrimaryGross = tradingData.reduce((sum, t) => {
+      const shares = Number(t.shares_traded || 0);
+      return sum + Number(t.net_pnl) - (shares / 1000) * 14;
+    }, 0);
+    const primaryMonthsMap: Record<string, Set<string>> = {};
+    tradingData.forEach((t) => {
+      const d = new Date(t.trade_date);
+      const ym = `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`;
+      if (!primaryMonthsMap[t.user_id]) primaryMonthsMap[t.user_id] = new Set();
+      primaryMonthsMap[t.user_id].add(ym);
+    });
+    let companySoftware = 0;
+    Object.entries(primaryMonthsMap).forEach(([uid, set]) => {
+      set.forEach((ym) => {
+        const [y, m] = ym.split("-");
+        const key = `${uid}|${y}|${m}`;
+        companySoftware += swCostMap.has(key) ? (swCostMap.get(key) as number) : DEFAULT_SOFTWARE_COST;
+      });
+    });
+    setCompanyPnl(companyPrimaryGross - companySoftware);
 
     // Auto-detect traders: anyone with at least 1 trading day
     const qualifiedUserIds = new Set<string>();
