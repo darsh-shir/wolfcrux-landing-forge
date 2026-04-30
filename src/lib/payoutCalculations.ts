@@ -142,7 +142,7 @@ export function getLeaveBalanceSummary(
     deductionPercent: 0,
   };
 
-  for (let m = 1; m <= selectedMonth; m++) {
+  for (let m = startMonth; m <= selectedMonth; m++) {
     const monthRecords = attendanceRecords.filter((r) => {
       const d = new Date(r.record_date);
       return d.getFullYear() === selectedYear && d.getMonth() + 1 === m;
