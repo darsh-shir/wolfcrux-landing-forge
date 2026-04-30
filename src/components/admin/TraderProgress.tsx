@@ -157,11 +157,12 @@ const TraderProgress = () => {
     });
     setCompanyPnl(companyPrimaryGross - companySoftware);
 
-    // Auto-detect traders: anyone with at least 1 trading day
+    // Auto-detect traders: anyone with at least 1 trading day OR a seeded baseline
     const qualifiedUserIds = new Set<string>();
     Object.entries(tradingDaysMap).forEach(([userId, days]) => {
       if (days.size >= 1) qualifiedUserIds.add(userId);
     });
+    baselineMap.forEach((_, uid) => qualifiedUserIds.add(uid));
 
     const traderProfiles = profiles.filter((p) => qualifiedUserIds.has(p.user_id));
 
