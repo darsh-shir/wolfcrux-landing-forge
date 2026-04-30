@@ -276,7 +276,7 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className={cn(
               "rounded-lg p-4 border",
               companyPnl >= 0 ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
@@ -303,10 +303,6 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
               <p className="text-[10px] text-muted-foreground mt-1">
                 Gross − Brokerage ({formatCurrencyINR(totalBrokerage)}) − Software ({formatCurrencyINR(totalSoftwareCost)})
               </p>
-            </div>
-            <div className="rounded-lg p-4 border bg-muted/30">
-              <p className="text-sm text-muted-foreground">Total Entries</p>
-              <p className="text-2xl font-bold">{monthEntries.length}</p>
             </div>
             <div className="rounded-lg p-4 border bg-muted/30">
               <p className="text-sm text-muted-foreground">Trading Days</p>
@@ -337,10 +333,10 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
                   <div className="flex justify-between items-start gap-2">
                     <p className="font-medium text-sm">{t.name}</p>
                     <div className="text-right">
-                      <p className={cn("font-bold text-sm", t.net >= 0 ? "text-green-600" : "text-red-600")}>
+                      <p className={cn("font-bold text-xl leading-tight", t.net >= 0 ? "text-green-600" : "text-red-600")}>
                         {formatCurrencyINR(t.net)}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">Net</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Net</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-x-2 text-[11px] text-muted-foreground">
