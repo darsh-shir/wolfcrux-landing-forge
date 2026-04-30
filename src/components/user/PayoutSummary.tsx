@@ -409,10 +409,12 @@ const PayoutSummary = () => {
                   {milestone.level === m.level && <Badge variant="default" className="text-xs">Current</Badge>}
                   <span className="font-medium">{m.label}</span>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  STO {m.stoPercent}%
+                <div className="text-sm text-muted-foreground flex items-center gap-3">
+                  <span>STO {m.stoPercent}%</span>
+                  <span>LTO {m.ltoPercent}%</span>
+                  <span className="font-medium text-foreground">Total {m.stoPercent + m.ltoPercent}%</span>
                   {m.level > 0 && (
-                    <span className="ml-2">
+                    <span>
                       ({m.daysRequired} days or {`$${formatIndian(m.profitRequired)}`})
                     </span>
                   )}
