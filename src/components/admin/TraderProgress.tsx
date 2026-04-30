@@ -32,6 +32,8 @@ interface TraderProgressData {
   nextLevel: typeof MILESTONES[0] | null;
   daysProgress: number;
   profitProgress: number;
+  baselineDays: number;
+  baselineProfit: number;
 }
 
 const TraderProgress = () => {
