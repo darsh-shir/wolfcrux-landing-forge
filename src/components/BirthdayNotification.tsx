@@ -42,6 +42,17 @@ const BirthdayNotification = () => {
   useEffect(() => {
     if (!user) return;
 
+    // If the signed-in user changed, invalidate the cache entirely so we never
+    // show another user's data.
+    if (cachedForUserId !== null && cachedForUserId !== user.id) {
+      cachedUpcoming = null;
+      cachedMonth = null;
+      cachedForUserId = null;
+      lastFetchedAt = 0;
+      setBirthdays([]);
+      setMonthBirthdays([]);
+    }
+
     // Hydrate instantly from cache when the user matches
     if (cachedForUserId === user.id && cachedUpcoming && cachedMonth) {
       setBirthdays(cachedUpcoming);
