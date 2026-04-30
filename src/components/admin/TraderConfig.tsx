@@ -207,14 +207,8 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     }
 
-    // Re-sync ledgers for THIS month with new percentages
-    await syncLedgersForMonth(
-      userId, selectedMonth, selectedYear,
-      cfg.sto_percentage, cfg.lto_percentage, cfg.software_cost
-    );
-
     await propagateToFutureMonths(userId, payload);
-    toast({ title: "Saved", description: "Config saved & ledgers synced" });
+    toast({ title: "Saved", description: "Config saved" });
     setEditing(prev => { const n = { ...prev }; delete n[userId]; return n; });
     fetchConfigs();
   };
