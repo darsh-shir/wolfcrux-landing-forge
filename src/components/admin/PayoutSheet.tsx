@@ -21,6 +21,7 @@ import {
   getLTOUnlockDate,
 } from "@/lib/payoutCalculations";
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
+import PayoutCalendarHeatmap from "./PayoutCalendarHeatmap";
 
 interface Profile {
   id: string;
@@ -711,6 +712,14 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                     </p>
                   </div>
                 )}
+
+                {/* P&L Calendar Heatmap (both accounts) */}
+                <PayoutCalendarHeatmap
+                  primaryTrades={tradingData}
+                  partnerTrades={trader2TradingData}
+                  month={selectedMonth}
+                  year={selectedYear}
+                />
 
                 {/* P&L Breakdown */}
                 {tradingData.length > 0 && (
