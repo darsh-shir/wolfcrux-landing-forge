@@ -112,6 +112,22 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
   const companyPnl = useMemo(() => monthEntries.reduce((sum, t) => sum + Number(t.net_pnl), 0), [monthEntries]);
   const totalShares = useMemo(() => monthEntries.reduce((sum, t) => sum + t.shares_traded, 0), [monthEntries]);
   const tradingDays = useMemo(() => new Set(monthEntries.map((t) => t.trade_date)).size, [monthEntries]);
+  const totalBrokerage = useMemo(() => (totalShares / 1000) * BROKERAGE_PER_1000, [totalShares]);
+
+  // Software costs charged per active primary trader this month
+  const activePrimaryUserIds = useMemo(
+    () => Array.from(new Set(monthEntries.map((t) => t.user_id))),
+    [monthEntries]
+  );
+  const totalSoftwareCost = useMemo(
+    () =>
+      activePrimaryUserIds.reduce(
+        (sum, uid) => sum + (softwareCosts[uid] ?? DEFAULT_SOFTWARE_COST),
+        0
+      ),
+    [activePrimaryUserIds, softwareCosts]
+  );
+  const companyNetPnl = companyPnl - totalBrokerage - totalSoftwareCost;
 
   // Account-wise breakdown
   const accountBreakdown = useMemo(() => {
