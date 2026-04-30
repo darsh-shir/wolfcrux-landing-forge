@@ -33,6 +33,9 @@ interface Profile {
 
 interface PayoutSheetProps {
   users: Profile[];
+  initialTraderId?: string;
+  initialMonth?: number;
+  initialYear?: number;
 }
 
 const MONTHS = [
@@ -40,14 +43,21 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-const PayoutSheet = ({ users }: PayoutSheetProps) => {
+const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: PayoutSheetProps) => {
   const { toast } = useToast();
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  const [selectedTrader, setSelectedTrader] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedTrader, setSelectedTrader] = useState(initialTraderId || "");
+  const [selectedMonth, setSelectedMonth] = useState(initialMonth || currentMonth);
+  const [selectedYear, setSelectedYear] = useState(initialYear || currentYear);
+
+  // Sync when external initial props change (e.g., navigated from Monthly P&L)
+  useEffect(() => {
+    if (initialTraderId) setSelectedTrader(initialTraderId);
+    if (initialMonth) setSelectedMonth(initialMonth);
+    if (initialYear) setSelectedYear(initialYear);
+  }, [initialTraderId, initialMonth, initialYear]);
   const [tradingData, setTradingData] = useState<any[]>([]);
   const [trader2TradingData, setTrader2TradingData] = useState<any[]>([]);
   const [allAttendanceRecords, setAllAttendanceRecords] = useState<any[]>([]);

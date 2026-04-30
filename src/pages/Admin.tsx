@@ -59,6 +59,13 @@ const Admin = () => {
   const [tradingData, setTradingData] = useState<TradingData[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [selectedTrader, setSelectedTrader] = useState("");
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [payoutInitial, setPayoutInitial] = useState<{ traderId: string; month: number; year: number } | null>(null);
+
+  const openPayoutFor = (traderId: string, month: number, year: number) => {
+    setPayoutInitial({ traderId, month, year });
+    setActiveTab("payouts");
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -128,7 +135,7 @@ const Admin = () => {
       <Navigation />
       <div className="min-h-screen bg-background pt-20 sm:pt-24 pb-12 px-3 sm:px-4 animate-fade-in">
         <div className="max-w-[1600px] mx-auto">
-          <Tabs defaultValue="dashboard" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
               <TabsList className="w-max bg-muted/30 border border-border/50">
                 <TabsTrigger value="dashboard" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
@@ -238,7 +245,12 @@ const Admin = () => {
 
             {/* PAYOUT SHEET TAB */}
             <TabsContent value="payouts">
-              <PayoutSheet users={users} />
+              <PayoutSheet
+                users={users}
+                initialTraderId={payoutInitial?.traderId}
+                initialMonth={payoutInitial?.month}
+                initialYear={payoutInitial?.year}
+              />
             </TabsContent>
 
             {/* PAYOUT TRACKER TAB */}
@@ -288,6 +300,7 @@ const Admin = () => {
                 accounts={accounts}
                 tradingData={tradingData}
                 onRefresh={fetchAllData}
+                onOpenPayout={openPayoutFor}
               />
             </TabsContent>
             {/* TRADER PROGRESS TAB */}
