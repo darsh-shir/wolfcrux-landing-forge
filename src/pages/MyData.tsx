@@ -18,6 +18,7 @@ import TradingAnalytics from "@/components/user/TradingAnalytics";
 import PayoutSummary from "@/components/user/PayoutSummary";
 import LtoLoyaltyView from "@/components/user/LtoLoyaltyView";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, parseISO } from "date-fns";
+import { MILESTONES } from "@/lib/payoutCalculations";
 
 interface TradingAccount {
   id: string;
