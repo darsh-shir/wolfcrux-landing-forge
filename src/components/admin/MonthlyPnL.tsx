@@ -58,6 +58,23 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [editingRows, setEditingRows] = useState<Record<string, { net_pnl: string; shares_traded: string }>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [softwareCosts, setSoftwareCosts] = useState<Record<string, number>>({});
+
+  // Fetch software costs for selected month from trader_config
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("trader_config")
+        .select("user_id, software_cost")
+        .eq("month", selectedMonth)
+        .eq("year", selectedYear);
+      const map: Record<string, number> = {};
+      (data || []).forEach((c: any) => {
+        map[c.user_id] = Number(c.software_cost) || 0;
+      });
+      setSoftwareCosts(map);
+    })();
+  }, [selectedMonth, selectedYear]);
 
   const getUserName = (userId: string) => {
     const u = users.find((p) => p.user_id === userId);
