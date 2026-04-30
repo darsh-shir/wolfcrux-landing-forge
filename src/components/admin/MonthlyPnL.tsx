@@ -52,7 +52,7 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps) => {
+const MonthlyPnL = ({ users, accounts, tradingData, onRefresh, onOpenPayout }: MonthlyPnLProps) => {
   const { toast } = useToast();
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
