@@ -179,10 +179,13 @@ const TraderProgress = () => {
     }
 
     const result: TraderProgressData[] = traderProfiles.map((p) => {
-      const tradingDays = tradingDaysMap[p.user_id]?.size || 0;
+      const baseline = baselineMap.get(p.user_id);
+      const actualDays = tradingDaysMap[p.user_id]?.size || 0;
+      const tradingDays = actualDays + (baseline?.days || 0);
       const ms = milestones.find((m) => m.user_id === p.user_id);
-      const totalPnl = totalPnlMap[p.user_id] || 0;
-      // Use computed totalPnl for level eligibility (same source as table)
+      const actualPnl = totalPnlMap[p.user_id] || 0;
+      const totalPnl = actualPnl + (baseline?.profit || 0);
+      // Use baseline+actual for level eligibility
       const milestone = getMilestoneLevel(tradingDays, totalPnl);
       const next = getNextMilestone(milestone.level);
 
@@ -194,7 +197,7 @@ const TraderProgress = () => {
         totalPnl,
         milestoneLevel: milestone.level,
         milestoneLabel: milestone.label,
-        storedLevel: ms?.current_level ?? 0,
+        storedLevel: ms?.current_level ?? (baseline?.level ?? 0),
         milestoneId: ms?.id ?? null,
         firstTradeDate: firstTradeDateMap[p.user_id] || null,
         nextLevel: next,
