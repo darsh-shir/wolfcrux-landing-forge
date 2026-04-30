@@ -276,7 +276,7 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className={cn(
               "rounded-lg p-4 border",
               companyPnl >= 0 ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
@@ -303,10 +303,6 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
               <p className="text-[10px] text-muted-foreground mt-1">
                 Gross − Brokerage ({formatCurrencyINR(totalBrokerage)}) − Software ({formatCurrencyINR(totalSoftwareCost)})
               </p>
-            </div>
-            <div className="rounded-lg p-4 border bg-muted/30">
-              <p className="text-sm text-muted-foreground">Total Entries</p>
-              <p className="text-2xl font-bold">{monthEntries.length}</p>
             </div>
             <div className="rounded-lg p-4 border bg-muted/30">
               <p className="text-sm text-muted-foreground">Trading Days</p>
