@@ -39,8 +39,7 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
     });
 
     let cumulativePnl = 0;
-    const baseEquity = dailyPnLData[0]?.equity || 100000;
-    
+
     return Object.entries(grouped)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, data]) => {
@@ -49,7 +48,7 @@ const CompanyCharts = ({ dailyPnLData }: CompanyChartsProps) => {
           date,
           pnl: data.pnl,
           cumulativePnl,
-          equity: baseEquity + cumulativePnl - dailyPnLData[0]?.cumulativePnl + dailyPnLData[0]?.pnl,
+          equity: cumulativePnl,
         };
       });
   })();
