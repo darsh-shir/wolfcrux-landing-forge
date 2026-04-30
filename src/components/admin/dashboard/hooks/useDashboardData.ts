@@ -246,7 +246,7 @@ export const useDashboardData = ({
 
     const sortedDates = Object.keys(dailyMap).sort();
     let cumulativePnl = 0;
-    const baseEquity = 25000;
+    const baseEquity = 0;
 
     return sortedDates.map((date) => {
       const pnl = dailyMap[date];
