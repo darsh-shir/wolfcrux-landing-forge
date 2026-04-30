@@ -37,6 +37,7 @@ const PayoutSummary = () => {
   const [stoHistory, setStoHistory] = useState<any[]>([]);
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
   const [partnerShares, setPartnerShares] = useState<PartnerShare[]>([]);
+  const [computedNetByPeriod, setComputedNetByPeriod] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,7 +48,7 @@ const PayoutSummary = () => {
     if (!user) return;
     setLoading(true);
 
-    const [milestoneRes, stoRes, ltoRes, tradingDaysRes, partnerSessionsRes] = await Promise.all([
+    const [milestoneRes, stoRes, ltoRes, tradingDaysRes, partnerSessionsRes, ownTradesRes, partnerTradesRes, configRes] = await Promise.all([
       supabase.from("trader_milestones").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("sto_ledger").select("*").eq("user_id", user.id)
         .order("year", { ascending: false }).order("month", { ascending: false }),
@@ -58,7 +59,34 @@ const PayoutSummary = () => {
       supabase.from("trading_data")
         .select("trade_date, user_id, trader2_id, trader2_role")
         .eq("trader2_id", user.id),
+      supabase.from("trading_data").select("trade_date, net_pnl, shares_traded").eq("user_id", user.id),
+      supabase.from("trading_data")
+        .select("trade_date, net_pnl, shares_traded")
+        .eq("trader2_id", user.id)
+        .eq("trader2_role", "partner"),
+      supabase.from("trader_config").select("month, year, software_cost").eq("user_id", user.id),
     ]);
+
+    // Build per-month combined Net Profit (own + partner sessions) the same way MyData does:
+    //   gross = Σ net_pnl,  brokerage = shares/1000 * 14,  net = gross - brokerage - software_cost
+    const combinedMap = new Map<string, { gross: number; shares: number }>();
+    [...(ownTradesRes.data || []), ...(partnerTradesRes.data || [])].forEach((t: any) => {
+      const d = new Date(t.trade_date);
+      const k = `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`;
+      const cur = combinedMap.get(k) || { gross: 0, shares: 0 };
+      cur.gross += Number(t.net_pnl);
+      cur.shares += Number(t.shares_traded);
+      combinedMap.set(k, cur);
+    });
+    const swMap = new Map<string, number>();
+    (configRes.data || []).forEach((c: any) => swMap.set(`${c.year}-${c.month}`, Number(c.software_cost) || 0));
+    const computedNet = new Map<string, number>();
+    combinedMap.forEach((v, k) => {
+      const brokerage = (v.shares / 1000) * 14;
+      const sw = swMap.has(k) ? (swMap.get(k) as number) : 1000;
+      computedNet.set(k, v.gross - brokerage - sw);
+    });
+    setComputedNetByPeriod(computedNet);
 
     setMilestoneData(milestoneRes.data);
     setStoHistory(stoRes.data || []);
@@ -310,8 +338,8 @@ const PayoutSummary = () => {
                       return (
                       <tr key={s.id} className="border-t">
                         <td className="p-3 font-medium whitespace-nowrap">{MONTHS[(s.month || 1) - 1]} {s.year}</td>
-                        <td className={`p-3 text-right whitespace-nowrap ${Number(s.net_profit) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {fmt(Number(s.net_profit))}
+                        <td className={`p-3 text-right whitespace-nowrap ${(computedNetByPeriod.get(`${s.year}-${s.month}`) ?? Number(s.net_profit)) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {fmt(computedNetByPeriod.get(`${s.year}-${s.month}`) ?? Number(s.net_profit))}
                         </td>
                         <td className="p-3 text-right whitespace-nowrap">{s.sto_percentage}%</td>
                         <td className="p-3 text-right whitespace-nowrap">{fmt(sto)}</td>
