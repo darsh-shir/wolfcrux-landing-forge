@@ -330,7 +330,17 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh, onOpenPayout }: M
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {traderBreakdown.map((t) => (
-                <div key={t.userId} className="rounded-lg border p-3 space-y-1.5">
+                <button
+                  key={t.userId}
+                  type="button"
+                  onClick={() => onOpenPayout?.(t.userId, selectedMonth, selectedYear)}
+                  disabled={!onOpenPayout}
+                  className={cn(
+                    "rounded-lg border p-3 space-y-1.5 text-left w-full",
+                    onOpenPayout && "cursor-pointer hover:bg-muted/40 hover:border-primary/50 transition-colors"
+                  )}
+                  title={onOpenPayout ? "Open Payout Sheet" : undefined}
+                >
                   <div className="flex justify-between items-start gap-2">
                     <p className="font-medium text-sm">{t.name}</p>
                     <div className="text-right">
@@ -353,7 +363,7 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh, onOpenPayout }: M
                   <p className="text-xs text-muted-foreground border-t pt-1">
                     {t.days} days • {formatIndian(t.shares)} shares
                   </p>
-                </div>
+                </button>
               ))}
             </div>
           </CardContent>
