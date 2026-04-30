@@ -333,14 +333,27 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh }: MonthlyPnLProps
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {traderBreakdown.map((t) => (
-                <div key={t.userId} className="rounded-lg border p-3 space-y-1">
-                  <div className="flex justify-between items-start">
+                <div key={t.userId} className="rounded-lg border p-3 space-y-1.5">
+                  <div className="flex justify-between items-start gap-2">
                     <p className="font-medium text-sm">{t.name}</p>
-                    <p className={cn("font-bold text-sm", t.pnl >= 0 ? "text-green-600" : "text-red-600")}>
-                      {formatCurrencyINR(t.pnl)}
-                    </p>
+                    <div className="text-right">
+                      <p className={cn("font-bold text-sm", t.net >= 0 ? "text-green-600" : "text-red-600")}>
+                        {formatCurrencyINR(t.net)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Net</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="grid grid-cols-2 gap-x-2 text-[11px] text-muted-foreground">
+                    <span>Gross:</span>
+                    <span className={cn("text-right font-medium", t.pnl >= 0 ? "text-green-600" : "text-red-600")}>
+                      {formatCurrencyINR(t.pnl)}
+                    </span>
+                    <span>Brokerage:</span>
+                    <span className="text-right text-orange-600">-{formatCurrencyINR(t.brokerage)}</span>
+                    <span>Software:</span>
+                    <span className="text-right text-orange-600">-{formatCurrencyINR(t.softwareCost)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground border-t pt-1">
                     {t.days} days • {formatIndian(t.shares)} shares
                   </p>
                 </div>
