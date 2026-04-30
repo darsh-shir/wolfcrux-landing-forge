@@ -300,6 +300,7 @@ const Admin = () => {
                 accounts={accounts}
                 tradingData={tradingData}
                 onRefresh={fetchAllData}
+                onOpenPayout={openPayoutFor}
               />
             </TabsContent>
             {/* TRADER PROGRESS TAB */}
