@@ -51,12 +51,9 @@ const BirthdayNotification = () => {
     }
 
     const fetchBirthdays = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, birthdate")
-        .not("birthdate", "is", null);
+      const { data, error } = await supabase.rpc("get_company_birthdays");
 
-      if (!data) return;
+      if (error || !data) return;
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
