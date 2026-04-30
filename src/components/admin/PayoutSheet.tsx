@@ -713,6 +713,14 @@ const PayoutSheet = ({ users }: PayoutSheetProps) => {
                   </div>
                 )}
 
+                {/* P&L Calendar Heatmap (both accounts) */}
+                <PayoutCalendarHeatmap
+                  primaryTrades={tradingData}
+                  partnerTrades={trader2TradingData}
+                  month={selectedMonth}
+                  year={selectedYear}
+                />
+
                 {/* P&L Breakdown */}
                 {tradingData.length > 0 && (
                   <div className="space-y-2">
