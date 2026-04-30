@@ -59,6 +59,13 @@ const Admin = () => {
   const [tradingData, setTradingData] = useState<TradingData[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [selectedTrader, setSelectedTrader] = useState("");
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [payoutInitial, setPayoutInitial] = useState<{ traderId: string; month: number; year: number } | null>(null);
+
+  const openPayoutFor = (traderId: string, month: number, year: number) => {
+    setPayoutInitial({ traderId, month, year });
+    setActiveTab("payouts");
+  };
 
   useEffect(() => {
     if (!loading && !user) {
