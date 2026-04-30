@@ -70,12 +70,20 @@ const MyData = () => {
       fetchData();
       supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, employee_role")
         .eq("user_id", user.id)
         .maybeSingle()
         .then(({ data }) => {
           if (data?.full_name) {
             setFirstName(data.full_name.split(" ")[0]);
+          }
+          if (data?.employee_role) {
+            const formatted = data.employee_role
+              .replace(/[_-]+/g, " ")
+              .split(" ")
+              .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+              .join(" ");
+            setEmployeeRole(formatted);
           }
         });
     }
