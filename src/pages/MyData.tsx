@@ -48,6 +48,7 @@ const MyData = () => {
   const [dataLoading, setDataLoading] = useState(true);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [firstName, setFirstName] = useState<string>("");
+  const [employeeRole, setEmployeeRole] = useState<string>("");
 
   // Filters
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("monthly");
@@ -69,12 +70,20 @@ const MyData = () => {
       fetchData();
       supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, employee_role")
         .eq("user_id", user.id)
         .maybeSingle()
         .then(({ data }) => {
           if (data?.full_name) {
             setFirstName(data.full_name.split(" ")[0]);
+          }
+          if (data?.employee_role) {
+            const formatted = data.employee_role
+              .replace(/[_-]+/g, " ")
+              .split(" ")
+              .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+              .join(" ");
+            setEmployeeRole(formatted);
           }
         });
     }
@@ -271,6 +280,11 @@ const MyData = () => {
              <h1 className="text-2xl sm:text-3xl font-bold font-['Space_Grotesk'] text-foreground">
                Hi{firstName ? `, ${firstName}` : ""} 👋
              </h1>
+            {employeeRole && (
+              <p className="text-sm sm:text-base font-semibold text-primary font-['Inter'] mt-1">
+                {employeeRole}
+              </p>
+            )}
             <p className="text-sm sm:text-base text-muted-foreground font-['Inter'] mt-1.5 sm:mt-2">
               View your trading performance and attendance
             </p>
