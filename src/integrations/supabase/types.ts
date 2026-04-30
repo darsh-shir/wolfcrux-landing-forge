@@ -713,6 +713,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_company_birthdays: {
+        Args: never
+        Returns: {
+          birthdate: string
+          full_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
