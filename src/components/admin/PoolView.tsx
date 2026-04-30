@@ -310,7 +310,7 @@ const PoolView = ({ users }: PoolViewProps) => {
                     <TableRow>
                       <TableHead>Trader</TableHead>
                       <TableHead className="text-right">Net Profit</TableHead>
-                      <TableHead className="text-right">Payout %</TableHead>
+                      <TableHead className="text-right">STO %</TableHead>
                       <TableHead className="text-right">STO</TableHead>
                       <TableHead className="text-right">Pool (25%)</TableHead>
                     </TableRow>
