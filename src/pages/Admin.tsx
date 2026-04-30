@@ -22,6 +22,7 @@ import SingleDayPnL from "@/components/admin/SingleDayPnL";
 import MonthlyPnL from "@/components/admin/MonthlyPnL";
 import TraderProgress from "@/components/admin/TraderProgress";
 import LtoView from "@/components/admin/LtoView";
+import BaselineSeeder from "@/components/admin/BaselineSeeder";
 
 interface Profile {
   id: string;
