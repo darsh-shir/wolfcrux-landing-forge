@@ -77,7 +77,7 @@ const LeaveApplication = () => {
   const carryForwardStats = useMemo(() => {
     const [selYear, selMonth] = selectedMonth.split("-").map(Number);
     const preCarry = carryForwards.find((entry) => entry.year === selYear)?.carry_forward_days ?? 0;
-    const summary = getLeaveBalanceSummary(attendanceRecords, selMonth, selYear, preCarry);
+    const summary = getLeaveBalanceSummary(attendanceRecords, selMonth, selYear, preCarry, joiningDate);
     return {
       carry: summary.carryIn,
       pending: summary.monthPending,
