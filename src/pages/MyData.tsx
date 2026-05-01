@@ -309,6 +309,10 @@ const MyData = () => {
                   <Heart className="h-4 w-4" />
                   LTO
                 </TabsTrigger>
+                <TabsTrigger value="progress" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
+                  <Trophy className="h-4 w-4" />
+                  Progress
+                </TabsTrigger>
                 <TabsTrigger value="settings" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
                   <Key className="h-4 w-4" />
                   Settings
