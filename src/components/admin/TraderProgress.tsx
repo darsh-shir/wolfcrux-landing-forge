@@ -78,12 +78,13 @@ const TraderProgress = () => {
     const milestones = milestonesRes.data || [];
     const configs = configRes.data || [];
     const baselines = (baselinesRes.data || []) as any[];
-    const baselineMap = new Map<string, { days: number; profit: number; level: number }>();
+    const baselineMap = new Map<string, { days: number; profit: number; level: number; asOfDate: string | null }>();
     baselines.forEach((b) => {
       baselineMap.set(b.user_id, {
         days: Number(b.baseline_days || 0),
         profit: Number(b.baseline_net_profit || 0),
         level: Number(b.baseline_level || 0),
+        asOfDate: b.as_of_date || null,
       });
     });
 
