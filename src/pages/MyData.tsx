@@ -672,6 +672,11 @@ const MyData = () => {
               <LtoLoyaltyView />
             </TabsContent>
 
+            {/* PROGRESS TAB */}
+            <TabsContent value="progress" className="tab-anim">
+              <MyProgress />
+            </TabsContent>
+
             {/* SETTINGS TAB */}
             <TabsContent value="settings" className="tab-anim">
               <div className="max-w-md">
