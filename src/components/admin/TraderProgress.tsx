@@ -103,6 +103,11 @@ const TraderProgress = () => {
     const firstTradeDateMap: Record<string, string> = {};
 
     const addToTrader = (uid: string, t: any) => {
+      // If this trader has a baseline, only count trades ON/AFTER the as-of date.
+      // Trades before that are considered already included in the baseline figures.
+      const bl = baselineMap.get(uid);
+      if (bl?.asOfDate && t.trade_date < bl.asOfDate) return;
+
       const shares = Number(t.shares_traded || 0);
       if (!tradingDaysMap[uid]) tradingDaysMap[uid] = new Set();
       tradingDaysMap[uid].add(t.trade_date);
