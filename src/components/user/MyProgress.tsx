@@ -8,40 +8,59 @@ import { TrendingUp, Calendar, DollarSign, Trophy, Target } from "lucide-react";
 import { formatIndian } from "@/lib/utils";
 import { MILESTONES, getMilestoneLevel, getNextMilestone } from "@/lib/payoutCalculations";
 
-interface ProgressSnapshot {
+/**
+ * Trader-facing progress view.
+ * Mirrors EXACTLY the row that admin sees for this trader in /admin → Trader Progress.
+ * Same baseline + as-of-date filtering, same brokerage ($14/1k shares),
+ * same per-month software cost (default $1000), same own + partner aggregation.
+ */
+
+const DEFAULT_SOFTWARE_COST = 1000;
+
+interface Snap {
   tradingDays: number;
   totalPnl: number;
   baselineDays: number;
   baselineProfit: number;
-  storedLevel: number;
-  eligibleLevel: number;
+  storedLevel: number;          // confirmed level from trader_milestones
+  eligibleLevel: number;        // computed from days/profit
+  eligibleLabel: string;
 }
-
-const DEFAULT_SOFTWARE_COST = 1000;
 
 const MyProgress = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [snap, setSnap] = useState<ProgressSnapshot | null>(null);
+  const [snap, setSnap] = useState<Snap | null>(null);
 
   useEffect(() => {
     if (user) load();
   }, [user]);
 
+  const fetchAllOwnTrades = async () => {
+    if (!user) return [];
+    const all: any[] = [];
+    let from = 0;
+    const size = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("trading_data")
+        .select("trade_date, net_pnl, shares_traded")
+        .or(`user_id.eq.${user.id},and(trader2_id.eq.${user.id},trader2_role.eq.partner)`)
+        .range(from, from + size - 1);
+      if (error || !data || data.length === 0) break;
+      all.push(...data);
+      if (data.length < size) break;
+      from += size;
+    }
+    return all;
+  };
+
   const load = async () => {
     if (!user) return;
     setLoading(true);
 
-    const [ownTradesRes, partnerTradesRes, baselineRes, milestoneRes, configRes] = await Promise.all([
-      supabase
-        .from("trading_data")
-        .select("trade_date, net_pnl, shares_traded")
-        .eq("user_id", user.id),
-      supabase
-        .from("trading_data")
-        .select("trade_date, net_pnl, shares_traded")
-        .eq("trader2_id", user.id)
-        .eq("trader2_role", "partner"),
+    const [trades, baselineRes, milestoneRes, configRes] = await Promise.all([
+      fetchAllOwnTrades(),
       supabase
         .from("trader_baselines" as any)
         .select("baseline_days, baseline_net_profit, baseline_level, as_of_date")
@@ -68,14 +87,14 @@ const MyProgress = () => {
       swCost.set(`${c.year}-${c.month}`, Number(c.software_cost) || 0);
     });
 
-    const allTrades = [...(ownTradesRes.data || []), ...(partnerTradesRes.data || [])]
-      .filter((t: any) => !asOf || t.trade_date >= asOf);
+    // Filter trades on/after baseline as-of date (matches admin logic exactly)
+    const filtered = trades.filter((t: any) => !asOf || t.trade_date >= asOf);
 
     const dayKeys = new Set<string>();
     const monthKeys = new Set<string>();
     let gross = 0;
     let shares = 0;
-    allTrades.forEach((t: any) => {
+    filtered.forEach((t: any) => {
       dayKeys.add(t.trade_date);
       const d = new Date(t.trade_date);
       monthKeys.add(`${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`);
@@ -103,6 +122,7 @@ const MyProgress = () => {
       baselineProfit,
       storedLevel: stored,
       eligibleLevel: eligible.level,
+      eligibleLabel: eligible.label,
     });
     setLoading(false);
   };
@@ -115,17 +135,19 @@ const MyProgress = () => {
     );
   }
 
-  const current = MILESTONES[snap.storedLevel] || MILESTONES[0];
-  const next = getNextMilestone(snap.storedLevel);
+  // Match admin: "Current Level" badge shows the COMPUTED (eligible) level
+  const currentMilestone = MILESTONES[snap.eligibleLevel] || MILESTONES[0];
+  const next = getNextMilestone(snap.eligibleLevel);
   const daysProgress = next ? Math.min(100, (snap.tradingDays / next.daysRequired) * 100) : 100;
   const profitProgress = next
     ? Math.min(100, (Math.max(0, snap.totalPnl) / next.profitRequired) * 100)
     : 100;
   const pendingPromotion = snap.eligibleLevel > snap.storedLevel;
+  const storedMilestone = MILESTONES[snap.storedLevel] || MILESTONES[0];
 
   return (
     <div className="space-y-6">
-      {/* Current Level */}
+      {/* Current Level — mirrors admin "Current Level" column */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -136,22 +158,26 @@ const MyProgress = () => {
         <CardContent>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">You are currently</p>
-              <p className="text-2xl font-bold text-foreground">{current.label}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Level {current.level} • STO {current.stoPercent}% • LTO {current.ltoPercent}%
-              </p>
+              <p className="text-sm text-muted-foreground">You qualify as</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant={snap.eligibleLevel > 0 ? "default" : "secondary"} className="text-sm px-3 py-1">
+                  {currentMilestone.label}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  STO {currentMilestone.stoPercent}% • LTO {currentMilestone.ltoPercent}%
+                </span>
+              </div>
+              {pendingPromotion && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  Promotion pending admin review (currently active: {storedMilestone.label})
+                </p>
+              )}
             </div>
-            {pendingPromotion && (
-              <Badge variant="default" className="text-xs px-3 py-1">
-                Promotion pending admin review
-              </Badge>
-            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Stats */}
+      {/* Stats — mirrors Trading Days + Total P&L columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="pt-6">
@@ -160,11 +186,11 @@ const MyProgress = () => {
                 <Calendar className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Trading Days</p>
+                <p className="text-sm text-muted-foreground">Trading Days</p>
                 <p className="text-2xl font-bold text-foreground">{snap.tradingDays}</p>
                 {snap.baselineDays > 0 && (
                   <p className="text-[11px] text-muted-foreground italic">
-                    incl. {snap.baselineDays} historical
+                    incl. {snap.baselineDays} baseline
                   </p>
                 )}
               </div>
@@ -178,17 +204,17 @@ const MyProgress = () => {
                 <DollarSign className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Cumulative Net P&L</p>
+                <p className="text-sm text-muted-foreground">Total Net P&L</p>
                 <p
                   className={`text-2xl font-bold ${
                     snap.totalPnl >= 0 ? "text-emerald-600" : "text-red-500"
                   }`}
                 >
-                  ${formatIndian(Math.abs(snap.totalPnl))}
+                  {snap.totalPnl >= 0 ? "+" : "-"}${formatIndian(Math.abs(snap.totalPnl))}
                 </p>
-                {snap.baselineProfit > 0 && (
+                {snap.baselineProfit !== 0 && (
                   <p className="text-[11px] text-muted-foreground italic">
-                    incl. ${formatIndian(snap.baselineProfit)} historical
+                    incl. ${formatIndian(snap.baselineProfit)} baseline
                   </p>
                 )}
               </div>
@@ -197,7 +223,7 @@ const MyProgress = () => {
         </Card>
       </div>
 
-      {/* Progress to next level */}
+      {/* Progress to next level — mirrors Days/Profit progress columns */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -253,43 +279,31 @@ const MyProgress = () => {
         </CardContent>
       </Card>
 
-      {/* All Levels Roadmap */}
+      {/* Milestone Thresholds — same legend as admin */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Career Roadmap</CardTitle>
+          <CardTitle className="text-sm">Milestone Thresholds</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             {MILESTONES.map((m) => {
-              const isCurrent = m.level === snap.storedLevel;
-              const isPassed = m.level < snap.storedLevel;
+              const isCurrent = m.level === snap.eligibleLevel;
               return (
                 <div
                   key={m.level}
-                  className={`flex items-center justify-between p-3 rounded-lg border ${
-                    isCurrent
-                      ? "border-primary bg-primary/5"
-                      : isPassed
-                      ? "border-border bg-muted/30 opacity-70"
-                      : "border-border"
+                  className={`p-3 rounded-lg border ${
+                    isCurrent ? "border-primary bg-primary/5" : "border-border bg-muted/30"
                   }`}
                 >
-                  <div>
-                    <p className="font-medium text-sm text-foreground">
-                      L{m.level} — {m.label}
-                    </p>
+                  <p className="font-semibold text-foreground text-sm">{m.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    STO {m.stoPercent}% / LTO {m.ltoPercent}%
+                  </p>
+                  {m.level > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      {m.daysRequired === 0
-                        ? "Starting level"
-                        : `${m.daysRequired} days OR $${formatIndian(m.profitRequired)} profit`}
+                      {m.daysRequired} days or ${formatIndian(m.profitRequired)}
                     </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-medium text-foreground">
-                      STO {m.stoPercent}%
-                    </p>
-                    <p className="text-xs text-muted-foreground">LTO {m.ltoPercent}%</p>
-                  </div>
+                  )}
                 </div>
               );
             })}
