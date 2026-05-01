@@ -70,7 +70,7 @@ const TraderProgress = () => {
       supabase.from("profiles").select("user_id, full_name, trader_number, employee_role"),
       supabase.from("trader_milestones").select("id, user_id, current_level, cumulative_net_profit"),
       supabase.from("trader_config").select("user_id, month, year, software_cost"),
-      supabase.from("trader_baselines" as any).select("user_id, baseline_days, baseline_net_profit, baseline_level"),
+      supabase.from("trader_baselines" as any).select("user_id, baseline_days, baseline_net_profit, baseline_level, as_of_date"),
       fetchAllTradingData(),
     ]);
 
