@@ -70,7 +70,7 @@ const TraderProgress = () => {
       supabase.from("profiles").select("user_id, full_name, trader_number, employee_role"),
       supabase.from("trader_milestones").select("id, user_id, current_level, cumulative_net_profit"),
       supabase.from("trader_config").select("user_id, month, year, software_cost"),
-      supabase.from("trader_baselines" as any).select("user_id, baseline_days, baseline_net_profit, baseline_level"),
+      supabase.from("trader_baselines" as any).select("user_id, baseline_days, baseline_net_profit, baseline_level, as_of_date"),
       fetchAllTradingData(),
     ]);
 
@@ -78,12 +78,13 @@ const TraderProgress = () => {
     const milestones = milestonesRes.data || [];
     const configs = configRes.data || [];
     const baselines = (baselinesRes.data || []) as any[];
-    const baselineMap = new Map<string, { days: number; profit: number; level: number }>();
+    const baselineMap = new Map<string, { days: number; profit: number; level: number; asOfDate: string | null }>();
     baselines.forEach((b) => {
       baselineMap.set(b.user_id, {
         days: Number(b.baseline_days || 0),
         profit: Number(b.baseline_net_profit || 0),
         level: Number(b.baseline_level || 0),
+        asOfDate: b.as_of_date || null,
       });
     });
 
@@ -102,6 +103,11 @@ const TraderProgress = () => {
     const firstTradeDateMap: Record<string, string> = {};
 
     const addToTrader = (uid: string, t: any) => {
+      // If this trader has a baseline, only count trades ON/AFTER the as-of date.
+      // Trades before that are considered already included in the baseline figures.
+      const bl = baselineMap.get(uid);
+      if (bl?.asOfDate && t.trade_date < bl.asOfDate) return;
+
       const shares = Number(t.shares_traded || 0);
       if (!tradingDaysMap[uid]) tradingDaysMap[uid] = new Set();
       tradingDaysMap[uid].add(t.trade_date);
