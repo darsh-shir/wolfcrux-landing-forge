@@ -23,7 +23,18 @@ const LtoLoyaltyView = () => {
   const [acknowledged, setAcknowledged] = useState(false);
 
   useEffect(() => {
-    if (user) fetchData();
+    if (!user) return;
+    fetchData();
+
+    // Live-sync LTO + milestone the moment admin saves a trade / config change.
+    const channel = supabase
+      .channel(`lto-live-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "lto_ledger", filter: `user_id=eq.${user.id}` }, () => fetchData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "trader_milestones", filter: `user_id=eq.${user.id}` }, () => fetchData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "trader_config", filter: `user_id=eq.${user.id}` }, () => fetchData())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   useEffect(() => {
