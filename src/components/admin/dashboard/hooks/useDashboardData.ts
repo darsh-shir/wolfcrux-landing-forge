@@ -90,11 +90,14 @@ export const useDashboardData = ({
     let bestDayDate = "";
     let worstDayDate = "";
 
-    // Group by date for daily aggregation
+    // Aggregate company-wide daily totals using NET P&L (gross - brokerage @ $14/1k shares).
+    // Respects the active date filter so "Best/Worst Day" matches the selected range.
     const dailyPnls: Record<string, number> = {};
-    
+
     tradingData.forEach((t) => {
-      const pnl = Number(t.net_pnl);
+      const gross = Number(t.net_pnl) || 0;
+      const shares = Number(t.shares_traded) || 0;
+      const pnl = gross - (shares / 1000) * 14;
       const date = t.trade_date;
       const tradeDate = parseISO(date);
 
@@ -105,11 +108,17 @@ export const useDashboardData = ({
       if (date === todayStr) todayPnl += pnl;
       if (tradeDate >= weekStart) weekPnl += pnl;
       if (tradeDate >= monthStart) monthPnl += pnl;
-
-      dailyPnls[date] = (dailyPnls[date] || 0) + pnl;
     });
 
-    // Find best and worst days
+    // Best/Worst Day should reflect the currently selected date range.
+    filteredData.forEach((t) => {
+      const gross = Number(t.net_pnl) || 0;
+      const shares = Number(t.shares_traded) || 0;
+      const pnl = gross - (shares / 1000) * 14;
+      dailyPnls[t.trade_date] = (dailyPnls[t.trade_date] || 0) + pnl;
+    });
+
+    // Find best and worst days within the filtered window
     Object.entries(dailyPnls).forEach(([date, pnl]) => {
       if (pnl > bestDayPnl) {
         bestDayPnl = pnl;
@@ -136,7 +145,7 @@ export const useDashboardData = ({
       bestDayDate,
       worstDayDate,
     };
-  }, [tradingData, accounts]);
+  }, [tradingData, filteredData, accounts]);
 
   // Employee Stats
   const employeeStats = useMemo((): EmployeeStats[] => {
