@@ -145,7 +145,7 @@ export const useDashboardData = ({
       bestDayDate,
       worstDayDate,
     };
-  }, [tradingData, accounts]);
+  }, [tradingData, filteredData, accounts]);
 
   // Employee Stats
   const employeeStats = useMemo((): EmployeeStats[] => {
