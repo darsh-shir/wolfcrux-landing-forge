@@ -350,7 +350,14 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh, onOpenPayout }: M
                   title={onOpenPayout ? "Open Payout Sheet" : undefined}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <p className="font-medium text-sm">{t.name}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{t.name}</p>
+                      {t.accountLabels.length > 0 && (
+                        <p className="text-[11px] text-muted-foreground font-mono truncate">
+                          {t.accountLabels.join(" • ")}
+                        </p>
+                      )}
+                    </div>
                     <div className="text-right">
                       <p className={cn("font-bold text-xl leading-tight", t.net >= 0 ? "text-green-600" : "text-red-600")}>
                         {formatCurrencyINR(t.net)}
