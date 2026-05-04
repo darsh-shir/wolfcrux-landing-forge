@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import MyData from "./pages/MyData";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import { RouteTransition } from "@/components/RouteTransition";
 
 const queryClient = new QueryClient();
 
@@ -25,20 +26,23 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/technology" element={<Technology />} />
-            <Route path="/testimonials" element={<Testimonials />} />
-            <Route path="/careers" element={<Careers />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/my-data" element={<MyData />} />
-            <Route path="/admin" element={<Admin />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <a href="#main-content" className="skip-link">Skip to content</a>
+          <RouteTransition>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/technology" element={<Technology />} />
+              <Route path="/testimonials" element={<Testimonials />} />
+              <Route path="/careers" element={<Careers />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/my-data" element={<MyData />} />
+              <Route path="/admin" element={<Admin />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </RouteTransition>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
