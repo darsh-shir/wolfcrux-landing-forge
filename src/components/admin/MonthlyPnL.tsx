@@ -159,20 +159,27 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh, onOpenPayout }: M
 
   // Trader-wise breakdown
   const traderBreakdown = useMemo(() => {
-    const map: Record<string, { pnl: number; shares: number; days: Set<string> }> = {};
+    const map: Record<string, { pnl: number; shares: number; days: Set<string>; accountIds: Set<string> }> = {};
     monthEntries.forEach((t) => {
       if (!map[t.user_id]) {
-        map[t.user_id] = { pnl: 0, shares: 0, days: new Set() };
+        map[t.user_id] = { pnl: 0, shares: 0, days: new Set(), accountIds: new Set() };
       }
       map[t.user_id].pnl += Number(t.net_pnl);
       map[t.user_id].shares += t.shares_traded;
       map[t.user_id].days.add(t.trade_date);
+      if (t.account_id) map[t.user_id].accountIds.add(t.account_id);
     });
     return Object.entries(map)
       .map(([userId, data]) => {
         const brokerage = (data.shares / 1000) * BROKERAGE_PER_1000;
         const swCost = softwareCosts[userId] ?? DEFAULT_SOFTWARE_COST;
         const net = data.pnl - brokerage - swCost;
+        const accountLabels = Array.from(data.accountIds)
+          .map((id) => {
+            const info = getAccountInfo(id);
+            return info.number || info.name;
+          })
+          .filter(Boolean);
         return {
           userId,
           name: getUserName(userId),
@@ -182,10 +189,11 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh, onOpenPayout }: M
           brokerage,
           softwareCost: swCost,
           net,
+          accountLabels,
         };
       })
       .sort((a, b) => b.net - a.net);
-  }, [monthEntries, users, softwareCosts]);
+  }, [monthEntries, users, softwareCosts, accounts]);
 
   const navigateMonth = (dir: number) => {
     let m = selectedMonth + dir;
