@@ -321,8 +321,8 @@ const Practice = () => {
         return;
       }
 
-      // ── Number pad / digits go to quantity
-      if (/^[0-9]$/.test(k)) {
+      // ── Top-row digits only (Digit0..Digit9) go to quantity. Numpad is ignored.
+      if (/^Digit[0-9]$/.test(e.code)) {
         if (!active) return;
         e.preventDefault();
         setLastKey(`Qty ${k}`);
