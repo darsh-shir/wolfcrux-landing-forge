@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { formatIndian } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -237,6 +237,20 @@ const Earnings = () => {
     });
   }, [calendarDays]);
 
+  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const dateScrollRef = useRef<HTMLDivElement>(null);
+  const todayBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Center today's button in the horizontal scroller once the dates render
+  useEffect(() => {
+    if (!visibleDates.length) return;
+    const container = dateScrollRef.current;
+    const btn = todayBtnRef.current;
+    if (!container || !btn) return;
+    const target = btn.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2;
+    container.scrollTo({ left: Math.max(0, target), behavior: "auto" });
+  }, [visibleDates]);
+
   // Apply price filter
   const priceFiltered = useMemo(() => {
     const passes = (price: number) => {
@@ -467,20 +481,26 @@ const Earnings = () => {
 
       <CardContent className="space-y-5">
         {/* DATE SELECTOR */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
-          {visibleDates.map((d) => (
-            <button
-              key={d.date}
-              onClick={() => setSelectedDate(d.date)}
-              className={`px-3 py-2 rounded-md border text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-all ${
-                selectedDate === d.date
-                  ? "bg-foreground text-background border-foreground shadow-sm"
-                  : "bg-card text-muted-foreground border-border/60 hover:border-foreground/40 hover:text-foreground"
-              }`}
-            >
-              {formatDisplayDate(d.date)} <span className="opacity-60">[{d.count}]</span>
-            </button>
-          ))}
+        <div ref={dateScrollRef} className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
+          {visibleDates.map((d) => {
+            const isToday = d.date === todayStr;
+            return (
+              <button
+                key={d.date}
+                ref={isToday ? todayBtnRef : undefined}
+                onClick={() => setSelectedDate(d.date)}
+                className={`px-3 py-2 rounded-md border text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-all ${
+                  selectedDate === d.date
+                    ? "bg-foreground text-background border-foreground shadow-sm"
+                    : isToday
+                    ? "bg-card text-foreground border-foreground/40 hover:border-foreground"
+                    : "bg-card text-muted-foreground border-border/60 hover:border-foreground/40 hover:text-foreground"
+                }`}
+              >
+                {isToday ? "TODAY · " : ""}{formatDisplayDate(d.date)} <span className="opacity-60">[{d.count}]</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* PRICE FILTER */}
