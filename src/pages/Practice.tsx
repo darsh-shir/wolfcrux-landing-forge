@@ -201,7 +201,7 @@ const Practice = () => {
     setSent((arr) => [order, ...arr].slice(0, 8));
     setActive(null);
     setQtyBuffer("");
-  }, [active, challenge, combo, flash]);
+  }, [active, challenge, combo, flash, stockPrice]);
 
   const handleMultiTap = useCallback(
     (key: "A" | "L") => {
