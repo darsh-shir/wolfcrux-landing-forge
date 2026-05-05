@@ -332,7 +332,7 @@ const Practice = () => {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [active, handleMultiTap, sendOrder, flash]);
+  }, [active, qtyBuffer, handleMultiTap, sendOrder, flash]);
 
   /* ────────── Derived ────────── */
   const accuracy = useMemo(() => {
