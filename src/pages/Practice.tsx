@@ -197,9 +197,10 @@ const Practice = () => {
   const handleMultiTap = useCallback(
     (key: "A" | "L") => {
       const ref = tapRef.current;
+      const isContinuation = ref.key === key && ref.timer !== null;
       if (ref.timer) window.clearTimeout(ref.timer);
 
-      if (ref.key === key) {
+      if (isContinuation) {
         ref.count = Math.min(ref.count + 1, 3);
       } else {
         ref.key = key;
@@ -209,12 +210,17 @@ const Practice = () => {
       const side: Side = key === "A" ? "BUY" : "SELL";
       const exchange: Exchange = ref.count === 1 ? "ARCA" : ref.count === 2 ? "NSDQ" : "EDGX";
 
-      // open immediately for visual response, then refine on subsequent taps
-      openBox(side, exchange);
+      if (isContinuation) {
+        // Subsequent fast tap: only swap exchange, keep price/qty/hidden intact
+        setActive((box) => (box ? { ...box, side, exchange } : box));
+      } else {
+        // First tap: open a fresh box
+        openBox(side, exchange);
+      }
 
       ref.timer = window.setTimeout(() => {
         tapRef.current = { key: null, count: 0, timer: null };
-      }, 280);
+      }, 220);
     },
     [openBox]
   );
