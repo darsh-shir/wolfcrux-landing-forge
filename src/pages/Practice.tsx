@@ -62,12 +62,15 @@ const fmtPrice = (n: number) => n.toFixed(2);
 const randPrice = () => round2(50 + Math.random() * 200);
 const randQty = () => [100, 200, 300, 500, 1000][Math.floor(Math.random() * 5)];
 
-function makeChallenge(id: number): Challenge {
+function makeChallenge(id: number, stockPrice: number): Challenge {
+  // Target price is within ±3.00 of the current stock price, on a 0.01 grid
+  const offsetTicks = Math.floor((Math.random() - 0.5) * 600); // -300..+300 cents
+  const target = round2(stockPrice + offsetTicks / 100);
   return {
     id,
     side: Math.random() > 0.5 ? "BUY" : "SELL",
     exchange: EXCHANGES[Math.floor(Math.random() * 3)],
-    price: randPrice(),
+    price: target,
     qty: randQty(),
     hidden: Math.random() > 0.7,
   };
