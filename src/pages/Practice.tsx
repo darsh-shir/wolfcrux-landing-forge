@@ -1,13 +1,682 @@
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  X,
+  Zap,
+  Target,
+  Trophy,
+  Play,
+  RefreshCw,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+
+/* ──────────────────────────────────────────────────────────
+   Types
+   ────────────────────────────────────────────────────────── */
+type Side = "BUY" | "SELL";
+type Exchange = "ARCA" | "NSDQ" | "EDGX";
+
+interface ActiveBox {
+  id: number;
+  side: Side;
+  exchange: Exchange;
+  price: number;
+  qty: number;
+  hidden: boolean;
+}
+
+interface SentOrder extends ActiveBox {
+  sentAt: number;
+}
+
+interface Challenge {
+  id: number;
+  side: Side;
+  exchange: Exchange;
+  price: number;
+  qty: number;
+  hidden: boolean;
+}
+
+/* ──────────────────────────────────────────────────────────
+   Helpers
+   ────────────────────────────────────────────────────────── */
+const EXCHANGES: Exchange[] = ["ARCA", "NSDQ", "EDGX"];
+const exchangeColor: Record<Exchange, string> = {
+  ARCA: "hsl(220 90% 55%)",
+  NSDQ: "hsl(265 85% 60%)",
+  EDGX: "hsl(155 80% 45%)",
+};
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+const fmtPrice = (n: number) => n.toFixed(2);
+
+const randPrice = () => round2(50 + Math.random() * 200);
+const randQty = () => [100, 200, 300, 500, 1000][Math.floor(Math.random() * 5)];
+
+function makeChallenge(id: number): Challenge {
+  return {
+    id,
+    side: Math.random() > 0.5 ? "BUY" : "SELL",
+    exchange: EXCHANGES[Math.floor(Math.random() * 3)],
+    price: randPrice(),
+    qty: randQty(),
+    hidden: Math.random() > 0.7,
+  };
+}
+
+/* ──────────────────────────────────────────────────────────
+   Component
+   ────────────────────────────────────────────────────────── */
 const Practice = () => {
+  const [active, setActive] = useState<ActiveBox | null>(null);
+  const [sent, setSent] = useState<SentOrder[]>([]);
+  const [qtyBuffer, setQtyBuffer] = useState<string>("");
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [score, setScore] = useState(0);
+  const [combo, setCombo] = useState(0);
+  const [bestCombo, setBestCombo] = useState(0);
+  const [completed, setCompleted] = useState(0);
+  const [missed, setMissed] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [lastKey, setLastKey] = useState<string>("");
+  const [feedback, setFeedback] = useState<{ type: "good" | "bad"; msg: string; t: number } | null>(null);
+
+  // Multi-tap tracking for Shift+A/L sequences
+  const tapRef = useRef<{ key: "A" | "L" | null; count: number; timer: number | null }>({
+    key: null,
+    count: 0,
+    timer: null,
+  });
+
+  /* ────────── Game timer ────────── */
+  useEffect(() => {
+    if (!running) return;
+    if (timeLeft <= 0) {
+      setRunning(false);
+      return;
+    }
+    const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [running, timeLeft]);
+
+  /* ────────── Challenge spawner ────────── */
+  useEffect(() => {
+    if (!running) return;
+    if (!challenge) {
+      setChallenge(makeChallenge(Date.now()));
+    }
+  }, [running, challenge]);
+
+  const flash = useCallback((type: "good" | "bad", msg: string) => {
+    setFeedback({ type, msg, t: Date.now() });
+    window.setTimeout(() => setFeedback(null), 600);
+  }, []);
+
+  const startGame = () => {
+    setScore(0);
+    setCombo(0);
+    setBestCombo(0);
+    setCompleted(0);
+    setMissed(0);
+    setTimeLeft(60);
+    setActive(null);
+    setSent([]);
+    setQtyBuffer("");
+    setChallenge(makeChallenge(Date.now()));
+    setRunning(true);
+  };
+
+  /* ────────── Order box helpers ────────── */
+  const openBox = useCallback(
+    (side: Side, exchange: Exchange) => {
+      // basis price comes from challenge if present
+      const basis = challenge?.price ?? randPrice();
+      setActive({
+        id: Date.now(),
+        side,
+        exchange,
+        price: basis,
+        qty: 100,
+        hidden: false,
+      });
+      setQtyBuffer("");
+    },
+    [challenge]
+  );
+
+  const adjustPrice = (delta: number) => {
+    setActive((box) => (box ? { ...box, price: round2(box.price + delta) } : box));
+  };
+
+  const sendOrder = useCallback(() => {
+    if (!active) return;
+    const order: SentOrder = { ...active, sentAt: Date.now() };
+
+    // Score against challenge
+    if (challenge) {
+      const matches =
+        challenge.side === order.side &&
+        challenge.exchange === order.exchange &&
+        Math.abs(challenge.price - order.price) < 0.005 &&
+        challenge.qty === order.qty &&
+        challenge.hidden === order.hidden;
+
+      if (matches) {
+        const points = 100 + combo * 10;
+        setScore((s) => s + points);
+        setCombo((c) => {
+          const nc = c + 1;
+          setBestCombo((b) => Math.max(b, nc));
+          return nc;
+        });
+        setCompleted((n) => n + 1);
+        flash("good", `+${points}  COMBO ×${combo + 1}`);
+        setChallenge(makeChallenge(Date.now()));
+      } else {
+        setCombo(0);
+        setMissed((n) => n + 1);
+        flash("bad", "MISS");
+      }
+    }
+
+    setSent((arr) => [order, ...arr].slice(0, 8));
+    setActive(null);
+    setQtyBuffer("");
+  }, [active, challenge, combo, flash]);
+
+  const handleMultiTap = useCallback(
+    (key: "A" | "L") => {
+      const ref = tapRef.current;
+      if (ref.timer) window.clearTimeout(ref.timer);
+
+      if (ref.key === key) {
+        ref.count = Math.min(ref.count + 1, 3);
+      } else {
+        ref.key = key;
+        ref.count = 1;
+      }
+
+      const side: Side = key === "A" ? "BUY" : "SELL";
+      const exchange: Exchange = ref.count === 1 ? "ARCA" : ref.count === 2 ? "NSDQ" : "EDGX";
+
+      // open immediately for visual response, then refine on subsequent taps
+      openBox(side, exchange);
+
+      ref.timer = window.setTimeout(() => {
+        tapRef.current = { key: null, count: 0, timer: null };
+      }, 280);
+    },
+    [openBox]
+  );
+
+  /* ────────── Keyboard handler ────────── */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // Avoid hijacking when user is typing in inputs (none on this page, but safe)
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      const k = e.key;
+
+      // ── Shift + A / L (multi-tap)
+      if (e.shiftKey && (k === "A" || k === "a")) {
+        e.preventDefault();
+        setLastKey("Shift + A");
+        handleMultiTap("A");
+        return;
+      }
+      if (e.shiftKey && (k === "L" || k === "l")) {
+        e.preventDefault();
+        setLastKey("Shift + L");
+        handleMultiTap("L");
+        return;
+      }
+
+      // ── Price arrows
+      if (k === "ArrowLeft" || k === "ArrowRight") {
+        if (!active) return;
+        e.preventDefault();
+        const dir = k === "ArrowRight" ? 1 : -1;
+        let delta = 0.05;
+        let label = "±0.05";
+        if (e.altKey) { delta = 5; label = "±5.00"; }
+        else if (e.ctrlKey || e.metaKey) { delta = 0.5; label = "±0.50"; }
+        else if (e.shiftKey) { delta = 0.05; label = "±0.05"; }
+        else return; // require a modifier per spec
+        adjustPrice(dir * delta);
+        setLastKey(`${e.altKey ? "Alt" : e.ctrlKey || e.metaKey ? "Ctrl" : "Shift"} + ${k === "ArrowRight" ? "→" : "←"}  (${label})`);
+        return;
+      }
+
+      // ── Space hides box (closes without sending)
+      if (k === " " || e.code === "Space") {
+        if (!active) return;
+        e.preventDefault();
+        setLastKey("Space");
+        setActive(null);
+        setQtyBuffer("");
+        flash("bad", "HIDDEN");
+        return;
+      }
+
+      // ── Enter sends order
+      if (k === "Enter") {
+        if (!active) return;
+        e.preventDefault();
+        setLastKey("Enter");
+        sendOrder();
+        return;
+      }
+
+      // ── Backslash cancels single (most recent sent)
+      if (k === "\\") {
+        e.preventDefault();
+        setLastKey("\\");
+        setSent((arr) => arr.slice(1));
+        return;
+      }
+
+      // ── Backtick cancels all
+      if (k === "`") {
+        e.preventDefault();
+        setLastKey("`");
+        setSent([]);
+        return;
+      }
+
+      // ── H toggles hidden
+      if (k === "h" || k === "H") {
+        if (!active) return;
+        e.preventDefault();
+        setLastKey("H");
+        setActive((b) => (b ? { ...b, hidden: !b.hidden } : b));
+        return;
+      }
+
+      // ── Number pad / digits go to quantity
+      if (/^[0-9]$/.test(k)) {
+        if (!active) return;
+        e.preventDefault();
+        setLastKey(`Qty ${k}`);
+        setQtyBuffer((buf) => {
+          const next = (buf + k).slice(0, 6);
+          const n = parseInt(next, 10) || 0;
+          setActive((box) => (box ? { ...box, qty: n } : box));
+          return next;
+        });
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, handleMultiTap, sendOrder, flash]);
+
+  /* ────────── Derived ────────── */
+  const accuracy = useMemo(() => {
+    const total = completed + missed;
+    return total === 0 ? 0 : Math.round((completed / total) * 100);
+  }, [completed, missed]);
+
+  /* ────────── Render ────────── */
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-8">
-      <div className="max-w-2xl text-center space-y-4">
-        <h1 className="text-4xl font-bold">Practice</h1>
-        <p className="text-muted-foreground">
-          This is a hidden page. It's not linked from anywhere on the site — only reachable by typing the URL directly.
-        </p>
-      </div>
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Header */}
+      <header className="border-b border-border/60 bg-card/40 backdrop-blur sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-md bg-gradient-to-br from-primary to-accent grid place-items-center">
+              <Zap className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold leading-tight">Hotkey Trainer</h1>
+              <p className="text-xs text-muted-foreground">Master your trading shortcuts</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Stat icon={<Trophy className="h-4 w-4" />} label="Score" value={score.toString()} />
+            <Stat icon={<Zap className="h-4 w-4" />} label="Combo" value={`×${combo}`} highlight={combo > 2} />
+            <Stat icon={<Target className="h-4 w-4" />} label="Acc" value={`${accuracy}%`} />
+            <Stat icon={<RefreshCw className="h-4 w-4" />} label="Time" value={`${timeLeft}s`} />
+            {!running ? (
+              <Button onClick={startGame} className="gap-2">
+                <Play className="h-4 w-4" />
+                {timeLeft === 0 ? "Play Again" : "Start"}
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => setRunning(false)}>
+                Pause
+              </Button>
+            )}
+          </div>
+        </div>
+        {running && <Progress value={(timeLeft / 60) * 100} className="h-1 rounded-none" />}
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 py-8 grid lg:grid-cols-[1fr_320px] gap-8">
+        {/* LEFT — trading sim */}
+        <section className="space-y-6">
+          {/* Challenge prompt */}
+          <Card className="p-6 relative overflow-hidden border-2">
+            <div
+              className="absolute inset-0 opacity-[0.04] pointer-events-none"
+              style={{
+                backgroundImage:
+                  "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)",
+                backgroundSize: "32px 32px",
+              }}
+            />
+            <div className="relative flex items-center justify-between gap-6 flex-wrap">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+                  {running ? "Next Order" : timeLeft === 0 ? "Time's Up" : "Press Start"}
+                </p>
+                {challenge && running ? (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span
+                      className={cn(
+                        "px-3 py-1 rounded-md text-sm font-bold tracking-wider",
+                        challenge.side === "BUY"
+                          ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                          : "bg-red-500/15 text-red-600 dark:text-red-400"
+                      )}
+                    >
+                      {challenge.side}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="font-mono text-sm"
+                      style={{ borderColor: exchangeColor[challenge.exchange], color: exchangeColor[challenge.exchange] }}
+                    >
+                      {challenge.exchange}
+                    </Badge>
+                    <span className="text-2xl font-mono font-bold tabular-nums">
+                      ${fmtPrice(challenge.price)}
+                    </span>
+                    <span className="text-muted-foreground font-mono">×</span>
+                    <span className="text-2xl font-mono font-bold tabular-nums">{challenge.qty}</span>
+                    {challenge.hidden && (
+                      <Badge variant="secondary" className="gap-1">
+                        <EyeOff className="h-3 w-3" /> HIDDEN
+                      </Badge>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-2xl font-semibold">
+                    {timeLeft === 0
+                      ? `Final Score: ${score} · Best Combo ×${bestCombo}`
+                      : "60 seconds. As many orders as you can."}
+                  </p>
+                )}
+              </div>
+
+              {feedback && (
+                <div
+                  key={feedback.t}
+                  className={cn(
+                    "px-4 py-2 rounded-md font-bold text-lg animate-scale-in",
+                    feedback.type === "good"
+                      ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                      : "bg-red-500/20 text-red-600 dark:text-red-400"
+                  )}
+                >
+                  {feedback.msg}
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Active order box */}
+          <div className="min-h-[260px]">
+            {active ? (
+              <OrderBox box={active} qtyBuffer={qtyBuffer} />
+            ) : (
+              <Card className="p-12 grid place-items-center text-center border-dashed">
+                <div className="space-y-2">
+                  <p className="text-sm uppercase tracking-widest text-muted-foreground">No active order</p>
+                  <p className="text-lg">
+                    Press <Kbd>Shift</Kbd>+<Kbd>A</Kbd> to bid · <Kbd>Shift</Kbd>+<Kbd>L</Kbd> to offer
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Tap twice for NSDQ, three times for EDGX
+                  </p>
+                </div>
+              </Card>
+            )}
+          </div>
+
+          {/* Sent orders log */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
+                Order Book ({sent.length})
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                <Kbd>\</Kbd> cancel last · <Kbd>`</Kbd> cancel all
+              </p>
+            </div>
+            {sent.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">No orders sent yet.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {sent.map((o) => (
+                  <div
+                    key={o.id}
+                    className="flex items-center gap-3 px-3 py-2 rounded-md bg-muted/40 font-mono text-sm animate-fade-in"
+                  >
+                    <span
+                      className={cn(
+                        "w-12 text-center font-bold",
+                        o.side === "BUY" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                      )}
+                    >
+                      {o.side}
+                    </span>
+                    <span className="w-14 font-semibold" style={{ color: exchangeColor[o.exchange] }}>
+                      {o.exchange}
+                    </span>
+                    <span className="tabular-nums">${fmtPrice(o.price)}</span>
+                    <span className="text-muted-foreground">×</span>
+                    <span className="tabular-nums">{o.qty}</span>
+                    {o.hidden && <EyeOff className="h-3 w-3 text-muted-foreground ml-1" />}
+                    <Check className="h-4 w-4 text-green-500 ml-auto" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </section>
+
+        {/* RIGHT — cheatsheet + last key */}
+        <aside className="space-y-6">
+          <Card className="p-5">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Last Key</p>
+            <div
+              key={lastKey}
+              className="text-2xl font-mono font-bold animate-scale-in min-h-[2rem]"
+            >
+              {lastKey || "—"}
+            </div>
+          </Card>
+
+          <Card className="p-5">
+            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">
+              Hotkey Reference
+            </h3>
+            <div className="space-y-4 text-sm">
+              <Group title="Open Bid (Buy)">
+                <Row keys={["Shift", "A"]} desc="ARCA" color="hsl(220 90% 55%)" />
+                <Row keys={["Shift", "A", "A"]} desc="NSDQ" color="hsl(265 85% 60%)" />
+                <Row keys={["Shift", "A", "A", "A"]} desc="EDGX" color="hsl(155 80% 45%)" />
+              </Group>
+              <Group title="Open Offer (Sell)">
+                <Row keys={["Shift", "L"]} desc="ARCA" color="hsl(220 90% 55%)" />
+                <Row keys={["Shift", "L", "L"]} desc="NSDQ" color="hsl(265 85% 60%)" />
+                <Row keys={["Shift", "L", "L", "L"]} desc="EDGX" color="hsl(155 80% 45%)" />
+              </Group>
+              <Group title="Price">
+                <Row keys={["Shift", "←/→"]} desc="±0.05" />
+                <Row keys={["Ctrl", "←/→"]} desc="±0.50" />
+                <Row keys={["Alt", "←/→"]} desc="±5.00" />
+              </Group>
+              <Group title="Order">
+                <Row keys={["0–9"]} desc="Set quantity" />
+                <Row keys={["H"]} desc="Toggle hidden" />
+                <Row keys={["Enter"]} desc="Send" />
+                <Row keys={["Space"]} desc="Hide box" />
+                <Row keys={["\\"]} desc="Cancel last" />
+                <Row keys={["`"]} desc="Cancel all" />
+              </Group>
+            </div>
+          </Card>
+        </aside>
+      </main>
     </div>
+  );
+};
+
+/* ──────────────────────────────────────────────────────────
+   Subcomponents
+   ────────────────────────────────────────────────────────── */
+const Stat = ({
+  icon,
+  label,
+  value,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) => (
+  <div
+    className={cn(
+      "px-3 py-1.5 rounded-md border bg-card flex items-center gap-2 transition-all",
+      highlight && "border-accent shadow-[0_0_0_3px_hsl(var(--accent)/0.15)]"
+    )}
+  >
+    <span className="text-muted-foreground">{icon}</span>
+    <div className="leading-tight">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="font-mono font-bold text-sm tabular-nums">{value}</div>
+    </div>
+  </div>
+);
+
+const Kbd = ({ children }: { children: React.ReactNode }) => (
+  <kbd className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded border border-border bg-muted font-mono text-xs font-semibold">
+    {children}
+  </kbd>
+);
+
+const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div>
+    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5">{title}</p>
+    <div className="space-y-1">{children}</div>
+  </div>
+);
+
+const Row = ({ keys, desc, color }: { keys: string[]; desc: string; color?: string }) => (
+  <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center gap-1">
+      {keys.map((k, i) => (
+        <span key={i} className="contents">
+          <Kbd>{k}</Kbd>
+          {i < keys.length - 1 && <span className="text-muted-foreground text-xs">+</span>}
+        </span>
+      ))}
+    </div>
+    <span className="text-xs font-medium" style={{ color: color ?? undefined }}>
+      {desc}
+    </span>
+  </div>
+);
+
+const OrderBox = ({ box, qtyBuffer }: { box: ActiveBox; qtyBuffer: string }) => {
+  const isBuy = box.side === "BUY";
+  const accent = exchangeColor[box.exchange];
+  return (
+    <Card
+      className="p-6 border-2 animate-scale-in relative overflow-hidden"
+      style={{
+        borderColor: accent,
+        boxShadow: `0 20px 60px -20px ${accent}55, 0 0 0 1px ${accent}33`,
+      }}
+    >
+      <div
+        className="absolute inset-0 opacity-[0.06] pointer-events-none"
+        style={{ background: `radial-gradient(circle at 80% 0%, ${accent}, transparent 60%)` }}
+      />
+      <div className="relative flex items-start justify-between gap-6 flex-wrap">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "px-3 py-1 rounded-md text-xs font-bold tracking-widest",
+                isBuy
+                  ? "bg-green-500/20 text-green-700 dark:text-green-400"
+                  : "bg-red-500/20 text-red-700 dark:text-red-400"
+              )}
+            >
+              {isBuy ? <ArrowDown className="h-3 w-3 inline mr-1" /> : <ArrowUp className="h-3 w-3 inline mr-1" />}
+              {box.side}
+            </span>
+            <span
+              className="px-2 py-1 rounded-md text-xs font-bold tracking-widest font-mono"
+              style={{ background: `${accent}22`, color: accent }}
+            >
+              {box.exchange}
+            </span>
+            {box.hidden ? (
+              <Badge variant="secondary" className="gap-1">
+                <EyeOff className="h-3 w-3" /> HIDDEN
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="gap-1">
+                <Eye className="h-3 w-3" /> VISIBLE
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">Order #{box.id.toString().slice(-4)}</p>
+        </div>
+
+        <div className="flex items-end gap-8">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Price</p>
+            <p key={box.price} className="text-5xl font-mono font-bold tabular-nums animate-fade-in">
+              ${fmtPrice(box.price)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Quantity</p>
+            <p className="text-5xl font-mono font-bold tabular-nums">
+              {box.qty.toLocaleString()}
+              {qtyBuffer && <span className="text-accent animate-pulse">|</span>}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative mt-6 pt-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
+        <span>
+          <Kbd>Enter</Kbd> send · <Kbd>Space</Kbd> hide · <Kbd>H</Kbd> hidden
+        </span>
+        <span>
+          <Kbd>Shift</Kbd>/<Kbd>Ctrl</Kbd>/<Kbd>Alt</Kbd> + <Kbd>←/→</Kbd> price
+        </span>
+      </div>
+    </Card>
   );
 };
 
