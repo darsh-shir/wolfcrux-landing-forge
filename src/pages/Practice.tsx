@@ -698,4 +698,161 @@ const OrderBox = ({ box, qtyBuffer }: { box: ActiveBox; qtyBuffer: string }) => 
   );
 };
 
+/* ──────────────────────────────────────────────────────────
+   Level 2 Book — Bid/Offer ladder, Dragon-Trader style
+   ────────────────────────────────────────────────────────── */
+const MM_IDS = ["XMAS", "ARCA", "MEMX", "NSDQ", "NYSE", "EDGA", "EDGX", "BATS", "NQPX", "IEX"];
+const mmColor = (id: string) => {
+  switch (id) {
+    case "ARCA": return "hsl(220 90% 60%)";
+    case "NSDQ": return "hsl(265 85% 65%)";
+    case "EDGX":
+    case "EDGA": return "hsl(155 80% 50%)";
+    case "NYSE": return "hsl(30 95% 60%)";
+    case "BATS": return "hsl(50 95% 55%)";
+    case "MEMX": return "hsl(190 85% 55%)";
+    case "IEX":  return "hsl(0 85% 65%)";
+    default:     return "hsl(280 80% 65%)";
+  }
+};
+interface L2Row { mm: string; size: number; price: number; }
+function buildSide(center: number, side: "bid" | "ask", rows: number): L2Row[] {
+  const out: L2Row[] = [];
+  let p = side === "bid" ? center - 0.01 : center + 0.01;
+  for (let i = 0; i < rows; i++) {
+    const step = (Math.random() < 0.4 ? 0 : 0.01) + Math.random() * 0.04;
+    p = side === "bid" ? p - step * (i === 0 ? 0 : 1) : p + step * (i === 0 ? 0 : 1);
+    out.push({
+      mm: MM_IDS[Math.floor(Math.random() * MM_IDS.length)],
+      size: [1, 2, 3, 5, 10, 13, 17, 24, 100, 121, 200, 300, 410, 604][Math.floor(Math.random() * 14)],
+      price: round2(p),
+    });
+  }
+  return out;
+}
+const Level2Book = ({ centerPrice }: { centerPrice: number }) => {
+  const [bids, setBids] = useState<L2Row[]>(() => buildSide(centerPrice, "bid", 18));
+  const [asks, setAsks] = useState<L2Row[]>(() => buildSide(centerPrice, "ask", 18));
+  const centerRef = useRef(centerPrice);
+  useEffect(() => { centerRef.current = centerPrice; }, [centerPrice]);
+  useEffect(() => {
+    const t = setInterval(() => {
+      const c = centerRef.current;
+      // mutate a few rows for live feel
+      setBids((rows) => {
+        const next = [...rows];
+        const idx = Math.floor(Math.random() * next.length);
+        next[idx] = {
+          mm: MM_IDS[Math.floor(Math.random() * MM_IDS.length)],
+          size: Math.max(1, Math.floor(Math.random() * 600)),
+          price: round2(c - 0.01 - Math.random() * 0.5),
+        };
+        return [...next].sort((a, b) => b.price - a.price);
+      });
+      setAsks((rows) => {
+        const next = [...rows];
+        const idx = Math.floor(Math.random() * next.length);
+        next[idx] = {
+          mm: MM_IDS[Math.floor(Math.random() * MM_IDS.length)],
+          size: Math.max(1, Math.floor(Math.random() * 600)),
+          price: round2(c + 0.01 + Math.random() * 0.5),
+        };
+        return [...next].sort((a, b) => a.price - b.price);
+      });
+    }, 450);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <Card className="p-0 overflow-hidden border-2">
+      <div className="px-3 py-2 border-b bg-muted/40 flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wider">Level 2</span>
+        <span className="font-mono text-xs text-muted-foreground">PRACTICE · NYSE</span>
+      </div>
+      <div className="grid grid-cols-2 text-[11px] font-mono bg-background">
+        <div>
+          <div className="grid grid-cols-3 px-2 py-1 text-muted-foreground border-b border-border/60">
+            <span>MM ID</span><span className="text-right">Size</span><span className="text-right">Bid</span>
+          </div>
+          {bids.map((r, i) => (
+            <div key={i} className="grid grid-cols-3 px-2 py-[3px] hover:bg-muted/30 transition-colors">
+              <span className="font-bold" style={{ color: mmColor(r.mm) }}>{r.mm}</span>
+              <span className="text-right tabular-nums">{r.size}</span>
+              <span className="text-right tabular-nums text-green-500">{r.price.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="border-l border-border/60">
+          <div className="grid grid-cols-3 px-2 py-1 text-muted-foreground border-b border-border/60">
+            <span>MM ID</span><span className="text-right">Size</span><span className="text-right">Ask</span>
+          </div>
+          {asks.map((r, i) => (
+            <div key={i} className="grid grid-cols-3 px-2 py-[3px] hover:bg-muted/30 transition-colors">
+              <span className="font-bold" style={{ color: mmColor(r.mm) }}>{r.mm}</span>
+              <span className="text-right tabular-nums">{r.size}</span>
+              <span className="text-right tabular-nums text-red-500">{r.price.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+/* ──────────────────────────────────────────────────────────
+   Time & Sales — streaming print tape
+   ────────────────────────────────────────────────────────── */
+interface Print { id: number; time: string; price: number; size: number; side: "buy" | "sell" | "mid"; ex: string; }
+const TimeSales = ({ centerPrice }: { centerPrice: number }) => {
+  const [prints, setPrints] = useState<Print[]>([]);
+  const centerRef = useRef(centerPrice);
+  useEffect(() => { centerRef.current = centerPrice; }, [centerPrice]);
+  useEffect(() => {
+    const tick = () => {
+      const c = centerRef.current;
+      const r = Math.random();
+      const side: Print["side"] = r < 0.45 ? "buy" : r < 0.9 ? "sell" : "mid";
+      const drift = (Math.random() - 0.5) * 0.08;
+      const price = round2(c + drift + (side === "buy" ? 0.01 : side === "sell" ? -0.01 : 0));
+      const sizes = [100, 100, 200, 100, 50, 300, 1, 17, 500, 1000, 25, 75];
+      const exs = ["NSDQ", "ARCA", "EDGX", "NYSE", "BATS", "EDGA", "MEMX", "IEX"];
+      const now = new Date();
+      const time = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}:${String(now.getSeconds()).padStart(2,"0")}`;
+      setPrints((arr) => [
+        { id: Date.now() + Math.random(), time, price, size: sizes[Math.floor(Math.random()*sizes.length)], side, ex: exs[Math.floor(Math.random()*exs.length)] },
+        ...arr,
+      ].slice(0, 60));
+    };
+    tick();
+    const i = setInterval(tick, 280 + Math.random() * 200);
+    return () => clearInterval(i);
+  }, []);
+
+  return (
+    <Card className="p-0 overflow-hidden border-2">
+      <div className="px-3 py-2 border-b bg-muted/40 flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wider">Time &amp; Sales</span>
+        <span className="font-mono text-xs text-muted-foreground">LIVE TAPE</span>
+      </div>
+      <div className="text-[11px] font-mono bg-background max-h-[480px] overflow-y-auto">
+        <div className="grid grid-cols-[64px_1fr_60px_60px] px-2 py-1 text-muted-foreground border-b border-border/60 sticky top-0 bg-background">
+          <span>Time</span><span>Price</span><span className="text-right">Size</span><span className="text-right">Ex</span>
+        </div>
+        {prints.map((p) => {
+          const color = p.side === "buy" ? "text-green-500" : p.side === "sell" ? "text-red-500" : "text-yellow-500";
+          const bg = p.side === "buy" ? "bg-green-500/[0.04]" : p.side === "sell" ? "bg-red-500/[0.04]" : "bg-yellow-500/[0.04]";
+          return (
+            <div key={p.id} className={cn("grid grid-cols-[64px_1fr_60px_60px] px-2 py-[3px] animate-fade-in", bg)}>
+              <span className="text-muted-foreground tabular-nums">{p.time}</span>
+              <span className={cn("tabular-nums font-bold", color)}>{p.price.toFixed(2)}</span>
+              <span className="text-right tabular-nums">{p.size}</span>
+              <span className="text-right" style={{ color: mmColor(p.ex) }}>{p.ex}</span>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+};
+
 export default Practice;
