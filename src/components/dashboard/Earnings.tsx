@@ -467,20 +467,26 @@ const Earnings = () => {
 
       <CardContent className="space-y-5">
         {/* DATE SELECTOR */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
-          {visibleDates.map((d) => (
-            <button
-              key={d.date}
-              onClick={() => setSelectedDate(d.date)}
-              className={`px-3 py-2 rounded-md border text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-all ${
-                selectedDate === d.date
-                  ? "bg-foreground text-background border-foreground shadow-sm"
-                  : "bg-card text-muted-foreground border-border/60 hover:border-foreground/40 hover:text-foreground"
-              }`}
-            >
-              {formatDisplayDate(d.date)} <span className="opacity-60">[{d.count}]</span>
-            </button>
-          ))}
+        <div ref={dateScrollRef} className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
+          {visibleDates.map((d) => {
+            const isToday = d.date === todayStr;
+            return (
+              <button
+                key={d.date}
+                ref={isToday ? todayBtnRef : undefined}
+                onClick={() => setSelectedDate(d.date)}
+                className={`px-3 py-2 rounded-md border text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-all ${
+                  selectedDate === d.date
+                    ? "bg-foreground text-background border-foreground shadow-sm"
+                    : isToday
+                    ? "bg-card text-foreground border-foreground/40 hover:border-foreground"
+                    : "bg-card text-muted-foreground border-border/60 hover:border-foreground/40 hover:text-foreground"
+                }`}
+              >
+                {isToday ? "TODAY · " : ""}{formatDisplayDate(d.date)} <span className="opacity-60">[{d.count}]</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* PRICE FILTER */}
