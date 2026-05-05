@@ -253,14 +253,14 @@ const Practice = () => {
         if (!active) return;
         e.preventDefault();
         const dir = k === "ArrowRight" ? 1 : -1;
-        let delta = 0.05;
-        let label = "±0.05";
+        let delta = 0.01;
+        let label = "±0.01";
         if (e.altKey) { delta = 5; label = "±5.00"; }
         else if (e.ctrlKey || e.metaKey) { delta = 0.5; label = "±0.50"; }
         else if (e.shiftKey) { delta = 0.05; label = "±0.05"; }
-        else return; // require a modifier per spec
         adjustPrice(dir * delta);
-        setLastKey(`${e.altKey ? "Alt" : e.ctrlKey || e.metaKey ? "Ctrl" : "Shift"} + ${k === "ArrowRight" ? "→" : "←"}  (${label})`);
+        const mod = e.altKey ? "Alt" : e.ctrlKey || e.metaKey ? "Ctrl" : e.shiftKey ? "Shift" : "";
+        setLastKey(`${mod ? mod + " + " : ""}${k === "ArrowRight" ? "→" : "←"}  (${label})`);
         return;
       }
 
