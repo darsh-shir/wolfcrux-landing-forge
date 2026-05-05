@@ -91,12 +91,16 @@ const Practice = () => {
   const [lastKey, setLastKey] = useState<string>("");
   const [feedback, setFeedback] = useState<{ type: "good" | "bad"; msg: string; t: number } | null>(null);
 
-  // Multi-tap tracking for Shift+A/L sequences
-  const tapRef = useRef<{ key: "A" | "L" | null; count: number; timer: number | null }>({
+  // Multi-tap tracking for Shift+A/L sequences (no time limit; resets when box closes)
+  const tapRef = useRef<{ key: "A" | "L" | null; count: number }>({
     key: null,
     count: 0,
-    timer: null,
   });
+  const activeRef = useRef<ActiveBox | null>(null);
+  useEffect(() => {
+    activeRef.current = active;
+    if (!active) tapRef.current = { key: null, count: 0 };
+  }, [active]);
 
   /* ────────── Game timer ────────── */
   useEffect(() => {
@@ -197,8 +201,8 @@ const Practice = () => {
   const handleMultiTap = useCallback(
     (key: "A" | "L") => {
       const ref = tapRef.current;
-      const isContinuation = ref.key === key && ref.timer !== null;
-      if (ref.timer) window.clearTimeout(ref.timer);
+      // Continuation = same key while a box is still active (no time limit)
+      const isContinuation = ref.key === key && activeRef.current !== null;
 
       if (isContinuation) {
         ref.count = Math.min(ref.count + 1, 3);
@@ -211,16 +215,12 @@ const Practice = () => {
       const exchange: Exchange = ref.count === 1 ? "ARCA" : ref.count === 2 ? "NSDQ" : "EDGX";
 
       if (isContinuation) {
-        // Subsequent fast tap: only swap exchange, keep price/qty/hidden intact
+        // Swap exchange only, keep price/qty/hidden intact
         setActive((box) => (box ? { ...box, side, exchange } : box));
       } else {
-        // First tap: open a fresh box
+        // Fresh box with new price
         openBox(side, exchange);
       }
-
-      ref.timer = window.setTimeout(() => {
-        tapRef.current = { key: null, count: 0, timer: null };
-      }, 220);
     },
     [openBox]
   );
