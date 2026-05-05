@@ -424,9 +424,13 @@ const Practice = () => {
                     </span>
                     <span className="text-muted-foreground font-mono">×</span>
                     <span className="text-2xl font-mono font-bold tabular-nums">{challenge.qty}</span>
-                    {challenge.hidden && (
-                      <Badge variant="secondary" className="gap-1">
+                    {challenge.hidden ? (
+                      <Badge className="gap-1 bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/40">
                         <EyeOff className="h-3 w-3" /> HIDDEN
+                      </Badge>
+                    ) : (
+                      <Badge className="gap-1 bg-sky-500/20 text-sky-700 dark:text-sky-400 border border-sky-500/40">
+                        <Eye className="h-3 w-3" /> OPEN — press H
                       </Badge>
                     )}
                   </div>
