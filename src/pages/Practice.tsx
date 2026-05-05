@@ -190,7 +190,8 @@ const Practice = () => {
         });
         setCompleted((n) => n + 1);
         flash("good", `+${points}  COMBO ×${combo + 1}`);
-        setChallenge(makeChallenge(Date.now(), stockPrice));
+        setStockPrice(challenge.price);
+        setChallenge(makeChallenge(Date.now(), challenge.price));
       } else {
         setCombo(0);
         setMissed((n) => n + 1);
