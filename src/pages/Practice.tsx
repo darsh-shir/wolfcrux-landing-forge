@@ -62,12 +62,15 @@ const fmtPrice = (n: number) => n.toFixed(2);
 const randPrice = () => round2(50 + Math.random() * 200);
 const randQty = () => [100, 200, 300, 500, 1000][Math.floor(Math.random() * 5)];
 
-function makeChallenge(id: number): Challenge {
+function makeChallenge(id: number, stockPrice: number): Challenge {
+  // Target price is within ±3.00 of the current stock price, on a 0.01 grid
+  const offsetTicks = Math.floor((Math.random() - 0.5) * 600); // -300..+300 cents
+  const target = round2(stockPrice + offsetTicks / 100);
   return {
     id,
     side: Math.random() > 0.5 ? "BUY" : "SELL",
     exchange: EXCHANGES[Math.floor(Math.random() * 3)],
-    price: randPrice(),
+    price: target,
     qty: randQty(),
     hidden: Math.random() > 0.7,
   };
@@ -80,6 +83,7 @@ const Practice = () => {
   const [active, setActive] = useState<ActiveBox | null>(null);
   const [sent, setSent] = useState<SentOrder[]>([]);
   const [qtyBuffer, setQtyBuffer] = useState<string>("");
+  const [stockPrice, setStockPrice] = useState<number>(() => round2(150 + Math.random() * 150));
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
@@ -117,9 +121,9 @@ const Practice = () => {
   useEffect(() => {
     if (!running) return;
     if (!challenge) {
-      setChallenge(makeChallenge(Date.now()));
+      setChallenge(makeChallenge(Date.now(), stockPrice));
     }
-  }, [running, challenge]);
+  }, [running, challenge, stockPrice]);
 
   const flash = useCallback((type: "good" | "bad", msg: string) => {
     setFeedback({ type, msg, t: Date.now() });
@@ -127,6 +131,8 @@ const Practice = () => {
   }, []);
 
   const startGame = () => {
+    const newStock = round2(150 + Math.random() * 150);
+    setStockPrice(newStock);
     setScore(0);
     setCombo(0);
     setBestCombo(0);
@@ -136,26 +142,25 @@ const Practice = () => {
     setActive(null);
     setSent([]);
     setQtyBuffer("");
-    setChallenge(makeChallenge(Date.now()));
+    setChallenge(makeChallenge(Date.now(), newStock));
     setRunning(true);
   };
 
   /* ────────── Order box helpers ────────── */
   const openBox = useCallback(
     (side: Side, exchange: Exchange) => {
-      // basis price comes from challenge if present
-      const basis = challenge?.price ?? randPrice();
+      // Box opens at the current stock price — trader uses arrows to reach target
       setActive({
         id: Date.now(),
         side,
         exchange,
-        price: basis,
-        qty: 100,
+        price: stockPrice,
+        qty: challenge?.qty ?? 100,
         hidden: true,
       });
       setQtyBuffer("");
     },
-    [challenge]
+    [stockPrice, challenge]
   );
 
   const adjustPrice = (delta: number) => {
@@ -185,7 +190,8 @@ const Practice = () => {
         });
         setCompleted((n) => n + 1);
         flash("good", `+${points}  COMBO ×${combo + 1}`);
-        setChallenge(makeChallenge(Date.now()));
+        setStockPrice(challenge.price);
+        setChallenge(makeChallenge(Date.now(), challenge.price));
       } else {
         setCombo(0);
         setMissed((n) => n + 1);
@@ -196,7 +202,7 @@ const Practice = () => {
     setSent((arr) => [order, ...arr].slice(0, 8));
     setActive(null);
     setQtyBuffer("");
-  }, [active, challenge, combo, flash]);
+  }, [active, challenge, combo, flash, stockPrice]);
 
   const handleMultiTap = useCallback(
     (key: "A" | "L") => {
@@ -392,7 +398,7 @@ const Practice = () => {
             <div className="relative flex items-center justify-between gap-6 flex-wrap">
               <div>
                 <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
-                  {running ? "Next Order" : timeLeft === 0 ? "Time's Up" : "Press Start"}
+                  {running ? `Stock @ $${fmtPrice(stockPrice)} — Hit the target` : timeLeft === 0 ? "Time's Up" : "Press Start"}
                 </p>
                 {challenge && running ? (
                   <div className="flex items-center gap-3 flex-wrap">
