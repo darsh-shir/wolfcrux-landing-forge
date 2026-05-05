@@ -151,7 +151,7 @@ const Practice = () => {
         exchange,
         price: basis,
         qty: 100,
-        hidden: false,
+        hidden: true,
       });
       setQtyBuffer("");
     },
