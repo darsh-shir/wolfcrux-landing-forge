@@ -275,12 +275,18 @@ const Practice = () => {
         return;
       }
 
-      // ── Enter sends order
+      // ── Enter: first confirms qty buffer, second sends order
       if (k === "Enter") {
         if (!active) return;
         e.preventDefault();
-        setLastKey("Enter");
-        sendOrder();
+        if (qtyBuffer) {
+          setLastKey("Enter (qty confirmed)");
+          setQtyBuffer("");
+          flash("good", `QTY ${active.qty}`);
+        } else {
+          setLastKey("Enter (send)");
+          sendOrder();
+        }
         return;
       }
 
@@ -326,7 +332,7 @@ const Practice = () => {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [active, handleMultiTap, sendOrder, flash]);
+  }, [active, qtyBuffer, handleMultiTap, sendOrder, flash]);
 
   /* ────────── Derived ────────── */
   const accuracy = useMemo(() => {
