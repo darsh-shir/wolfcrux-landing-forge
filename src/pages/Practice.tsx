@@ -678,7 +678,7 @@ const OrderBox = ({ box, qtyBuffer }: { box: ActiveBox; qtyBuffer: string }) => 
         <div className="flex items-end gap-8">
           <div>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Price</p>
-            <p key={box.price} className="text-5xl font-mono font-bold tabular-nums animate-fade-in">
+            <p className="text-5xl font-mono font-bold tabular-nums">
               ${fmtPrice(box.price)}
             </p>
           </div>
