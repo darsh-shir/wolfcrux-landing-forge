@@ -60,7 +60,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const fmtPrice = (n: number) => n.toFixed(2);
 
 const randPrice = () => round2(50 + Math.random() * 200);
-const randQty = () => [100, 200, 300, 500, 1000][Math.floor(Math.random() * 5)];
+const randQty = () => [100, 200, 300, 400, 500, 600, 700, 800, 1000, 1200, 1500, 2000, 2500, 3000, 5000][Math.floor(Math.random() * 15)];
 
 function makeChallenge(id: number, stockPrice: number): Challenge {
   // Target price is within ±3.00 of the current stock price, on a 0.01 grid
