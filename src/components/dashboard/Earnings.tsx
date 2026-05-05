@@ -237,6 +237,20 @@ const Earnings = () => {
     });
   }, [calendarDays]);
 
+  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const dateScrollRef = useRef<HTMLDivElement>(null);
+  const todayBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Center today's button in the horizontal scroller once the dates render
+  useEffect(() => {
+    if (!visibleDates.length) return;
+    const container = dateScrollRef.current;
+    const btn = todayBtnRef.current;
+    if (!container || !btn) return;
+    const target = btn.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2;
+    container.scrollTo({ left: Math.max(0, target), behavior: "auto" });
+  }, [visibleDates]);
+
   // Apply price filter
   const priceFiltered = useMemo(() => {
     const passes = (price: number) => {
