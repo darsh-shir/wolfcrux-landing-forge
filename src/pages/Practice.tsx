@@ -397,7 +397,7 @@ const Practice = () => {
             <div className="relative flex items-center justify-between gap-6 flex-wrap">
               <div>
                 <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
-                  {running ? "Next Order" : timeLeft === 0 ? "Time's Up" : "Press Start"}
+                  {running ? `Stock @ $${fmtPrice(stockPrice)} — Hit the target` : timeLeft === 0 ? "Time's Up" : "Press Start"}
                 </p>
                 {challenge && running ? (
                   <div className="flex items-center gap-3 flex-wrap">
