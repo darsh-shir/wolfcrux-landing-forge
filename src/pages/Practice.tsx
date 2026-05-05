@@ -155,7 +155,7 @@ const Practice = () => {
         side,
         exchange,
         price: stockPrice,
-        qty: challenge?.qty ?? 100,
+        qty: 1,
         hidden: true,
       });
       setQtyBuffer("");
