@@ -468,6 +468,12 @@ const Practice = () => {
             )}
           </div>
 
+          {/* Level 2 + Time & Sales */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <Level2Book centerPrice={active?.price ?? challenge?.price ?? 150} />
+            <TimeSales centerPrice={active?.price ?? challenge?.price ?? 150} />
+          </div>
+
           {/* Sent orders log */}
           <Card className="p-5">
             <div className="flex items-center justify-between mb-3">
