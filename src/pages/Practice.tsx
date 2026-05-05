@@ -83,6 +83,7 @@ const Practice = () => {
   const [active, setActive] = useState<ActiveBox | null>(null);
   const [sent, setSent] = useState<SentOrder[]>([]);
   const [qtyBuffer, setQtyBuffer] = useState<string>("");
+  const [stockPrice, setStockPrice] = useState<number>(() => round2(150 + Math.random() * 150));
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
@@ -120,9 +121,9 @@ const Practice = () => {
   useEffect(() => {
     if (!running) return;
     if (!challenge) {
-      setChallenge(makeChallenge(Date.now()));
+      setChallenge(makeChallenge(Date.now(), stockPrice));
     }
-  }, [running, challenge]);
+  }, [running, challenge, stockPrice]);
 
   const flash = useCallback((type: "good" | "bad", msg: string) => {
     setFeedback({ type, msg, t: Date.now() });
@@ -130,6 +131,8 @@ const Practice = () => {
   }, []);
 
   const startGame = () => {
+    const newStock = round2(150 + Math.random() * 150);
+    setStockPrice(newStock);
     setScore(0);
     setCombo(0);
     setBestCombo(0);
@@ -139,26 +142,25 @@ const Practice = () => {
     setActive(null);
     setSent([]);
     setQtyBuffer("");
-    setChallenge(makeChallenge(Date.now()));
+    setChallenge(makeChallenge(Date.now(), newStock));
     setRunning(true);
   };
 
   /* ────────── Order box helpers ────────── */
   const openBox = useCallback(
     (side: Side, exchange: Exchange) => {
-      // basis price comes from challenge if present
-      const basis = challenge?.price ?? randPrice();
+      // Box opens at the current stock price — trader uses arrows to reach target
       setActive({
         id: Date.now(),
         side,
         exchange,
-        price: basis,
-        qty: 100,
+        price: stockPrice,
+        qty: challenge?.qty ?? 100,
         hidden: true,
       });
       setQtyBuffer("");
     },
-    [challenge]
+    [stockPrice, challenge]
   );
 
   const adjustPrice = (delta: number) => {
