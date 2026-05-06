@@ -408,7 +408,81 @@ const TraderProgress = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          {/* Mobile: card list */}
+          <div className="md:hidden space-y-3">
+            {data.map((trader, i) => (
+              <div key={trader.userId} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-muted-foreground">#{i + 1}</p>
+                    <p className="font-semibold text-foreground text-sm truncate">
+                      {trader.traderNumber ? `${trader.traderNumber} — ` : ""}{trader.name}
+                    </p>
+                  </div>
+                  <Badge variant={trader.milestoneLevel > 0 ? "default" : "secondary"} className="text-[10px] shrink-0">
+                    {trader.milestoneLabel}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded bg-background/50 p-2">
+                    <p className="text-muted-foreground text-[10px]">Trading Days</p>
+                    <p className="font-semibold text-foreground">{trader.tradingDays}</p>
+                    {trader.baselineDays > 0 && (
+                      <p className="text-[9px] text-muted-foreground italic">incl. {trader.baselineDays} baseline</p>
+                    )}
+                  </div>
+                  <div className="rounded bg-background/50 p-2">
+                    <p className="text-muted-foreground text-[10px]">Total P&L</p>
+                    <p className={`font-semibold ${trader.totalPnl >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {trader.totalPnl >= 0 ? "+" : "-"}${formatIndian(Math.abs(trader.totalPnl))}
+                    </p>
+                  </div>
+                </div>
+
+                {trader.nextLevel ? (
+                  <div className="space-y-2">
+                    <div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                        <span>Days {trader.tradingDays}</span>
+                        <span>/ {trader.nextLevel.daysRequired}</span>
+                      </div>
+                      <Progress value={trader.daysProgress} className="h-1.5" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                        <span>Profit ${formatIndian(trader.totalPnl > 0 ? trader.totalPnl : 0)}</span>
+                        <span>/ ${formatIndian(trader.nextLevel.profitRequired)}</span>
+                      </div>
+                      <Progress value={trader.profitProgress} className="h-1.5" />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Next: {trader.nextLevel.label} — STO {trader.nextLevel.stoPercent}% / LTO {trader.nextLevel.ltoPercent}%
+                    </p>
+                  </div>
+                ) : (
+                  <Badge className="bg-primary/20 text-primary text-[10px]">MAX LEVEL</Badge>
+                )}
+
+                {isAdmin && trader.milestoneLevel > trader.storedLevel && (
+                  <Button
+                    size="sm"
+                    className="w-full h-8 text-xs gap-1"
+                    disabled={upgrading === trader.userId}
+                    onClick={() => handleUpgrade(trader)}
+                  >
+                    <ArrowUpCircle className="h-3 w-3" />
+                    {upgrading === trader.userId
+                      ? "Upgrading..."
+                      : `Upgrade → ${MILESTONES[trader.milestoneLevel].label}`}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden md:block overflow-x-auto">
             <Table className="min-w-[900px]">
               <TableHeader>
                 <TableRow>
