@@ -385,7 +385,7 @@ const Practice = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 grid lg:grid-cols-[1fr_320px] gap-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8 grid lg:grid-cols-[1fr_320px] gap-6 sm:gap-8">
         {/* LEFT — trading sim */}
         <section className="space-y-6">
           {/* Challenge prompt */}
