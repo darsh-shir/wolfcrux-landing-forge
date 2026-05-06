@@ -351,35 +351,38 @@ const Practice = () => {
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <header className="border-b border-border/60 bg-card/40 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-md bg-gradient-to-br from-primary to-accent grid place-items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-9 w-9 rounded-md bg-gradient-to-br from-primary to-accent grid place-items-center shrink-0">
               <Zap className="h-5 w-5 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="text-lg font-semibold leading-tight">Hotkey Trainer</h1>
-              <p className="text-xs text-muted-foreground">Master your trading shortcuts</p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-semibold leading-tight truncate">Hotkey Trainer</h1>
+              <p className="text-[11px] sm:text-xs text-muted-foreground truncate">Master your trading shortcuts</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
             <Stat icon={<Trophy className="h-4 w-4" />} label="Score" value={score.toString()} />
             <Stat icon={<Zap className="h-4 w-4" />} label="Combo" value={`×${combo}`} highlight={combo > 2} />
             <Stat icon={<Target className="h-4 w-4" />} label="Acc" value={`${accuracy}%`} />
             <Stat icon={<RefreshCw className="h-4 w-4" />} label="Time" value={`${timeLeft}s`} />
             {!running ? (
-              <Button onClick={startGame} className="gap-2">
+              <Button size="sm" onClick={startGame} className="gap-2">
                 <Play className="h-4 w-4" />
                 {timeLeft === 0 ? "Play Again" : "Start"}
               </Button>
             ) : (
-              <Button variant="outline" onClick={() => setRunning(false)}>
+              <Button size="sm" variant="outline" onClick={() => setRunning(false)}>
                 Pause
               </Button>
             )}
           </div>
         </div>
         {running && <Progress value={(timeLeft / 60) * 100} className="h-1 rounded-none" />}
+        <div className="md:hidden px-4 py-2 text-[11px] text-muted-foreground bg-muted/40 border-t border-border/60">
+          Best experienced on a desktop with a physical keyboard.
+        </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8 grid lg:grid-cols-[1fr_320px] gap-8">
