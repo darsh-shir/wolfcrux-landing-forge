@@ -380,7 +380,7 @@ const Practice = () => {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [active, qtyBuffer, handleMultiTap, sendOrder, flash]);
+  }, [active, qtyBuffer, priceBuffer, handleMultiTap, sendOrder, flash]);
 
   /* ────────── Derived ────────── */
   const accuracy = useMemo(() => {
