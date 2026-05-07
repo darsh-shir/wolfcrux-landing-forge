@@ -282,14 +282,15 @@ const Practice = () => {
         return;
       }
 
-      // ── Enter: first confirms qty buffer, second sends order
+      // ── Enter: first confirms qty/price buffer, second sends order
       if (k === "Enter") {
         if (!active) return;
         e.preventDefault();
-        if (qtyBuffer) {
-          setLastKey("Enter (qty confirmed)");
+        if (qtyBuffer || priceBuffer) {
+          const label = qtyBuffer && priceBuffer ? "qty+price" : qtyBuffer ? "qty" : "price";
+          setLastKey(`Enter (${label} confirmed)`);
           setQtyBuffer(""); setPriceBuffer("");
-          flash("good", `QTY ${active.qty}`);
+          flash("good", qtyBuffer ? `QTY ${active.qty}` : `PRICE ${active.price}`);
         } else {
           setLastKey("Enter (send)");
           sendOrder();
@@ -379,7 +380,7 @@ const Practice = () => {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [active, qtyBuffer, handleMultiTap, sendOrder, flash]);
+  }, [active, qtyBuffer, priceBuffer, handleMultiTap, sendOrder, flash]);
 
   /* ────────── Derived ────────── */
   const accuracy = useMemo(() => {
