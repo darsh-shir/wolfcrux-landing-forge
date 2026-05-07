@@ -142,7 +142,7 @@ const Practice = () => {
     setTimeLeft(60);
     setActive(null);
     setSent([]);
-    setQtyBuffer("");
+    setQtyBuffer(""); setPriceBuffer("");
     setChallenge(makeChallenge(Date.now(), newStock));
     setRunning(true);
   };
@@ -159,7 +159,7 @@ const Practice = () => {
         qty: 1,
         hidden: true,
       });
-      setQtyBuffer("");
+      setQtyBuffer(""); setPriceBuffer("");
     },
     [stockPrice, challenge]
   );
@@ -202,7 +202,7 @@ const Practice = () => {
 
     setSent((arr) => [order, ...arr].slice(0, 8));
     setActive(null);
-    setQtyBuffer("");
+    setQtyBuffer(""); setPriceBuffer("");
   }, [active, challenge, combo, flash, stockPrice]);
 
   const handleMultiTap = useCallback(
@@ -277,7 +277,7 @@ const Practice = () => {
         e.preventDefault();
         setLastKey("Space");
         setActive(null);
-        setQtyBuffer("");
+        setQtyBuffer(""); setPriceBuffer("");
         flash("bad", "HIDDEN");
         return;
       }
@@ -288,7 +288,7 @@ const Practice = () => {
         e.preventDefault();
         if (qtyBuffer) {
           setLastKey("Enter (qty confirmed)");
-          setQtyBuffer("");
+          setQtyBuffer(""); setPriceBuffer("");
           flash("good", `QTY ${active.qty}`);
         } else {
           setLastKey("Enter (send)");
