@@ -83,6 +83,7 @@ const Practice = () => {
   const [active, setActive] = useState<ActiveBox | null>(null);
   const [sent, setSent] = useState<SentOrder[]>([]);
   const [qtyBuffer, setQtyBuffer] = useState<string>("");
+  const [priceBuffer, setPriceBuffer] = useState<string>("");
   const [stockPrice, setStockPrice] = useState<number>(() => round2(150 + Math.random() * 150));
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [score, setScore] = useState(0);
