@@ -603,7 +603,8 @@ const Practice = () => {
                 <Row keys={["Alt", "←/→"]} desc="±5.00" />
               </Group>
               <Group title="Order">
-                <Row keys={["0–9"]} desc="Set quantity" />
+                <Row keys={["Top 0–9 / ."]} desc="Type price" />
+                <Row keys={["Numpad 0–9"]} desc="Set quantity" />
                 <Row keys={["H"]} desc="Toggle hidden" />
                 <Row keys={["Enter"]} desc="Send" />
                 <Row keys={["Space"]} desc="Hide box" />
