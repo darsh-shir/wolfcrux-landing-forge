@@ -321,8 +321,8 @@ const Practice = () => {
         return;
       }
 
-      // ── Top-row digits only (Digit0..Digit9) go to quantity. Numpad is ignored.
-      if (/^Digit[0-9]$/.test(e.code)) {
+      // ── Numpad digits → QUANTITY only
+      if (/^Numpad[0-9]$/.test(e.code)) {
         if (!active) return;
         e.preventDefault();
         setLastKey(`Qty ${k}`);
@@ -330,6 +330,46 @@ const Practice = () => {
           const next = (buf + k).slice(0, 6);
           const n = parseInt(next, 10) || 0;
           setActive((box) => (box ? { ...box, qty: n } : box));
+          return next;
+        });
+        return;
+      }
+
+      // ── Top-row digits (and ".") → PRICE only
+      if (/^Digit[0-9]$/.test(e.code) || k === ".") {
+        if (!active) return;
+        e.preventDefault();
+        setLastKey(`Price ${k}`);
+        setPriceBuffer((buf) => {
+          // Only one decimal point; max 2 decimals; max 6 chars before dot
+          let next = buf + k;
+          if (k === ".") {
+            if (buf.includes(".")) return buf;
+            if (buf.length === 0) next = "0.";
+          } else {
+            const [intPart, decPart] = next.split(".");
+            if (decPart !== undefined && decPart.length > 2) return buf;
+            if (decPart === undefined && intPart.length > 6) return buf;
+          }
+          const n = parseFloat(next);
+          if (!Number.isNaN(n)) {
+            setActive((box) => (box ? { ...box, price: n } : box));
+          }
+          return next;
+        });
+        return;
+      }
+
+      // ── Backspace clears price buffer digit
+      if (k === "Backspace") {
+        if (!active) return;
+        e.preventDefault();
+        setPriceBuffer((buf) => {
+          const next = buf.slice(0, -1);
+          const n = parseFloat(next);
+          if (!Number.isNaN(n)) {
+            setActive((box) => (box ? { ...box, price: n } : box));
+          }
           return next;
         });
         return;
