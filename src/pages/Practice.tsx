@@ -212,7 +212,7 @@ const Practice = () => {
       const isContinuation = ref.key === key && activeRef.current !== null;
 
       if (isContinuation) {
-        ref.count = Math.min(ref.count + 1, 3);
+        ref.count = (ref.count % 3) + 1;
       } else {
         ref.key = key;
         ref.count = 1;
