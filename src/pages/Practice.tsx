@@ -60,7 +60,13 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const fmtPrice = (n: number) => n.toFixed(2);
 
 const randPrice = () => round2(50 + Math.random() * 200);
-const randQty = () => [100, 200, 300, 400, 500, 600, 700, 800, 1000, 1200, 1500, 2000, 2500, 3000, 5000][Math.floor(Math.random() * 15)];
+const SMALL_QTYS = [1, 5, 10, 15, 25, 50, 99, 100, 200, 300, 500, 600, 800];
+const LARGE_QTYS = [1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000];
+const randQty = () => {
+  // 60% chance (3 out of 5) to pick a small qty, 40% to pick a large one
+  const pool = Math.random() < 0.6 ? SMALL_QTYS : LARGE_QTYS;
+  return pool[Math.floor(Math.random() * pool.length)];
+};
 
 function makeChallenge(id: number, stockPrice: number): Challenge {
   // Target price is within ±3.00 of the current stock price, on a 0.01 grid
