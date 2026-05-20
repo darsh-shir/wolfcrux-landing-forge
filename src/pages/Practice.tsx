@@ -362,18 +362,29 @@ const Practice = () => {
         return;
       }
 
-      // ── Backspace clears price buffer digit
+      // ── Backspace clears last digit from active buffer (qty first, then price)
       if (k === "Backspace") {
         if (!active) return;
         e.preventDefault();
-        setPriceBuffer((buf) => {
-          const next = buf.slice(0, -1);
-          const n = parseFloat(next);
-          if (!Number.isNaN(n)) {
-            setActive((box) => (box ? { ...box, price: n } : box));
-          }
-          return next;
-        });
+        if (qtyBuffer) {
+          setQtyBuffer((buf) => {
+            const next = buf.slice(0, -1);
+            const n = parseInt(next, 10) || 0;
+            setActive((box) => (box ? { ...box, qty: n } : box));
+            return next;
+          });
+          setLastKey("Qty backspace");
+        } else if (priceBuffer) {
+          setPriceBuffer((buf) => {
+            const next = buf.slice(0, -1);
+            const n = parseFloat(next);
+            if (!Number.isNaN(n)) {
+              setActive((box) => (box ? { ...box, price: n } : box));
+            }
+            return next;
+          });
+          setLastKey("Price backspace");
+        }
         return;
       }
     };
