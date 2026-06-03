@@ -808,7 +808,103 @@ const CompareStocks = () => {
           )}
         </div>
       </Card>
+
+      {/* Pearson correlation explainer */}
+      <Card className="p-4 sm:p-5 border border-border/50 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+          <h3 className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+            // About Pearson Correlation
+          </h3>
+        </div>
+        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+          The percentage above the chart is the <span className="text-foreground font-medium">Pearson correlation of daily returns</span> between
+          two stocks. It measures how often two stocks move in the same direction on a day-to-day basis.
+          A value near <span className="text-emerald-600 font-medium">+100%</span> means they tend to rise and fall together,
+          <span className="text-foreground"> 0%</span> means no linear relationship, and a value near
+          <span className="text-red-500 font-medium"> −100%</span> means they tend to move in opposite directions.
+          We display the absolute strength (e.g. <span className="font-mono">75%</span>) with the direction shown by the arrow:
+          <span className="font-mono"> ↔ </span> for positive (move together) and <span className="font-mono"> ↮ </span> for inverse (move opposite).
+          Correlation is based on the selected time range and does not imply causation.
+        </p>
+      </Card>
     </div>
+  );
+};
+
+interface CorrelationItem { a: string; b: string; corr: number }
+
+const CorrelationList = ({ correlations }: { correlations: CorrelationItem[] }) => {
+  const [sortDesc, setSortDesc] = useState(true);
+  const [open, setOpen] = useState(false);
+
+  const sorted = useMemo(() => {
+    return [...correlations].sort((x, y) =>
+      sortDesc ? y.corr - x.corr : x.corr - y.corr
+    );
+  }, [correlations, sortDesc]);
+
+  const avgPct = Math.round(
+    (correlations.reduce((s, c) => s + Math.abs(c.corr), 0) / correlations.length) * 100
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="inline-flex items-center gap-1.5 px-2 py-1 rounded font-mono text-[10px] uppercase tracking-wider border border-border bg-muted/40 hover:bg-muted text-foreground transition-colors"
+          title="Show pairwise correlations"
+        >
+          <span className="text-muted-foreground">// Follow</span>
+          <span className="tabular-nums">{correlations.length} pairs</span>
+          <span className="text-emerald-600 tabular-nums">avg {avgPct}%</span>
+          <ChevronDown className="w-3 h-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72 p-2">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
+            Pairwise correlation
+          </span>
+          <button
+            onClick={() => setSortDesc((v) => !v)}
+            className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            title="Toggle sort"
+          >
+            <ArrowUpDown className="w-3 h-3" />
+            {sortDesc ? "High → Low" : "Low → High"}
+          </button>
+        </div>
+        <div className="max-h-72 overflow-y-auto space-y-1">
+          {sorted.map((c) => {
+            const pct = Math.round(Math.abs(c.corr) * 100);
+            const positive = c.corr >= 0;
+            const strong = pct >= 70;
+            return (
+              <div
+                key={`${c.a}-${c.b}`}
+                className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md border border-border/50 bg-card"
+              >
+                <span className="font-mono text-xs">
+                  {c.a} <span className="text-muted-foreground">{positive ? "↔" : "↮"}</span> {c.b}
+                </span>
+                <span
+                  className={`font-mono text-xs tabular-nums px-1.5 py-0.5 rounded border ${
+                    positive
+                      ? strong
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
+                        : "border-border bg-muted/40 text-muted-foreground"
+                      : "border-red-500/40 bg-red-500/10 text-red-500"
+                  }`}
+                >
+                  {positive ? "+" : "−"}{pct}%
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 
