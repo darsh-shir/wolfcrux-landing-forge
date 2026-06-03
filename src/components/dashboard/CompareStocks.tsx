@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { formatIndian } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -347,6 +347,44 @@ const CompareStocks = () => {
     );
   })();
 
+  // Pairwise Pearson correlation of daily returns across visible series.
+  // Used to show "how often these stocks move together" as a small badge.
+  const correlations = useMemo(() => {
+    const visible = symbols.filter((s) => s.visible && s.data.length > 2);
+    if (visible.length < 2) return [] as { a: string; b: string; corr: number }[];
+    const returns = visible.map((s) => {
+      const r: Record<string, number> = {};
+      for (let i = 1; i < s.data.length; i++) {
+        const prev = s.data[i - 1].close;
+        if (!prev) continue;
+        const key = s.data[i].date.split("T")[0];
+        r[key] = (s.data[i].close - prev) / prev;
+      }
+      return { symbol: s.symbol, r };
+    });
+    const out: { a: string; b: string; corr: number }[] = [];
+    for (let i = 0; i < returns.length; i++) {
+      for (let j = i + 1; j < returns.length; j++) {
+        const A = returns[i], B = returns[j];
+        const keys = Object.keys(A.r).filter((k) => k in B.r);
+        if (keys.length < 5) continue;
+        const xs = keys.map((k) => A.r[k]);
+        const ys = keys.map((k) => B.r[k]);
+        const mx = xs.reduce((s, v) => s + v, 0) / xs.length;
+        const my = ys.reduce((s, v) => s + v, 0) / ys.length;
+        let num = 0, dx = 0, dy = 0;
+        for (let k = 0; k < xs.length; k++) {
+          const a1 = xs[k] - mx, b1 = ys[k] - my;
+          num += a1 * b1; dx += a1 * a1; dy += b1 * b1;
+        }
+        const denom = Math.sqrt(dx * dy);
+        if (!denom) continue;
+        out.push({ a: A.symbol, b: B.symbol, corr: num / denom });
+      }
+    }
+    return out;
+  }, [symbols]);
+
   const formatDate = (d: string) => {
     const dt = new Date(d);
     return dt.toLocaleDateString(undefined, {
@@ -649,25 +687,54 @@ const CompareStocks = () => {
       </Card>
 
       <Card className="p-3 sm:p-5 border border-border/50 shadow-sm">
-        {/* Range selector */}
-        <div className="flex items-center justify-between mb-3">
+        {/* Range selector + correlations */}
+        <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
           <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
             // Performance %
           </span>
-          <div className="inline-flex rounded-md border border-border/50 bg-muted/40 p-0.5 gap-0.5">
-            {RANGES.map((r) => (
-              <button
-                key={r.label}
-                onClick={() => setDays(r.days)}
-                className={`px-2.5 sm:px-3 py-1 text-[11px] font-mono uppercase tracking-wider rounded transition-all ${
-                  days === r.days
-                    ? "bg-foreground text-background shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-3 flex-wrap justify-end">
+            {correlations.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
+                  // Follow
+                </span>
+                {correlations.map((c) => {
+                  const pct = Math.round(Math.abs(c.corr) * 100);
+                  const positive = c.corr >= 0;
+                  const strong = pct >= 70;
+                  return (
+                    <span
+                      key={`${c.a}-${c.b}`}
+                      title={`${positive ? "Move together" : "Move opposite"} ${pct}% of the time (Pearson correlation of daily returns)`}
+                      className={`px-1.5 py-0.5 rounded font-mono text-[10px] tabular-nums border ${
+                        positive
+                          ? strong
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
+                            : "border-border bg-muted/40 text-muted-foreground"
+                          : "border-red-500/40 bg-red-500/10 text-red-500"
+                      }`}
+                    >
+                      {c.a}{positive ? "↔" : "↮"}{c.b} {pct}%
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <div className="inline-flex rounded-md border border-border/50 bg-muted/40 p-0.5 gap-0.5">
+              {RANGES.map((r) => (
+                <button
+                  key={r.label}
+                  onClick={() => setDays(r.days)}
+                  className={`px-2.5 sm:px-3 py-1 text-[11px] font-mono uppercase tracking-wider rounded transition-all ${
+                    days === r.days
+                      ? "bg-foreground text-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

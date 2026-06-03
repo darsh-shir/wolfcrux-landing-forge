@@ -23,7 +23,7 @@ const Navigation = () => {
   const { user, isAdmin, signOut, loading } = useAuth();
 
   const navLinks = [
-    { name: "Terminal", path: "/dashboard" },
+    { name: "Terminal", path: "/terminal" },
     { name: "About", path: "/about" },
     { name: "Technology", path: "/technology" },
     { name: "Testimonials", path: "/testimonials" },
