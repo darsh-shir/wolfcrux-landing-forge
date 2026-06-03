@@ -695,17 +695,14 @@ const CompareStocks = () => {
           </span>
           <div className="flex items-center gap-3 flex-wrap justify-end">
             {correlations.length > 0 && (
-              <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
-                  // Follow
-                </span>
-                {correlations.map((c) => {
+              correlations.length === 1 ? (
+                (() => {
+                  const c = correlations[0];
                   const pct = Math.round(Math.abs(c.corr) * 100);
                   const positive = c.corr >= 0;
                   const strong = pct >= 70;
                   return (
                     <span
-                      key={`${c.a}-${c.b}`}
                       title={`${positive ? "Move together" : "Move opposite"} ${pct}% of the time (Pearson correlation of daily returns)`}
                       className={`px-1.5 py-0.5 rounded font-mono text-[10px] tabular-nums border ${
                         positive
@@ -718,8 +715,10 @@ const CompareStocks = () => {
                       {c.a}{positive ? "↔" : "↮"}{c.b} {pct}%
                     </span>
                   );
-                })}
-              </div>
+                })()
+              ) : (
+                <CorrelationList correlations={correlations} />
+              )
             )}
             <div className="inline-flex rounded-md border border-border/50 bg-muted/40 p-0.5 gap-0.5">
               {RANGES.map((r) => (
