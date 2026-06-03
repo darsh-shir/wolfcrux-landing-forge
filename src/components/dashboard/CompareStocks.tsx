@@ -347,6 +347,44 @@ const CompareStocks = () => {
     );
   })();
 
+  // Pairwise Pearson correlation of daily returns across visible series.
+  // Used to show "how often these stocks move together" as a small badge.
+  const correlations = useMemo(() => {
+    const visible = symbols.filter((s) => s.visible && s.data.length > 2);
+    if (visible.length < 2) return [] as { a: string; b: string; corr: number }[];
+    const returns = visible.map((s) => {
+      const r: Record<string, number> = {};
+      for (let i = 1; i < s.data.length; i++) {
+        const prev = s.data[i - 1].close;
+        if (!prev) continue;
+        const key = s.data[i].date.split("T")[0];
+        r[key] = (s.data[i].close - prev) / prev;
+      }
+      return { symbol: s.symbol, r };
+    });
+    const out: { a: string; b: string; corr: number }[] = [];
+    for (let i = 0; i < returns.length; i++) {
+      for (let j = i + 1; j < returns.length; j++) {
+        const A = returns[i], B = returns[j];
+        const keys = Object.keys(A.r).filter((k) => k in B.r);
+        if (keys.length < 5) continue;
+        const xs = keys.map((k) => A.r[k]);
+        const ys = keys.map((k) => B.r[k]);
+        const mx = xs.reduce((s, v) => s + v, 0) / xs.length;
+        const my = ys.reduce((s, v) => s + v, 0) / ys.length;
+        let num = 0, dx = 0, dy = 0;
+        for (let k = 0; k < xs.length; k++) {
+          const a1 = xs[k] - mx, b1 = ys[k] - my;
+          num += a1 * b1; dx += a1 * a1; dy += b1 * b1;
+        }
+        const denom = Math.sqrt(dx * dy);
+        if (!denom) continue;
+        out.push({ a: A.symbol, b: B.symbol, corr: num / denom });
+      }
+    }
+    return out;
+  }, [symbols]);
+
   const formatDate = (d: string) => {
     const dt = new Date(d);
     return dt.toLocaleDateString(undefined, {
