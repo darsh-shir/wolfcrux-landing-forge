@@ -704,15 +704,18 @@ const CompareStocks = () => {
                   return (
                     <span
                       title={`${positive ? "Move together" : "Move opposite"} ${pct}% of the time (Pearson correlation of daily returns)`}
-                      className={`px-1.5 py-0.5 rounded font-mono text-[10px] tabular-nums border ${
+                      className={`inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-md font-mono tabular-nums border ${
                         positive
                           ? strong
-                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
-                            : "border-border bg-muted/40 text-muted-foreground"
-                          : "border-red-500/40 bg-red-500/10 text-red-500"
+                            ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-600"
+                            : "border-border bg-muted/40 text-foreground"
+                          : "border-red-500/50 bg-red-500/15 text-red-500"
                       }`}
                     >
-                      {c.a}{positive ? "↔" : "↮"}{c.b} {pct}%
+                      <span className="text-[10px] uppercase tracking-wider opacity-70">
+                        {c.a}{positive ? "↔" : "↮"}{c.b}
+                      </span>
+                      <span className="text-lg sm:text-xl font-bold leading-none">{pct}%</span>
                     </span>
                   );
                 })()
