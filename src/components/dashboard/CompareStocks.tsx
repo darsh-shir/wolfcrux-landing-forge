@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Loader2, Search, Sparkles, RotateCcw } from "lucide-react";
+import { X, Plus, Loader2, Search, Sparkles, RotateCcw, ArrowUpDown, ChevronDown } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   LineChart,
   Line,
