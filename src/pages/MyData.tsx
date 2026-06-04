@@ -682,6 +682,11 @@ const MyData = () => {
               <MyProgress />
             </TabsContent>
 
+            {/* DOCUMENTS TAB */}
+            <TabsContent value="documents" className="tab-anim">
+              <MyDocuments />
+            </TabsContent>
+
             {/* SETTINGS TAB */}
             <TabsContent value="settings" className="tab-anim">
               <div className="max-w-md">
