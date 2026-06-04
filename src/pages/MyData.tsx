@@ -314,6 +314,10 @@ const MyData = () => {
                   <Trophy className="h-4 w-4" />
                   Progress
                 </TabsTrigger>
+                <TabsTrigger value="documents" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
+                  <FileText className="h-4 w-4" />
+                  Documents
+                </TabsTrigger>
                 <TabsTrigger value="settings" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
                   <Key className="h-4 w-4" />
                   Settings
