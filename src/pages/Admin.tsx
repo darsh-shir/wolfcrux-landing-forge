@@ -200,6 +200,10 @@ const Admin = () => {
                   <History className="h-4 w-4" />
                   Baseline Seeder
                 </TabsTrigger>
+                <TabsTrigger value="documents" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Folder className="h-4 w-4" />
+                  Documents
+                </TabsTrigger>
               </TabsList>
             </div>
 
