@@ -322,6 +322,11 @@ const Admin = () => {
             <TabsContent value="baseline">
               <BaselineSeeder users={users} />
             </TabsContent>
+
+            {/* DOCUMENTS TAB */}
+            <TabsContent value="documents">
+              <EmployeeDocuments users={users} />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
