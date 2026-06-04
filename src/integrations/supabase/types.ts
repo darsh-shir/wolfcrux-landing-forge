@@ -80,6 +80,57 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_documents: {
+        Row: {
+          category: Database["public"]["Enums"]["document_category"]
+          created_at: string
+          description: string | null
+          document_date: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          is_hidden: boolean
+          mime_type: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["document_category"]
+          created_at?: string
+          description?: string | null
+          document_date?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_hidden?: boolean
+          mime_type?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["document_category"]
+          created_at?: string
+          description?: string | null
+          document_date?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_hidden?: boolean
+          mime_type?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       holidays: {
         Row: {
           created_at: string
@@ -766,6 +817,15 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      document_category:
+        | "salary_slip"
+        | "offer_letter"
+        | "confirmation_letter"
+        | "appraisal_letter"
+        | "experience_letter"
+        | "id_proof"
+        | "contract"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -894,6 +954,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      document_category: [
+        "salary_slip",
+        "offer_letter",
+        "confirmation_letter",
+        "appraisal_letter",
+        "experience_letter",
+        "id_proof",
+        "contract",
+        "other",
+      ],
     },
   },
 } as const

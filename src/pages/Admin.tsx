@@ -6,7 +6,8 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History, Folder } from "lucide-react";
+import EmployeeDocuments from "@/components/admin/EmployeeDocuments";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
 import TradingDataView from "@/components/admin/TradingDataView";
@@ -199,6 +200,10 @@ const Admin = () => {
                   <History className="h-4 w-4" />
                   Baseline Seeder
                 </TabsTrigger>
+                <TabsTrigger value="documents" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Folder className="h-4 w-4" />
+                  Documents
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -316,6 +321,11 @@ const Admin = () => {
             {/* BASELINE SEEDER TAB */}
             <TabsContent value="baseline">
               <BaselineSeeder users={users} />
+            </TabsContent>
+
+            {/* DOCUMENTS TAB */}
+            <TabsContent value="documents">
+              <EmployeeDocuments users={users} />
             </TabsContent>
           </Tabs>
         </div>

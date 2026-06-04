@@ -11,13 +11,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, TrendingDown, Calendar, BarChart3, Key, DollarSign, LineChart, ChevronDown, ChevronRight, Wallet, Heart, Trophy } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar, BarChart3, Key, DollarSign, LineChart, ChevronDown, ChevronRight, Wallet, Heart, Trophy, FileText } from "lucide-react";
 import ChangePassword from "@/components/user/ChangePassword";
 import LeaveApplication from "@/components/user/LeaveApplication";
 import TradingAnalytics from "@/components/user/TradingAnalytics";
 import PayoutSummary from "@/components/user/PayoutSummary";
 import LtoLoyaltyView from "@/components/user/LtoLoyaltyView";
 import MyProgress from "@/components/user/MyProgress";
+import MyDocuments from "@/components/user/MyDocuments";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, parseISO } from "date-fns";
 import { MILESTONES } from "@/lib/payoutCalculations";
 
@@ -312,6 +313,10 @@ const MyData = () => {
                 <TabsTrigger value="progress" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
                   <Trophy className="h-4 w-4" />
                   Progress
+                </TabsTrigger>
+                <TabsTrigger value="documents" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
+                  <FileText className="h-4 w-4" />
+                  Documents
                 </TabsTrigger>
                 <TabsTrigger value="settings" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
                   <Key className="h-4 w-4" />
@@ -675,6 +680,11 @@ const MyData = () => {
             {/* PROGRESS TAB */}
             <TabsContent value="progress" className="tab-anim">
               <MyProgress />
+            </TabsContent>
+
+            {/* DOCUMENTS TAB */}
+            <TabsContent value="documents" className="tab-anim">
+              <MyDocuments />
             </TabsContent>
 
             {/* SETTINGS TAB */}
