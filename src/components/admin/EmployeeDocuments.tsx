@@ -378,6 +378,14 @@ const EmployeeDocuments = ({ users }: { users: Profile[] }) => {
                           <Button size="icon" variant="ghost" onClick={() => handleDownload(d)} title="Download">
                             <Download className="h-4 w-4" />
                           </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => { setEditingId(d.id); setEditTitle(d.title); }}
+                            title="Rename"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button size="icon" variant="ghost" onClick={() => handleToggleHidden(d)} title={d.is_hidden ? "Show" : "Hide"}>
                             {d.is_hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                           </Button>
