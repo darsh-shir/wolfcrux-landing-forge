@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Upload, Download, Trash2, Eye, EyeOff, FileText, Search, Loader2 } from "lucide-react";
+import { Upload, Download, Trash2, Eye, EyeOff, FileText, Search, Loader2, Pencil, Check, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 interface Profile {
@@ -66,6 +66,8 @@ const EmployeeDocuments = ({ users }: { users: Profile[] }) => {
   const [search, setSearch] = useState("");
   const [filterUser, setFilterUser] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
 
   // form
   const [fUser, setFUser] = useState("");
@@ -171,6 +173,24 @@ const EmployeeDocuments = ({ users }: { users: Profile[] }) => {
       .eq("id", d.id);
     if (error) toast({ title: "Failed", description: error.message, variant: "destructive" });
     else fetchDocs();
+  };
+
+  const handleRename = async (d: Doc) => {
+    const newTitle = editTitle.trim();
+    if (!newTitle || newTitle === d.title) {
+      setEditingId(null);
+      return;
+    }
+    const { error } = await supabase
+      .from("employee_documents")
+      .update({ title: newTitle })
+      .eq("id", d.id);
+    if (error) toast({ title: "Rename failed", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: "Renamed" });
+      setEditingId(null);
+      fetchDocs();
+    }
   };
 
   const handleDelete = async (d: Doc) => {
@@ -313,8 +333,31 @@ const EmployeeDocuments = ({ users }: { users: Profile[] }) => {
                     <TableRow key={d.id} className="group">
                       <TableCell className="font-medium">{userMap[d.user_id] || "—"}</TableCell>
                       <TableCell>
-                        <div className="font-medium">{d.title}</div>
-                        {d.description && <div className="text-xs text-muted-foreground">{d.description}</div>}
+                        {editingId === d.id ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              autoFocus
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRename(d);
+                                if (e.key === "Escape") setEditingId(null);
+                              }}
+                              className="h-8"
+                            />
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleRename(d)} title="Save">
+                              <Check className="h-4 w-4 text-primary" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingId(null)} title="Cancel">
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="font-medium">{d.title}</div>
+                            {d.description && <div className="text-xs text-muted-foreground">{d.description}</div>}
+                          </>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="font-normal">{CATEGORY_LABEL[d.category] || d.category}</Badge>
@@ -334,6 +377,14 @@ const EmployeeDocuments = ({ users }: { users: Profile[] }) => {
                         <div className="flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
                           <Button size="icon" variant="ghost" onClick={() => handleDownload(d)} title="Download">
                             <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => { setEditingId(d.id); setEditTitle(d.title); }}
+                            title="Rename"
+                          >
+                            <Pencil className="h-4 w-4" />
                           </Button>
                           <Button size="icon" variant="ghost" onClick={() => handleToggleHidden(d)} title={d.is_hidden ? "Show" : "Hide"}>
                             {d.is_hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
