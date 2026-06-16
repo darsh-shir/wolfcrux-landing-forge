@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Upload, Download, Trash2, Eye, EyeOff, FileText, Search, Loader2 } from "lucide-react";
+import { Upload, Download, Trash2, Eye, EyeOff, FileText, Search, Loader2, Pencil, Check, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 interface Profile {
