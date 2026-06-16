@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Download, FileText, Loader2, Calendar, FileType } from "lucide-react";
+import { Download, FileText, Loader2, Calendar, FileType, Folder, FolderOpen, ChevronRight } from "lucide-react";
 
 const CATEGORY_LABEL: Record<string, string> = {
   salary_slip: "Salary Slip",
