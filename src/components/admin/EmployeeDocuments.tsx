@@ -333,8 +333,31 @@ const EmployeeDocuments = ({ users }: { users: Profile[] }) => {
                     <TableRow key={d.id} className="group">
                       <TableCell className="font-medium">{userMap[d.user_id] || "—"}</TableCell>
                       <TableCell>
-                        <div className="font-medium">{d.title}</div>
-                        {d.description && <div className="text-xs text-muted-foreground">{d.description}</div>}
+                        {editingId === d.id ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              autoFocus
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRename(d);
+                                if (e.key === "Escape") setEditingId(null);
+                              }}
+                              className="h-8"
+                            />
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleRename(d)} title="Save">
+                              <Check className="h-4 w-4 text-primary" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingId(null)} title="Cancel">
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="font-medium">{d.title}</div>
+                            {d.description && <div className="text-xs text-muted-foreground">{d.description}</div>}
+                          </>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="font-normal">{CATEGORY_LABEL[d.category] || d.category}</Badge>
