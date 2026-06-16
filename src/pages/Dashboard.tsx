@@ -10,6 +10,7 @@ import IndexCards from "@/components/dashboard/IndexCards";
 import SectorPerformance from "@/components/dashboard/SectorPerformance";
 import MarketMovers from "@/components/dashboard/MarketMovers";
 import MarketNews from "@/components/dashboard/MarketNews";
+import FinvizNews from "@/components/dashboard/FinvizNews";
 import StockSplits from "@/components/dashboard/StockSplits";
 import MarketSentiment from "@/components/dashboard/MarketSentiment";
 import NewsOverview from "@/components/dashboard/NewsOverview";
