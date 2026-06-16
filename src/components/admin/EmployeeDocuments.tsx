@@ -66,6 +66,8 @@ const EmployeeDocuments = ({ users }: { users: Profile[] }) => {
   const [search, setSearch] = useState("");
   const [filterUser, setFilterUser] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
 
   // form
   const [fUser, setFUser] = useState("");
