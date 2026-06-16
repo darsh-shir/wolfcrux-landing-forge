@@ -175,6 +175,24 @@ const EmployeeDocuments = ({ users }: { users: Profile[] }) => {
     else fetchDocs();
   };
 
+  const handleRename = async (d: Doc) => {
+    const newTitle = editTitle.trim();
+    if (!newTitle || newTitle === d.title) {
+      setEditingId(null);
+      return;
+    }
+    const { error } = await supabase
+      .from("employee_documents")
+      .update({ title: newTitle })
+      .eq("id", d.id);
+    if (error) toast({ title: "Rename failed", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: "Renamed" });
+      setEditingId(null);
+      fetchDocs();
+    }
+  };
+
   const handleDelete = async (d: Doc) => {
     if (!confirm(`Delete "${d.title}"? This cannot be undone.`)) return;
     await supabase.storage.from("employee-documents").remove([d.file_path]);
