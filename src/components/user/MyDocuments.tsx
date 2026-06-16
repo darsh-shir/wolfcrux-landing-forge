@@ -120,52 +120,68 @@ const MyDocuments = () => {
         </p>
       </div>
 
-      {Object.entries(grouped).map(([cat, list]) => (
-        <div key={cat} className="space-y-2">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
-              {CATEGORY_LABEL[cat] || cat}
-            </h3>
-            <Badge variant="secondary" className="font-mono text-[10px]">{list.length}</Badge>
+      {Object.entries(grouped).map(([cat, list]) => {
+        const isOpen = openFolders[cat] ?? cat !== "salary_slip";
+        return (
+          <div key={cat} className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setOpenFolders((p) => ({ ...p, [cat]: !isOpen }))}
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-gradient-to-br from-card to-muted/10 hover:border-primary/40 hover:shadow-sm transition-all text-left group"
+            >
+              <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                {isOpen ? <FolderOpen className="h-5 w-5" /> : <Folder className="h-5 w-5" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm">{CATEGORY_LABEL[cat] || cat}</div>
+                <div className="text-xs text-muted-foreground">
+                  {list.length} {list.length === 1 ? "document" : "documents"}
+                </div>
+              </div>
+              <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`} />
+            </button>
+
+            {isOpen && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pl-2">
+                {list.map((d) => (
+                  <Card
+                    key={d.id}
+                    className="group border-border/50 bg-gradient-to-br from-card to-muted/10 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => handleDownload(d)}
+                  >
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8">
+                          {downloadingId === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-sm leading-tight line-clamp-2">{d.title}</div>
+                        {d.description && (
+                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{d.description}</div>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border/40">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {d.document_date || new Date(d.created_at).toLocaleDateString()}
+                        </span>
+                        <span className="flex items-center gap-1 font-mono">
+                          <FileType className="h-3 w-3" />
+                          {formatSize(d.file_size)}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {list.map((d) => (
-              <Card
-                key={d.id}
-                className="group border-border/50 bg-gradient-to-br from-card to-muted/10 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer"
-                onClick={() => handleDownload(d)}
-              >
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8">
-                      {downloadingId === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-sm leading-tight line-clamp-2">{d.title}</div>
-                    {d.description && (
-                      <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{d.description}</div>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border/40">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {d.document_date || new Date(d.created_at).toLocaleDateString()}
-                    </span>
-                    <span className="flex items-center gap-1 font-mono">
-                      <FileType className="h-3 w-3" />
-                      {formatSize(d.file_size)}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
