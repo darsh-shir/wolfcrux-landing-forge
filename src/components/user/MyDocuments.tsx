@@ -45,6 +45,7 @@ const MyDocuments = () => {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!user) return;
