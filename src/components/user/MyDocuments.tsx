@@ -9,6 +9,7 @@ import { Download, FileText, Loader2, Calendar, FileType } from "lucide-react";
 
 const CATEGORY_LABEL: Record<string, string> = {
   salary_slip: "Salary Slip",
+  form_16: "Form 16",
   offer_letter: "Offer Letter",
   confirmation_letter: "Confirmation Letter",
   appraisal_letter: "Appraisal Letter",
