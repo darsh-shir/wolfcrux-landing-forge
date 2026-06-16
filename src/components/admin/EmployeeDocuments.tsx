@@ -21,6 +21,7 @@ interface Profile {
 
 const CATEGORIES = [
   { value: "salary_slip", label: "Salary Slip" },
+  { value: "form_16", label: "Form 16" },
   { value: "offer_letter", label: "Offer Letter" },
   { value: "confirmation_letter", label: "Confirmation Letter" },
   { value: "appraisal_letter", label: "Appraisal Letter" },
