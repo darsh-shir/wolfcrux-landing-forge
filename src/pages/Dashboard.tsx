@@ -10,6 +10,7 @@ import IndexCards from "@/components/dashboard/IndexCards";
 import SectorPerformance from "@/components/dashboard/SectorPerformance";
 import MarketMovers from "@/components/dashboard/MarketMovers";
 import MarketNews from "@/components/dashboard/MarketNews";
+import FinvizNews from "@/components/dashboard/FinvizNews";
 import StockSplits from "@/components/dashboard/StockSplits";
 import MarketSentiment from "@/components/dashboard/MarketSentiment";
 import NewsOverview from "@/components/dashboard/NewsOverview";
@@ -379,7 +380,8 @@ const Dashboard = () => {
             </TabsContent>
 
             {/* ================= MARKET NEWS TAB ================= */}
-            <TabsContent value="news" className="mt-6 tab-anim">
+            <TabsContent value="news" className="mt-6 tab-anim space-y-6">
+              <FinvizNews defaultSymbol="SPY" />
               <MarketNews data={{ posts: newsPosts }} loading={loadingNews} />
             </TabsContent>
 
