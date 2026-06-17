@@ -46,25 +46,8 @@ const MarketNews = ({ data, loading, externalSymbol }: MarketNewsProps) => {
 
   const posts = stockNews?.posts || data?.posts || [];
 
-  const handleSearch = async () => {
-    if (!searchSymbol.trim()) return;
-    
-    const symbol = searchSymbol.trim().toUpperCase();
-    setStockLoading(true);
-    setActiveSearch(symbol);
-    
-    try {
-      const response = await fetch(
-        `https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=https://www.perplexity.ai/rest/finance/news/${symbol}`
-      );
-      const data = await response.json();
-      setStockNews(data);
-    } catch (error) {
-      console.error("Error fetching stock news:", error);
-    } finally {
-      setStockLoading(false);
-    }
-  };
+  const handleSearch = () => runSearch(searchSymbol);
+
 
   const clearSearch = () => {
     setSearchSymbol("");
