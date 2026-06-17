@@ -2,40 +2,52 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExternalLink, Newspaper, Clock, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface MarketNewsProps {
   data: any;
   loading: boolean;
+  externalSymbol?: string;
 }
 
-const MarketNews = ({ data, loading }: MarketNewsProps) => {
+const MarketNews = ({ data, loading, externalSymbol }: MarketNewsProps) => {
   const [searchSymbol, setSearchSymbol] = useState("");
   const [stockNews, setStockNews] = useState<any>(null);
   const [stockLoading, setStockLoading] = useState(false);
   const [activeSearch, setActiveSearch] = useState("");
 
-  const posts = stockNews?.posts || data?.posts || [];
-
-  const handleSearch = async () => {
-    if (!searchSymbol.trim()) return;
-    
-    const symbol = searchSymbol.trim().toUpperCase();
+  const runSearch = async (raw: string) => {
+    const symbol = raw.trim().toUpperCase();
+    if (!symbol) return;
+    setSearchSymbol(symbol);
     setStockLoading(true);
     setActiveSearch(symbol);
-    
     try {
       const response = await fetch(
         `https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=https://www.perplexity.ai/rest/finance/news/${symbol}`
       );
-      const data = await response.json();
-      setStockNews(data);
+      const d = await response.json();
+      setStockNews(d);
     } catch (error) {
       console.error("Error fetching stock news:", error);
     } finally {
       setStockLoading(false);
     }
   };
+
+  // React to externally-driven symbol (e.g., Finviz panel)
+  useEffect(() => {
+    if (externalSymbol && externalSymbol.toUpperCase() !== activeSearch) {
+      runSearch(externalSymbol);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalSymbol]);
+
+
+  const posts = stockNews?.posts || data?.posts || [];
+
+  const handleSearch = () => runSearch(searchSymbol);
+
 
   const clearSearch = () => {
     setSearchSymbol("");

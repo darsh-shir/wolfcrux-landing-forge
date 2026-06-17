@@ -79,6 +79,8 @@ const Dashboard = () => {
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [newsSymbol, setNewsSymbol] = useState<string>("");
+
 
   const [economicEvents, setEconomicEvents] = useState<any[]>([]);
   const [economicLoading, setEconomicLoading] = useState(true);
@@ -381,8 +383,9 @@ const Dashboard = () => {
 
             {/* ================= MARKET NEWS TAB ================= */}
             <TabsContent value="news" className="mt-6 tab-anim space-y-6">
-              <FinvizNews defaultSymbol="SPY" />
-              <MarketNews data={{ posts: newsPosts }} loading={loadingNews} />
+              <FinvizNews onSymbolSubmit={setNewsSymbol} />
+              <MarketNews data={{ posts: newsPosts }} loading={loadingNews} externalSymbol={newsSymbol} />
+
             </TabsContent>
 
             {/* ================= FULL STOCK SPLITS TAB ================= */}

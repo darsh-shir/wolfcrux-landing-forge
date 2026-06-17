@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ExternalLink, Radio, Rss } from "lucide-react";
+import { Search, ExternalLink, Radio, Rss, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 interface FinvizItem {
@@ -12,10 +12,25 @@ interface FinvizItem {
 }
 
 interface Props {
-  defaultSymbol?: string;
+  onSymbolSubmit?: (symbol: string) => void;
 }
 
 const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+
+const SUGGESTION_POOL = [
+  "AAPL", "NVDA", "TSLA", "MSFT", "AMD", "META", "GOOGL", "AMZN",
+  "NFLX", "COIN", "PLTR", "AVGO", "BABA", "UBER", "SHOP", "ORCL",
+  "JPM", "GS", "XOM", "DIS", "BA", "INTC", "MU", "SMCI",
+];
+
+const pickRandom = (arr: string[], n: number) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, n);
+};
 
 const parseFinvizHtml = (html: string): FinvizItem[] => {
   try {
@@ -42,12 +57,13 @@ const parseFinvizHtml = (html: string): FinvizItem[] => {
   }
 };
 
-const FinvizNews = ({ defaultSymbol = "SPY" }: Props) => {
-  const [symbol, setSymbol] = useState(defaultSymbol);
-  const [input, setInput] = useState(defaultSymbol);
+const FinvizNews = ({ onSymbolSubmit }: Props) => {
+  const [symbol, setSymbol] = useState("");
+  const [input, setInput] = useState("");
   const [items, setItems] = useState<FinvizItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const inflight = useRef(false);
+  const [suggestions] = useState<string[]>(() => pickRandom(SUGGESTION_POOL, 6));
 
   const load = async (sym: string) => {
     if (inflight.current) return;
@@ -67,13 +83,17 @@ const FinvizNews = ({ defaultSymbol = "SPY" }: Props) => {
   };
 
   useEffect(() => {
+    if (!symbol) return;
     load(symbol);
+    onSymbolSubmit?.(symbol);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
 
-  const submit = () => {
-    const v = input.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, "");
-    if (v) setSymbol(v);
+  const submit = (raw?: string) => {
+    const v = (raw ?? input).trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, "");
+    if (!v) return;
+    setInput(v);
+    setSymbol(v);
   };
 
   const grouped = useMemo(() => {
@@ -100,7 +120,7 @@ const FinvizNews = ({ defaultSymbol = "SPY" }: Props) => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground flex items-center gap-2">
               <Rss className="w-3.5 h-3.5" />
-              // Finviz Wire · <span className="text-foreground">{symbol}</span>
+              // Finviz Wire{symbol ? <> · <span className="text-foreground">{symbol}</span></> : null}
             </CardTitle>
             <span className="flex items-center gap-1.5 text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-sm">
               <Radio className="w-3 h-3 animate-pulse" />
@@ -111,22 +131,41 @@ const FinvizNews = ({ defaultSymbol = "SPY" }: Props) => {
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Symbol (e.g. AAPL, STM, SPY)"
+                placeholder="Enter symbol (e.g. AAPL, NVDA, TSLA)"
                 value={input}
                 onChange={(e) => setInput(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
                 className="pl-8 h-9 font-mono text-sm uppercase"
               />
             </div>
-            <Button onClick={submit} size="sm" className="h-9 font-mono text-xs uppercase tracking-wider">
+            <Button onClick={() => submit()} size="sm" className="h-9 font-mono text-xs uppercase tracking-wider">
               Load
             </Button>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              Suggested
+            </span>
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                onClick={() => submit(s)}
+                className="font-mono text-[11px] px-2 py-0.5 rounded-sm border border-border/60 bg-muted/30 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+              >
+                {s}
+              </button>
+            ))}
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="p-0">
-        {loading && items.length === 0 ? (
+        {!symbol && !loading ? (
+          <p className="text-sm font-mono text-muted-foreground text-center py-10 uppercase tracking-wider">
+            // Enter a symbol or pick a suggestion
+          </p>
+        ) : loading && items.length === 0 ? (
           <div className="p-4 space-y-3">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="skeleton-shimmer h-5 w-full" />
