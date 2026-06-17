@@ -381,8 +381,9 @@ const Dashboard = () => {
 
             {/* ================= MARKET NEWS TAB ================= */}
             <TabsContent value="news" className="mt-6 tab-anim space-y-6">
-              <FinvizNews defaultSymbol="SPY" />
-              <MarketNews data={{ posts: newsPosts }} loading={loadingNews} />
+              <FinvizNews onSymbolSubmit={setNewsSymbol} />
+              <MarketNews data={{ posts: newsPosts }} loading={loadingNews} externalSymbol={newsSymbol} />
+
             </TabsContent>
 
             {/* ================= FULL STOCK SPLITS TAB ================= */}
