@@ -79,6 +79,8 @@ const Dashboard = () => {
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [newsSymbol, setNewsSymbol] = useState<string>("");
+
 
   const [economicEvents, setEconomicEvents] = useState<any[]>([]);
   const [economicLoading, setEconomicLoading] = useState(true);
