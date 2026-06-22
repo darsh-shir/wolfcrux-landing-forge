@@ -160,7 +160,26 @@ const NewsCheck = () => {
         try { const parsed = JSON.parse(qText); if (parsed?.html) qHtml = parsed.html; else if (parsed?.contents) qHtml = parsed.contents; } catch {}
         if (cancelled) return;
         setNews(parseFinvizNews(nJson?.html || ""));
-        setSnap(parseFinvizQuote(qHtml));
+        const parsedSnap = parseFinvizQuote(qHtml);
+        setSnap(parsedSnap);
+
+        // Sector earnings (this week) — only if we resolved a sector
+        const sectorKey = (parsedSnap.sector || "").toLowerCase().trim();
+        const slug = SECTOR_SLUGS[sectorKey] || null;
+        if (slug) {
+          try {
+            const screenerUrl = `https://finviz.com/screener.ashx?v=111&f=sec_${slug},earningsdate_thisweek`;
+            const sRes = await fetch(`${PROXY}${encodeURIComponent(screenerUrl)}`);
+            const sText = await sRes.text();
+            let sHtml = sText;
+            try { const p = JSON.parse(sText); if (p?.html) sHtml = p.html; else if (p?.contents) sHtml = p.contents; } catch {}
+            if (!cancelled) setSectorEarnings({ count: parseScreenerCount(sHtml), sectorSlug: slug });
+          } catch {
+            if (!cancelled) setSectorEarnings({ count: 0, sectorSlug: slug });
+          }
+        } else {
+          setSectorEarnings({ count: 0, sectorSlug: null });
+        }
       } catch (e: any) {
         if (!cancelled) setError(e?.message || "Failed to load");
       } finally {
