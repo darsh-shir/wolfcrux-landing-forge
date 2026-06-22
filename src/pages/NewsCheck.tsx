@@ -18,6 +18,47 @@ const RISK_KEYWORDS = [
   "plunges", "surge", "tumbles", "ceo", "resign", "dividend", "split",
 ];
 
+// Finviz sector filter slugs
+const SECTOR_SLUGS: Record<string, string> = {
+  "basic materials": "basicmaterials",
+  "communication services": "communicationservices",
+  "consumer cyclical": "consumercyclical",
+  "consumer defensive": "consumerdefensive",
+  "energy": "energy",
+  "financial": "financial",
+  "financial services": "financial",
+  "healthcare": "healthcare",
+  "industrials": "industrials",
+  "real estate": "realestate",
+  "technology": "technology",
+  "utilities": "utilities",
+};
+
+// Compute the most-recent US market close (16:00 America/New_York) in the past, as a UTC Date.
+const getPrevCloseUTC = (): Date => {
+  const toET = (d: Date) => new Date(d.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const now = new Date();
+  const et = toET(now);
+  const pivotEt = new Date(et);
+  pivotEt.setHours(16, 0, 0, 0);
+  if (et.getTime() < pivotEt.getTime()) pivotEt.setDate(pivotEt.getDate() - 1);
+  while (pivotEt.getDay() === 0 || pivotEt.getDay() === 6) pivotEt.setDate(pivotEt.getDate() - 1);
+  // Convert ET wall-clock back to a real UTC instant
+  const guess = new Date(Date.UTC(
+    pivotEt.getFullYear(), pivotEt.getMonth(), pivotEt.getDate(),
+    pivotEt.getHours(), pivotEt.getMinutes(), 0
+  ));
+  const diff = guess.getTime() - toET(guess).getTime();
+  return new Date(guess.getTime() + diff);
+};
+
+// Parse Finviz screener "Total: N" count from result HTML
+const parseScreenerCount = (html: string): number => {
+  const m = html.match(/Total:\s*<\/b>\s*(\d+)/i) || html.match(/#1\s*\/\s*(\d+)/) || html.match(/Total:\s*(\d+)/i);
+  return m ? parseInt(m[1], 10) : 0;
+};
+
+
 const parseFinvizNews = (html: string): NewsItem[] => {
   try {
     const doc = new DOMParser().parseFromString(`<table>${html}</table>`, "text/html");
@@ -84,6 +125,8 @@ const NewsCheck = () => {
   const [snap, setSnap] = useState<Snapshot>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sectorEarnings, setSectorEarnings] = useState<{ count: number; sectorSlug: string | null }>({ count: 0, sectorSlug: null });
+  const prevCloseUTC = useMemo(() => getPrevCloseUTC(), [symbol]);
 
   useEffect(() => {
     document.title = symbol ? `${symbol} • News Check` : "News Check";
@@ -117,7 +160,26 @@ const NewsCheck = () => {
         try { const parsed = JSON.parse(qText); if (parsed?.html) qHtml = parsed.html; else if (parsed?.contents) qHtml = parsed.contents; } catch {}
         if (cancelled) return;
         setNews(parseFinvizNews(nJson?.html || ""));
-        setSnap(parseFinvizQuote(qHtml));
+        const parsedSnap = parseFinvizQuote(qHtml);
+        setSnap(parsedSnap);
+
+        // Sector earnings (this week) — only if we resolved a sector
+        const sectorKey = (parsedSnap.sector || "").toLowerCase().trim();
+        const slug = SECTOR_SLUGS[sectorKey] || null;
+        if (slug) {
+          try {
+            const screenerUrl = `https://finviz.com/screener.ashx?v=111&f=sec_${slug},earningsdate_thisweek`;
+            const sRes = await fetch(`${PROXY}${encodeURIComponent(screenerUrl)}`);
+            const sText = await sRes.text();
+            let sHtml = sText;
+            try { const p = JSON.parse(sText); if (p?.html) sHtml = p.html; else if (p?.contents) sHtml = p.contents; } catch {}
+            if (!cancelled) setSectorEarnings({ count: parseScreenerCount(sHtml), sectorSlug: slug });
+          } catch {
+            if (!cancelled) setSectorEarnings({ count: 0, sectorSlug: slug });
+          }
+        } else {
+          setSectorEarnings({ count: 0, sectorSlug: null });
+        }
       } catch (e: any) {
         if (!cancelled) setError(e?.message || "Failed to load");
       } finally {
@@ -150,6 +212,14 @@ const NewsCheck = () => {
       }
     }
 
+    // Post-close news — anything after the last US market close is overnight/premarket risk
+    const pivotMs = prevCloseUTC.getTime();
+    const postClose = news.filter((n) => n.rawDate && n.rawDate.getTime() > pivotMs);
+    if (postClose.length > 0) {
+      level = "red";
+      reasons.push(`${postClose.length} headline${postClose.length > 1 ? "s" : ""} since last close (${prevCloseUTC.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })})`);
+    }
+
     // Recent news check (last 24h)
     const now = Date.now();
     const recent = news.filter((n) => n.rawDate && (now - n.rawDate.getTime()) <= 24 * 3600 * 1000);
@@ -158,9 +228,20 @@ const NewsCheck = () => {
     else if (risky.length >= 1) { if (level === "green") level = "yellow"; reasons.push(`${risky.length} notable headline${risky.length > 1 ? "s" : ""} in last 24h`); }
     if (recent.length >= 8 && level === "green") { level = "yellow"; reasons.push(`Heavy news flow (${recent.length} items / 24h)`); }
 
+    // Sector-wide earnings risk
+    if (sectorEarnings.count > 0 && snap.sector) {
+      if (sectorEarnings.count >= 10) {
+        if (level !== "red") level = "yellow";
+        reasons.push(`${sectorEarnings.count} ${snap.sector} earnings this week — sector volatility risk`);
+      } else {
+        if (level === "green") level = "yellow";
+        reasons.push(`${sectorEarnings.count} ${snap.sector} earnings this week`);
+      }
+    }
+
     if (level === "green") reasons.push("No earnings, events or significant news detected");
-    return { level, reasons };
-  }, [news, snap, symbol]);
+    return { level, reasons, postClose };
+  }, [news, snap, symbol, prevCloseUTC, sectorEarnings]);
 
   const submit = (v?: string) => {
     const s = (v ?? input).trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, "");
@@ -249,9 +330,9 @@ const NewsCheck = () => {
                     { label: "Earnings", value: snap.earnings || "—" },
                     { label: "Sector", value: snap.sector || "—" },
                     { label: "Industry", value: snap.industry || "—" },
+                    { label: "Sector Earnings / Wk", value: sectorEarnings.sectorSlug ? String(sectorEarnings.count) : "—" },
+                    { label: "Since Last Close", value: String(verdict?.postClose?.length || 0) },
                     { label: "Headlines / 24h", value: String(news.filter((n) => n.rawDate && Date.now() - n.rawDate.getTime() <= 86400000).length) },
-                    { label: "Total Headlines", value: String(news.length) },
-                    { label: "Symbol", value: symbol },
                   ].map((kv) => (
                     <div key={kv.label} className="border border-border/40 rounded-md p-3 bg-muted/20">
                       <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{kv.label}</div>
@@ -259,6 +340,36 @@ const NewsCheck = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* Post-close (overnight / premarket) headlines */}
+                {verdict?.postClose && verdict.postClose.length > 0 && (
+                  <div className="rounded-md border border-red-500/40 bg-red-500/5">
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-red-500/30">
+                      <h3 className="font-mono text-[11px] uppercase tracking-[0.25em] text-red-600 dark:text-red-400 flex items-center gap-2">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        // Since Last Close ({prevCloseUTC.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })})
+                      </h3>
+                      <Badge variant="outline" className="font-mono text-[10px] border-red-500/40 text-red-600 dark:text-red-400">
+                        {verdict.postClose.length}
+                      </Badge>
+                    </div>
+                    <ul className="divide-y divide-red-500/20">
+                      {verdict.postClose.slice(0, 20).map((it, i) => (
+                        <li key={i}>
+                          <a href={it.url} target="_blank" rel="noopener noreferrer"
+                            className="grid grid-cols-[110px_1fr_auto] items-baseline gap-3 px-3 py-2 hover:bg-red-500/10 transition-colors group">
+                            <span className="font-mono text-[11px] tabular-nums text-red-600/80 dark:text-red-400/80">{it.date}</span>
+                            <span className="text-sm text-foreground group-hover:text-primary leading-snug">{it.headline}</span>
+                            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1 whitespace-nowrap">
+                              {it.source}
+                              <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100" />
+                            </span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Recent headlines */}
                 <div>
