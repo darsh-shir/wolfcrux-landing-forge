@@ -18,6 +18,47 @@ const RISK_KEYWORDS = [
   "plunges", "surge", "tumbles", "ceo", "resign", "dividend", "split",
 ];
 
+// Finviz sector filter slugs
+const SECTOR_SLUGS: Record<string, string> = {
+  "basic materials": "basicmaterials",
+  "communication services": "communicationservices",
+  "consumer cyclical": "consumercyclical",
+  "consumer defensive": "consumerdefensive",
+  "energy": "energy",
+  "financial": "financial",
+  "financial services": "financial",
+  "healthcare": "healthcare",
+  "industrials": "industrials",
+  "real estate": "realestate",
+  "technology": "technology",
+  "utilities": "utilities",
+};
+
+// Compute the most-recent US market close (16:00 America/New_York) in the past, as a UTC Date.
+const getPrevCloseUTC = (): Date => {
+  const toET = (d: Date) => new Date(d.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const now = new Date();
+  const et = toET(now);
+  const pivotEt = new Date(et);
+  pivotEt.setHours(16, 0, 0, 0);
+  if (et.getTime() < pivotEt.getTime()) pivotEt.setDate(pivotEt.getDate() - 1);
+  while (pivotEt.getDay() === 0 || pivotEt.getDay() === 6) pivotEt.setDate(pivotEt.getDate() - 1);
+  // Convert ET wall-clock back to a real UTC instant
+  const guess = new Date(Date.UTC(
+    pivotEt.getFullYear(), pivotEt.getMonth(), pivotEt.getDate(),
+    pivotEt.getHours(), pivotEt.getMinutes(), 0
+  ));
+  const diff = guess.getTime() - toET(guess).getTime();
+  return new Date(guess.getTime() + diff);
+};
+
+// Parse Finviz screener "Total: N" count from result HTML
+const parseScreenerCount = (html: string): number => {
+  const m = html.match(/Total:\s*<\/b>\s*(\d+)/i) || html.match(/#1\s*\/\s*(\d+)/) || html.match(/Total:\s*(\d+)/i);
+  return m ? parseInt(m[1], 10) : 0;
+};
+
+
 const parseFinvizNews = (html: string): NewsItem[] => {
   try {
     const doc = new DOMParser().parseFromString(`<table>${html}</table>`, "text/html");
