@@ -212,6 +212,14 @@ const NewsCheck = () => {
       }
     }
 
+    // Post-close news — anything after the last US market close is overnight/premarket risk
+    const pivotMs = prevCloseUTC.getTime();
+    const postClose = news.filter((n) => n.rawDate && n.rawDate.getTime() > pivotMs);
+    if (postClose.length > 0) {
+      level = "red";
+      reasons.push(`${postClose.length} headline${postClose.length > 1 ? "s" : ""} since last close (${prevCloseUTC.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })})`);
+    }
+
     // Recent news check (last 24h)
     const now = Date.now();
     const recent = news.filter((n) => n.rawDate && (now - n.rawDate.getTime()) <= 24 * 3600 * 1000);
@@ -220,9 +228,20 @@ const NewsCheck = () => {
     else if (risky.length >= 1) { if (level === "green") level = "yellow"; reasons.push(`${risky.length} notable headline${risky.length > 1 ? "s" : ""} in last 24h`); }
     if (recent.length >= 8 && level === "green") { level = "yellow"; reasons.push(`Heavy news flow (${recent.length} items / 24h)`); }
 
+    // Sector-wide earnings risk
+    if (sectorEarnings.count > 0 && snap.sector) {
+      if (sectorEarnings.count >= 10) {
+        if (level !== "red") level = "yellow";
+        reasons.push(`${sectorEarnings.count} ${snap.sector} earnings this week — sector volatility risk`);
+      } else {
+        if (level === "green") level = "yellow";
+        reasons.push(`${sectorEarnings.count} ${snap.sector} earnings this week`);
+      }
+    }
+
     if (level === "green") reasons.push("No earnings, events or significant news detected");
-    return { level, reasons };
-  }, [news, snap, symbol]);
+    return { level, reasons, postClose };
+  }, [news, snap, symbol, prevCloseUTC, sectorEarnings]);
 
   const submit = (v?: string) => {
     const s = (v ?? input).trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, "");
