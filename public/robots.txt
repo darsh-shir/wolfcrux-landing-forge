@@ -1,14 +1,22 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /newscheck
 
 User-agent: Bingbot
 Allow: /
+Disallow: /newscheck
 
 User-agent: Twitterbot
 Allow: /
+Disallow: /newscheck
+
+
 
 User-agent: facebookexternalhit
 Allow: /
+Disallow: /newscheck
+
+
 
 User-agent: *
 Allow: /

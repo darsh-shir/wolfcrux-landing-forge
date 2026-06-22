@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import MyData from "./pages/MyData";
 import Admin from "./pages/Admin";
 import Practice from "./pages/Practice";
+import NewsCheck from "./pages/NewsCheck";
 import NotFound from "./pages/NotFound";
 import { RouteTransition } from "@/components/RouteTransition";
 
@@ -42,6 +43,8 @@ const App = () => (
               <Route path="/my-data" element={<MyData />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/practice" element={<Practice />} />
+              <Route path="/newscheck/:ticker" element={<NewsCheck />} />
+              <Route path="/newscheck" element={<NewsCheck />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
