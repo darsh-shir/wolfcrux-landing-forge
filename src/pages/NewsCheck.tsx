@@ -341,6 +341,36 @@ const NewsCheck = () => {
                   ))}
                 </div>
 
+                {/* Post-close (overnight / premarket) headlines */}
+                {verdict?.postClose && verdict.postClose.length > 0 && (
+                  <div className="rounded-md border border-red-500/40 bg-red-500/5">
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-red-500/30">
+                      <h3 className="font-mono text-[11px] uppercase tracking-[0.25em] text-red-600 dark:text-red-400 flex items-center gap-2">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        // Since Last Close ({prevCloseUTC.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })})
+                      </h3>
+                      <Badge variant="outline" className="font-mono text-[10px] border-red-500/40 text-red-600 dark:text-red-400">
+                        {verdict.postClose.length}
+                      </Badge>
+                    </div>
+                    <ul className="divide-y divide-red-500/20">
+                      {verdict.postClose.slice(0, 20).map((it, i) => (
+                        <li key={i}>
+                          <a href={it.url} target="_blank" rel="noopener noreferrer"
+                            className="grid grid-cols-[110px_1fr_auto] items-baseline gap-3 px-3 py-2 hover:bg-red-500/10 transition-colors group">
+                            <span className="font-mono text-[11px] tabular-nums text-red-600/80 dark:text-red-400/80">{it.date}</span>
+                            <span className="text-sm text-foreground group-hover:text-primary leading-snug">{it.headline}</span>
+                            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1 whitespace-nowrap">
+                              {it.source}
+                              <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100" />
+                            </span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {/* Recent headlines */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
