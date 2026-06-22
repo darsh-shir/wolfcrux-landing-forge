@@ -330,9 +330,9 @@ const NewsCheck = () => {
                     { label: "Earnings", value: snap.earnings || "—" },
                     { label: "Sector", value: snap.sector || "—" },
                     { label: "Industry", value: snap.industry || "—" },
+                    { label: "Sector Earnings / Wk", value: sectorEarnings.sectorSlug ? String(sectorEarnings.count) : "—" },
+                    { label: "Since Last Close", value: String(verdict?.postClose?.length || 0) },
                     { label: "Headlines / 24h", value: String(news.filter((n) => n.rawDate && Date.now() - n.rawDate.getTime() <= 86400000).length) },
-                    { label: "Total Headlines", value: String(news.length) },
-                    { label: "Symbol", value: symbol },
                   ].map((kv) => (
                     <div key={kv.label} className="border border-border/40 rounded-md p-3 bg-muted/20">
                       <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{kv.label}</div>
