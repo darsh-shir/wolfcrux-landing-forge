@@ -10,13 +10,10 @@ User-agent: Twitterbot
 Allow: /
 Disallow: /newscheck
 
-
-
 User-agent: facebookexternalhit
 Allow: /
 Disallow: /newscheck
 
-
-
 User-agent: *
 Allow: /
+Disallow: /newscheck
