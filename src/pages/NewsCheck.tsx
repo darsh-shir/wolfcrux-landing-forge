@@ -125,6 +125,8 @@ const NewsCheck = () => {
   const [snap, setSnap] = useState<Snapshot>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sectorEarnings, setSectorEarnings] = useState<{ count: number; sectorSlug: string | null }>({ count: 0, sectorSlug: null });
+  const prevCloseUTC = useMemo(() => getPrevCloseUTC(), [symbol]);
 
   useEffect(() => {
     document.title = symbol ? `${symbol} • News Check` : "News Check";
