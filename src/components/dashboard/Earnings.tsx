@@ -356,13 +356,15 @@ const Earnings = () => {
               <div className="text-muted-foreground tracking-wider">
                 Q{earning?.fiscalPeriod}'{String(earning?.fiscalYear).slice(2)} · {formatMarketCap(s.marketCap)}
               </div>
-              <div className="flex items-center justify-end gap-2 mt-0.5">
-                <span className="tabular-nums">${s.price?.toFixed(2)}</span>
-                <span className={`tabular-nums font-semibold ${isPositive ? "text-emerald-600" : "text-red-500"}`}>
-                  {isPositive ? "+" : ""}
-                  {(s.change?.percent * 100).toFixed(2)}%
-                </span>
-              </div>
+              {s.price > 0 && (
+                <div className="flex items-center justify-end gap-2 mt-0.5">
+                  <span className="tabular-nums">${s.price?.toFixed(2)}</span>
+                  <span className={`tabular-nums font-semibold ${isPositive ? "text-emerald-600" : "text-red-500"}`}>
+                    {isPositive ? "+" : ""}
+                    {(s.change?.percent * 100).toFixed(2)}%
+                  </span>
+                </div>
+              )}
             </div>
             {isExpanded ? (
               <ChevronUp className="w-4 h-4 text-muted-foreground" />
