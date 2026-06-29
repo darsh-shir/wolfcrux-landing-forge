@@ -179,21 +179,23 @@ const EarningsOverview = () => {
                       </div>
                     </div>
                     <div className="text-right text-xs">
-                      <div className="flex items-center gap-1 justify-end">
-                        <span className="text-muted-foreground">${s.price?.toFixed(2)}</span>
-                        <span
-                          className={`flex items-center gap-0.5 ${
-                            s.change?.percent >= 0 ? "text-green-600" : "text-red-500"
-                          }`}
-                        >
-                          {s.change?.percent >= 0 ? (
-                            <TrendingUp className="w-3 h-3" />
-                          ) : (
-                            <TrendingDown className="w-3 h-3" />
-                          )}
-                          {Math.abs(s.change?.percent * 100).toFixed(1)}%
-                        </span>
-                      </div>
+                      {s.price > 0 && (
+                        <div className="flex items-center gap-1 justify-end">
+                          <span className="text-muted-foreground">${s.price?.toFixed(2)}</span>
+                          <span
+                            className={`flex items-center gap-0.5 ${
+                              s.change?.percent >= 0 ? "text-green-600" : "text-red-500"
+                            }`}
+                          >
+                            {s.change?.percent >= 0 ? (
+                              <TrendingUp className="w-3 h-3" />
+                            ) : (
+                              <TrendingDown className="w-3 h-3" />
+                            )}
+                            {Math.abs(s.change?.percent * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
                       <p className="text-muted-foreground font-mono">
                         {formatMC(s.marketCap)}
                       </p>
