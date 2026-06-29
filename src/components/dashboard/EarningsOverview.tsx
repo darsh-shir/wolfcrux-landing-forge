@@ -64,13 +64,11 @@ const EarningsOverview = () => {
     const fetchToday = async () => {
       try {
         const today = new Date().toISOString().split("T")[0];
-        const url = `https://www.tipranks.com/calendars/earnings/${today}/payload.json`;
-        const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
-        const json = await resp.json();
-        const tableData: EarningStock[] = json?.data?.tableData || [];
+        const { fetchPerplexityEarnings } = await import("@/lib/earnings");
+        const rows = await fetchPerplexityEarnings(today);
         const sessionRank = (s: string) =>
           s === "PreMarket" ? 1 : s === "AfterHours" ? 2 : 3;
-        const sorted = tableData
+        const sorted = rows
           .filter((s) =>
             s.earning?.reportOnTimeOfDay === "PreMarket" ||
             s.earning?.reportOnTimeOfDay === "AfterHours"
@@ -82,7 +80,7 @@ const EarningsOverview = () => {
             if (r !== 0) return r;
             return (b.marketCap || 0) - (a.marketCap || 0);
           });
-        setStocks(sorted);
+        setStocks(sorted as unknown as EarningStock[]);
       } catch (e) {
         console.error("Earnings overview fetch failed", e);
       } finally {
@@ -181,21 +179,23 @@ const EarningsOverview = () => {
                       </div>
                     </div>
                     <div className="text-right text-xs">
-                      <div className="flex items-center gap-1 justify-end">
-                        <span className="text-muted-foreground">${s.price?.toFixed(2)}</span>
-                        <span
-                          className={`flex items-center gap-0.5 ${
-                            s.change?.percent >= 0 ? "text-green-600" : "text-red-500"
-                          }`}
-                        >
-                          {s.change?.percent >= 0 ? (
-                            <TrendingUp className="w-3 h-3" />
-                          ) : (
-                            <TrendingDown className="w-3 h-3" />
-                          )}
-                          {Math.abs(s.change?.percent * 100).toFixed(1)}%
-                        </span>
-                      </div>
+                      {s.price > 0 && (
+                        <div className="flex items-center gap-1 justify-end">
+                          <span className="text-muted-foreground">${s.price?.toFixed(2)}</span>
+                          <span
+                            className={`flex items-center gap-0.5 ${
+                              s.change?.percent >= 0 ? "text-green-600" : "text-red-500"
+                            }`}
+                          >
+                            {s.change?.percent >= 0 ? (
+                              <TrendingUp className="w-3 h-3" />
+                            ) : (
+                              <TrendingDown className="w-3 h-3" />
+                            )}
+                            {Math.abs(s.change?.percent * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
                       <p className="text-muted-foreground font-mono">
                         {formatMC(s.marketCap)}
                       </p>
