@@ -223,7 +223,7 @@ const Earnings = () => {
       const diff = Math.abs(
         (new Date(d.date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24)
       );
-      return diff <= 14 && d.count > 0;
+      return diff <= 14;
     });
   }, [calendarDays]);
 
