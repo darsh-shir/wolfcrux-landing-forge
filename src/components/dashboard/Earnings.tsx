@@ -166,51 +166,40 @@ const Earnings = () => {
     }
   }, [peersCache]);
 
-  // Fetch calendar overview (dates + counts)
+  // Build a local 3-week window of dates (no overview API needed).
   const fetchCalendar = async () => {
     try {
       setLoading(true);
-      const today = new Date().toISOString().split("T")[0];
-      const url = `https://www.tipranks.com/calendars/earnings/${today}/payload.json`;
-      const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
-      const json = await resp.json();
-      const days: CalendarDay[] = (json?.data?.calendarData || []).map((d: any) => ({
-        date: d.date.split("T")[0],
-        count: d.count || 0,
-        topFollowedTickers: d.topFollowedTickers || [],
-      }));
-      setCalendarDays(days);
-
-      // Auto-select today
-      const todayEntry = days.find((d) => d.date === today);
-      if (todayEntry) {
-        setSelectedDate(today);
-      } else if (days.length > 0) {
-        // Find nearest future date with earnings
-        const future = days.filter((d) => d.date >= today && d.count > 0);
-        setSelectedDate(future.length > 0 ? future[0].date : days[0].date);
+      const today = new Date();
+      const todayStr = today.toISOString().split("T")[0];
+      const days: CalendarDay[] = [];
+      for (let i = -3; i <= 17; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + i);
+        days.push({ date: d.toISOString().split("T")[0], count: 0, topFollowedTickers: [] });
       }
-
-      // Also load tableData from the same response for today
-      const tableData = json?.data?.tableData || [];
-      setDayData(tableData);
+      setCalendarDays(days);
+      setSelectedDate(todayStr);
     } catch (e) {
-      console.error("Earnings calendar fetch failed", e);
+      console.error("Earnings calendar init failed", e);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch specific date's detailed data
+  // Fetch specific date's detailed data via Perplexity
   const fetchDateData = async (date: string) => {
     try {
       setDayLoading(true);
-      const url = `https://www.tipranks.com/calendars/earnings/${date}/payload.json`;
-      const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
-      const json = await resp.json();
-      setDayData(json?.data?.tableData || []);
+      const rows = await fetchPerplexityEarnings(date);
+      setDayData(rows as unknown as TipRanksStock[]);
+      // Update count for that day on the strip
+      setCalendarDays((prev) =>
+        prev.map((d) => (d.date === date ? { ...d, count: rows.length } : d))
+      );
     } catch (e) {
       console.error("Earnings date fetch failed", e);
+      setDayData([]);
     } finally {
       setDayLoading(false);
     }
