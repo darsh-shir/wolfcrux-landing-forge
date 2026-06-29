@@ -489,7 +489,7 @@ const Earnings = () => {
                     : "bg-card text-muted-foreground border-border/60 hover:border-foreground/40 hover:text-foreground"
                 }`}
               >
-                {isToday ? "TODAY · " : ""}{formatDisplayDate(d.date)} <span className="opacity-60">[{d.count}]</span>
+                {isToday ? "TODAY · " : ""}{formatDisplayDate(d.date)}{d.count > 0 && <span className="opacity-60"> [{d.count}]</span>}
               </button>
             );
           })}
