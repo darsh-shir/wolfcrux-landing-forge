@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Calendar, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { fetchPerplexityEarnings } from "@/lib/earnings";
 
 type PriceFilterValue =
   | "all"
