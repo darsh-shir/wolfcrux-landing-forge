@@ -64,13 +64,11 @@ const EarningsOverview = () => {
     const fetchToday = async () => {
       try {
         const today = new Date().toISOString().split("T")[0];
-        const url = `https://www.tipranks.com/calendars/earnings/${today}/payload.json`;
-        const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
-        const json = await resp.json();
-        const tableData: EarningStock[] = json?.data?.tableData || [];
+        const { fetchPerplexityEarnings } = await import("@/lib/earnings");
+        const rows = await fetchPerplexityEarnings(today);
         const sessionRank = (s: string) =>
           s === "PreMarket" ? 1 : s === "AfterHours" ? 2 : 3;
-        const sorted = tableData
+        const sorted = rows
           .filter((s) =>
             s.earning?.reportOnTimeOfDay === "PreMarket" ||
             s.earning?.reportOnTimeOfDay === "AfterHours"
@@ -82,7 +80,7 @@ const EarningsOverview = () => {
             if (r !== 0) return r;
             return (b.marketCap || 0) - (a.marketCap || 0);
           });
-        setStocks(sorted);
+        setStocks(sorted as unknown as EarningStock[]);
       } catch (e) {
         console.error("Earnings overview fetch failed", e);
       } finally {
