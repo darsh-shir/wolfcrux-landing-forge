@@ -440,10 +440,7 @@ const Earnings = () => {
           </span>
         </div>
 
-        {/* HEADER */}
-        <h3 className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground border-b border-border/50 pb-2">
-          // {formatHeaderDate(selectedDate)} · {sortedStocks.length} Earnings
-        </h3>
+        <div className="border-b border-border/50" />
 
         {dayLoading ? (
           <div className="flex items-center justify-center py-8">
