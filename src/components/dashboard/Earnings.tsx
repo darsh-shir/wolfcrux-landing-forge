@@ -1,31 +1,8 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { formatIndian } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Calendar, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 import { fetchPerplexityEarnings } from "@/lib/earnings";
-
-type PriceFilterValue =
-  | "all"
-  | "below_20" | "below_50" | "below_100" | "below_250" | "below_500"
-  | "above_20" | "above_50" | "above_100" | "above_250" | "above_500"
-  | "custom";
-
-const PRICE_OPTIONS: { value: PriceFilterValue; label: string }[] = [
-  { value: "all", label: "All prices" },
-  { value: "below_20", label: "Below $20" },
-  { value: "below_50", label: "Below $50" },
-  { value: "below_100", label: "Below $100" },
-  { value: "below_250", label: "Below $250" },
-  { value: "below_500", label: "Below $500" },
-  { value: "above_20", label: "Above $20" },
-  { value: "above_50", label: "Above $50" },
-  { value: "above_100", label: "Above $100" },
-  { value: "above_250", label: "Above $250" },
-  { value: "above_500", label: "Above $500" },
-  { value: "custom", label: "Custom…" },
-];
 
 const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
 
@@ -144,11 +121,6 @@ const Earnings = () => {
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
   const [peersCache, setPeersCache] = useState<Record<string, { loading: boolean; data: any[] }>>({});
 
-  // Price filter state — default "above $25" expressed via custom mode
-  const [priceFilter, setPriceFilter] = useState<PriceFilterValue>("custom");
-  const [customMode, setCustomMode] = useState<"above" | "below" | "between">("above");
-  const [customMin, setCustomMin] = useState<string>("25");
-  const [customMax, setCustomMax] = useState<string>("");
 
   const fetchPeers = useCallback(async (ticker: string) => {
     if (peersCache[ticker]) return;
@@ -241,46 +213,9 @@ const Earnings = () => {
     container.scrollTo({ left: Math.max(0, target), behavior: "auto" });
   }, [visibleDates]);
 
-  // Apply price filter
-  const priceFiltered = useMemo(() => {
-    const passes = (price: number) => {
-      if (price == null || isNaN(price)) return false;
-      switch (priceFilter) {
-        case "all": return true;
-        case "below_20": return price < 20;
-        case "below_50": return price < 50;
-        case "below_100": return price < 100;
-        case "below_250": return price < 250;
-        case "below_500": return price < 500;
-        case "above_20": return price > 20;
-        case "above_50": return price > 50;
-        case "above_100": return price > 100;
-        case "above_250": return price > 250;
-        case "above_500": return price > 500;
-        case "custom": {
-          const min = parseFloat(customMin);
-          const max = parseFloat(customMax);
-          if (customMode === "above") return !isNaN(min) ? price > min : true;
-          if (customMode === "below") return !isNaN(max) || !isNaN(min)
-            ? price < (!isNaN(max) ? max : min)
-            : true;
-          if (customMode === "between") {
-            if (isNaN(min) || isNaN(max)) return true;
-            const lo = Math.min(min, max);
-            const hi = Math.max(min, max);
-            return price >= lo && price <= hi;
-          }
-          return true;
-        }
-        default: return true;
-      }
-    };
-    return dayData.filter((s) => passes(s.price));
-  }, [dayData, priceFilter, customMode, customMin, customMax]);
-
   // Sort stocks by session: PRE first, then POST, secondary by market cap
   const sortedStocks = useMemo(() => {
-    const arr = [...priceFiltered];
+    const arr = [...dayData];
     return arr.sort((a, b) => {
       const sessionRank = (s: string) =>
         s === "PreMarket" ? 1 : s === "AfterHours" ? 2 : 3;
@@ -290,7 +225,7 @@ const Earnings = () => {
       if (rankDiff !== 0) return rankDiff;
       return (b.marketCap || 0) - (a.marketCap || 0);
     });
-  }, [priceFiltered]);
+  }, [dayData]);
 
   // Group by session
   const grouped = useMemo(() => {
@@ -495,86 +430,17 @@ const Earnings = () => {
           })}
         </div>
 
-        {/* PRICE FILTER */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">// Price</span>
-          <Select value={priceFilter} onValueChange={(v) => setPriceFilter(v as PriceFilterValue)}>
-            <SelectTrigger className="w-[180px] h-9">
-              <SelectValue placeholder="Select price range" />
-            </SelectTrigger>
-            <SelectContent>
-              {PRICE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {priceFilter === "custom" && (
-            <>
-              <Select value={customMode} onValueChange={(v) => setCustomMode(v as "above" | "below" | "between")}>
-                <SelectTrigger className="w-[120px] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="above">Above</SelectItem>
-                  <SelectItem value="below">Below</SelectItem>
-                  <SelectItem value="between">Between</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {customMode === "above" && (
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="Min $"
-                  value={customMin}
-                  onChange={(e) => setCustomMin(e.target.value)}
-                  className="w-[100px] h-9"
-                />
-              )}
-              {customMode === "below" && (
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="Max $"
-                  value={customMax}
-                  onChange={(e) => setCustomMax(e.target.value)}
-                  className="w-[100px] h-9"
-                />
-              )}
-              {customMode === "between" && (
-                <>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="Min $"
-                    value={customMin}
-                    onChange={(e) => setCustomMin(e.target.value)}
-                    className="w-[100px] h-9"
-                  />
-                  <span className="text-xs text-muted-foreground">–</span>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="Max $"
-                    value={customMax}
-                    onChange={(e) => setCustomMax(e.target.value)}
-                    className="w-[100px] h-9"
-                  />
-                </>
-              )}
-            </>
-          )}
-
-          <span className="ml-auto text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+        {/* COUNT */}
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+            // {formatHeaderDate(selectedDate)} · {sortedStocks.length} Earnings
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
             {sortedStocks.length} / {dayData.length}
           </span>
         </div>
 
-        {/* HEADER */}
-        <h3 className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground border-b border-border/50 pb-2">
-          // {formatHeaderDate(selectedDate)} · {sortedStocks.length} Earnings
-        </h3>
+        <div className="border-b border-border/50" />
 
         {dayLoading ? (
           <div className="flex items-center justify-center py-8">
