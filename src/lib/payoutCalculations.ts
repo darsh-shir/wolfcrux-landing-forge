@@ -151,8 +151,11 @@ export function getLeaveBalanceSummary(
     const fullDaysUsed = monthRecords.filter((r) => r.status === "absent").length;
     const halfDaysUsed = monthRecords.filter((r) => r.status === "half_day").length;
     const lateCount = monthRecords.filter((r) => r.status === "late").length;
-    const lateConverted = Math.floor(lateCount / 3) * 0.5;
-    const totalUsed = fullDaysUsed + halfDaysUsed * 0.5 + lateConverted;
+    // Every 3rd late = direct 2% payout deduction (does NOT touch leave balance)
+    const lateGroups = Math.floor(lateCount / 3);
+    const lateConverted = lateGroups * 0.5; // informational only
+    const latePayoutDeductionPct = lateGroups * 2;
+    const totalUsed = fullDaysUsed + halfDaysUsed * 0.5;
     const carryIn = runningCarry;
     const monthlyAllowance = 1.5;
     const monthPending = monthlyAllowance - totalUsed;
@@ -174,8 +177,9 @@ export function getLeaveBalanceSummary(
       endBalanceRaw,
       balance,
       excess,
-      deductionPercent: excess * 4,
+      deductionPercent: excess * 4 + latePayoutDeductionPct,
     };
+
 
     runningCarry = balance;
   }
@@ -279,9 +283,12 @@ export function calculateLeaveDeduction(
     const fullDaysUsed = monthRecords.filter((r) => r.status === "absent").length;
     const halfDaysUsed = monthRecords.filter((r) => r.status === "half_day").length;
     const lateCount = monthRecords.filter((r) => r.status === "late").length;
-    const lateConverted = Math.floor(lateCount / 3) * 0.5; // 3 lates = 0.5 day
+    // Every 3rd late = direct 2% payout deduction (does NOT touch leave balance)
+    const lateGroups = Math.floor(lateCount / 3);
+    const lateConverted = lateGroups * 0.5; // informational only
+    const latePayoutDeductionPct = lateGroups * 2;
 
-    const totalUsed = fullDaysUsed + halfDaysUsed * 0.5 + lateConverted;
+    const totalUsed = fullDaysUsed + halfDaysUsed * 0.5;
 
     const rawBalance = runningBalance - totalUsed;
     const balance = Math.max(0, rawBalance);
@@ -301,8 +308,9 @@ export function calculateLeaveDeduction(
     });
 
     if (m === selectedMonth) {
-      deductionPercent = excess * 4;
+      deductionPercent = excess * 4 + latePayoutDeductionPct;
     }
+
 
     runningBalance = balance;
   }
