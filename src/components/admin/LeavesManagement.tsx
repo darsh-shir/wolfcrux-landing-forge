@@ -846,8 +846,8 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                         </TableCell>
                         <TableCell className="text-center">
                           <span className="text-sm">{stats.lateCount}</span>
-                          {stats.lateConverted > 0 && (
-                            <span className="text-xs text-muted-foreground ml-1">(→{stats.lateConverted}d)</span>
+                          {Math.floor(stats.lateCount / 3) > 0 && (
+                            <span className="text-xs text-destructive ml-1">(-{Math.floor(stats.lateCount / 3) * 2}%)</span>
                           )}
                         </TableCell>
                         <TableCell className="text-center">
