@@ -164,9 +164,11 @@ const EarningsOverview = () => {
                           <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                             s.earning?.reportOnTimeOfDay === "PreMarket"
                               ? "bg-blue-100 text-blue-700"
-                              : "bg-purple-100 text-purple-700"
+                              : s.earning?.reportOnTimeOfDay === "AfterHours"
+                              ? "bg-purple-100 text-purple-700"
+                              : "bg-muted text-muted-foreground"
                           }`}>
-                            {s.earning?.reportOnTimeOfDay === "PreMarket" ? "PRE" : "POST"}
+                            {s.earning?.reportOnTimeOfDay === "PreMarket" ? "PRE" : s.earning?.reportOnTimeOfDay === "AfterHours" ? "POST" : "MKT"}
                           </span>
                         </p>
                         <p className="text-[11px] text-muted-foreground truncate max-w-[120px]">
