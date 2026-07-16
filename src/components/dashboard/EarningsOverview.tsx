@@ -69,10 +69,6 @@ const EarningsOverview = () => {
         const sessionRank = (s: string) =>
           s === "PreMarket" ? 1 : s === "AfterHours" ? 2 : 3;
         const sorted = rows
-          .filter((s) =>
-            s.earning?.reportOnTimeOfDay === "PreMarket" ||
-            s.earning?.reportOnTimeOfDay === "AfterHours"
-          )
           .sort((a, b) => {
             const r =
               sessionRank(a.earning?.reportOnTimeOfDay) -
