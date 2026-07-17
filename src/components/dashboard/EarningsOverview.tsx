@@ -66,17 +66,11 @@ const EarningsOverview = () => {
         const today = new Date().toISOString().split("T")[0];
         const { fetchPerplexityEarnings } = await import("@/lib/earnings");
         const rows = await fetchPerplexityEarnings(today);
-        const sessionRank = (s: string) =>
-          s === "PreMarket" ? 1 : s === "AfterHours" ? 2 : 3;
-        const sorted = rows
-          .sort((a, b) => {
-            const r =
-              sessionRank(a.earning?.reportOnTimeOfDay) -
-              sessionRank(b.earning?.reportOnTimeOfDay);
-            if (r !== 0) return r;
-            return (b.marketCap || 0) - (a.marketCap || 0);
-          });
-        setStocks(sorted as unknown as EarningStock[]);
+        // Overview shows PreMarket only, sorted by market cap.
+        const preOnly = rows
+          .filter((r) => r.earning?.reportOnTimeOfDay === "PreMarket")
+          .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
+        setStocks(preOnly as unknown as EarningStock[]);
       } catch (e) {
         console.error("Earnings overview fetch failed", e);
       } finally {
