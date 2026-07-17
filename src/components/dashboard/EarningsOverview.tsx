@@ -86,7 +86,7 @@ const EarningsOverview = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5" />
-            // Today's Earnings
+            // Today's Pre-Market Earnings
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -106,7 +106,7 @@ const EarningsOverview = () => {
         <CardHeader className="pb-3">
         <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
           <Calendar className="w-3.5 h-3.5" />
-          // Today's Earnings
+          // Today's Pre-Market Earnings
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -121,7 +121,7 @@ const EarningsOverview = () => {
       <CardHeader className="pb-3">
         <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
           <Calendar className="w-3.5 h-3.5" />
-          // Today's Earnings
+          // Today's Pre-Market Earnings
           <span className="ml-auto text-[10px] font-mono text-muted-foreground tabular-nums">
             {stocks.length} TOTAL
           </span>
