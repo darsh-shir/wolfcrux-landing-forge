@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { formatIndian } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
-import { fetchPerplexityEarnings } from "@/lib/earnings";
+import { fetchPerplexityEarnings, fetchTipranksCalendar } from "@/lib/earnings";
 
 const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
 
@@ -138,7 +138,7 @@ const Earnings = () => {
     }
   }, [peersCache]);
 
-  // Build a local 3-week window of dates (no overview API needed).
+  // Build a 3-week window of dates and hydrate counts from TipRanks calendar.
   const fetchCalendar = async () => {
     try {
       setLoading(true);
@@ -152,6 +152,21 @@ const Earnings = () => {
       }
       setCalendarDays(days);
       setSelectedDate(todayStr);
+
+      // Fetch calendar counts (TipRanks returns ~120 days from the queried date).
+      const cal = await fetchTipranksCalendar(todayStr);
+      const map = new Map(cal.map((c) => [c.date, c]));
+      setCalendarDays((prev) =>
+        prev.map((d) =>
+          map.has(d.date)
+            ? {
+                ...d,
+                count: map.get(d.date)!.count,
+                topFollowedTickers: map.get(d.date)!.topFollowedTickers,
+              }
+            : d
+        )
+      );
     } catch (e) {
       console.error("Earnings calendar init failed", e);
     } finally {

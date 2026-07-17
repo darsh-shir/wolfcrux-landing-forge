@@ -66,17 +66,11 @@ const EarningsOverview = () => {
         const today = new Date().toISOString().split("T")[0];
         const { fetchPerplexityEarnings } = await import("@/lib/earnings");
         const rows = await fetchPerplexityEarnings(today);
-        const sessionRank = (s: string) =>
-          s === "PreMarket" ? 1 : s === "AfterHours" ? 2 : 3;
-        const sorted = rows
-          .sort((a, b) => {
-            const r =
-              sessionRank(a.earning?.reportOnTimeOfDay) -
-              sessionRank(b.earning?.reportOnTimeOfDay);
-            if (r !== 0) return r;
-            return (b.marketCap || 0) - (a.marketCap || 0);
-          });
-        setStocks(sorted as unknown as EarningStock[]);
+        // Overview shows PreMarket only, sorted by market cap.
+        const preOnly = rows
+          .filter((r) => r.earning?.reportOnTimeOfDay === "PreMarket")
+          .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
+        setStocks(preOnly as unknown as EarningStock[]);
       } catch (e) {
         console.error("Earnings overview fetch failed", e);
       } finally {
@@ -92,7 +86,7 @@ const EarningsOverview = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5" />
-            // Today's Earnings
+            // Today's Pre-Market Earnings
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -112,7 +106,7 @@ const EarningsOverview = () => {
         <CardHeader className="pb-3">
         <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
           <Calendar className="w-3.5 h-3.5" />
-          // Today's Earnings
+          // Today's Pre-Market Earnings
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -127,7 +121,7 @@ const EarningsOverview = () => {
       <CardHeader className="pb-3">
         <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
           <Calendar className="w-3.5 h-3.5" />
-          // Today's Earnings
+          // Today's Pre-Market Earnings
           <span className="ml-auto text-[10px] font-mono text-muted-foreground tabular-nums">
             {stocks.length} TOTAL
           </span>

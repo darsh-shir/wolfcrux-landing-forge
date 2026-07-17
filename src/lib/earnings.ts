@@ -1,7 +1,7 @@
-// Perplexity finance earnings adapter.
-// Maps the public Perplexity earnings endpoint to the existing
-// TipRanks-shaped objects the Earnings UI already understands so the
-// rest of the component code keeps working unchanged.
+// TipRanks earnings adapter.
+// Fetches https://www.tipranks.com/calendars/earnings/YYYY-MM-DD/payload.json
+// via the Cloudflare proxy and returns rows in the shape the Earnings UI
+// already expects.
 
 const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
 
@@ -37,72 +37,86 @@ export interface NormalizedEarning {
   smartScore: { value: number };
 }
 
-const sessionFromIso = (iso: string): string => {
-  try {
-    const d = new Date(iso);
-    // Convert to ET wall clock to classify session.
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/New_York",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).formatToParts(d);
-    const h = parseInt(parts.find((p) => p.type === "hour")?.value || "0", 10);
-    const m = parseInt(parts.find((p) => p.type === "minute")?.value || "0", 10);
-    const mins = h * 60 + m;
-    if (mins < 9 * 60 + 30) return "PreMarket";
-    if (mins >= 16 * 60) return "AfterHours";
-    return "Other";
-  } catch {
-    return "Other";
-  }
-};
+export interface EarningsCalendarDay {
+  date: string; // YYYY-MM-DD
+  count: number;
+  topFollowedTickers: string[];
+}
 
-const periodNum = (p?: string | number | null): number => {
-  if (typeof p === "number") return p;
-  if (!p) return 0;
-  const m = String(p).match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : 0;
-};
-
-export const fetchPerplexityEarnings = async (
-  date: string // YYYY-MM-DD
-): Promise<NormalizedEarning[]> => {
-  const url = `https://www.perplexity.ai/rest/finance/earnings?date=${date}&timezone=America%2FNew_York&country=US`;
-  const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
-  if (!resp.ok) return [];
-  const json = await resp.json();
-  const items: any[] = Array.isArray(json) ? json : json?.data || [];
-
-  return items.map((r) => ({
-    ticker: r.symbol || "",
-    name: r.companyName || r.symbol || "",
-    sector: r.sector || "",
-    marketCap: Number(r.mktCap) || 0,
-    price: 0,
-    change: { percent: 0, amount: 0 },
+const mapRow = (r: any): NormalizedEarning => {
+  const e = r?.earning || {};
+  const c = r?.analystRatings?.consensus || {};
+  return {
+    ticker: r?.ticker || "",
+    name: r?.name || r?.ticker || "",
+    sector: r?.sector || "",
+    marketCap: Number(r?.marketCap) || 0,
+    price: Number(r?.price) || 0,
+    change: {
+      percent: Number(r?.change?.percent) || 0,
+      amount: Number(r?.change?.amount) || 0,
+    },
     earning: {
-      isConfirm: r.status === "confirmed" || !!r.status,
-      reportOnTimeOfDay: sessionFromIso(r.date),
-      value: Number(r.estimatedEps) || 0,
-      lastYearValue: 0,
-      fiscalPeriod: periodNum(r.fiscalPeriod),
-      fiscalYear: Number(r.fiscalYear) || 0,
-      salesEstimate: Number(r.estimatedRevenue) || 0,
-      lowEstimateEps: 0,
-      highEstimateEps: 0,
-      reportedEPS: r.actualEps ?? null,
+      isConfirm: !!e.isConfirm,
+      reportOnTimeOfDay: e.reportOnTimeOfDay || "Other",
+      value: Number(e.value) || 0,
+      lastYearValue: Number(e.lastYearValue) || 0,
+      fiscalPeriod: Number(e.fiscalPeriod) || 0,
+      fiscalYear: Number(e.fiscalYear) || 0,
+      salesEstimate: Number(e.salesEstimate) || 0,
+      lowEstimateEps: Number(e.lowEstimateEps) || 0,
+      highEstimateEps: Number(e.highEstimateEps) || 0,
+      reportedEPS: e.reportedEPS ?? null,
     },
     analystRatings: {
       consensus: {
-        id: "",
-        buy: 0,
-        sell: 0,
-        hold: 0,
-        total: 0,
-        priceTarget: { value: 0 },
+        id: c.id || "",
+        buy: Number(c.buy) || 0,
+        sell: Number(c.sell) || 0,
+        hold: Number(c.hold) || 0,
+        total: Number(c.total) || 0,
+        priceTarget: { value: Number(c?.priceTarget?.value) || 0 },
       },
     },
-    smartScore: { value: 0 },
-  }));
+    smartScore: { value: Number(r?.smartScore?.value) || 0 },
+  };
+};
+
+const fetchTipranks = async (date: string) => {
+  const url = `https://www.tipranks.com/calendars/earnings/${date}/payload.json`;
+  const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
+  if (!resp.ok) return null;
+  return resp.json();
+};
+
+export const fetchPerplexityEarnings = async (
+  date: string
+): Promise<NormalizedEarning[]> => {
+  try {
+    const json = await fetchTipranks(date);
+    const rows: any[] = json?.data?.tableData || [];
+    return rows.map(mapRow);
+  } catch (e) {
+    console.error("TipRanks earnings fetch failed", e);
+    return [];
+  }
+};
+
+export const fetchTipranksCalendar = async (
+  date: string
+): Promise<EarningsCalendarDay[]> => {
+  try {
+    const json = await fetchTipranks(date);
+    const items: any[] = json?.data?.calendarData || [];
+    return items.map((d) => ({
+      date: (d?.date || "").split("T")[0],
+      count: Number(d?.count) || 0,
+      topFollowedTickers: Array.isArray(d?.topFollowedTickers)
+        ? d.topFollowedTickers
+        : [],
+    }));
+  } catch (e) {
+    console.error("TipRanks calendar fetch failed", e);
+    return [];
+  }
 };
