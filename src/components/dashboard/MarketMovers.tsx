@@ -101,8 +101,8 @@ const MarketMovers = ({
         ) : data.length === 0 ? (
           <p className="text-xs text-muted-foreground py-2">No data.</p>
         ) : (
-          data.map((item, i) => (
-            <MoverRow key={item.symbol} item={item} rank={i} type={type} />
+          data.map((item) => (
+            <MoverRow key={item.symbol} item={item} type={type} />
           ))
         )}
       </div>
