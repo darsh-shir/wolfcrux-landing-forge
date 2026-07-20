@@ -5,10 +5,9 @@ import AnimatedNumber from "@/components/AnimatedNumber";
 
 interface MoverData {
   symbol: string;
+  name?: string;
   price: number;
   changesPercentage: number;
-  image?: string;
-  imageDark?: string;
 }
 
 interface MarketMoversProps {
