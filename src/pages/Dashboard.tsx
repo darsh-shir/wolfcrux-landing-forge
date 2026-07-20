@@ -255,7 +255,6 @@ const Dashboard = () => {
       fetchSentiment(),
       fetchIndices(),
       fetchSectors(),
-      fetchMovers(),
       fetchNews(),
       fetchEconomicCalendar(),
     ]);
@@ -268,6 +267,24 @@ const Dashboard = () => {
     const interval = setInterval(fetchAll, 30000);
     return () => clearInterval(interval);
   }, [fetchAll]);
+
+  /* ===================== MOVERS — ONCE PER DAY ===================== */
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("wolfcrux-movers-cache");
+      if (cached) {
+        const { date, g, l, a } = JSON.parse(cached);
+        if (date === new Date().toDateString()) {
+          setGainers(g);
+          setLosers(l);
+          setActives(a);
+          setLoadingMovers(false);
+          return;
+        }
+      }
+    } catch {}
+    fetchMovers();
+  }, []);
 
   /* ===================== SENTIMENT 10s REFRESH ===================== */
   useEffect(() => {
