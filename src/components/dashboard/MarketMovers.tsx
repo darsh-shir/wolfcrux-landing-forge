@@ -5,10 +5,9 @@ import AnimatedNumber from "@/components/AnimatedNumber";
 
 interface MoverData {
   symbol: string;
+  name?: string;
   price: number;
   changesPercentage: number;
-  image?: string;
-  imageDark?: string;
 }
 
 interface MarketMoversProps {
@@ -78,20 +77,15 @@ const MoverRow = ({
         {String(rank + 1).padStart(2, "0")}
       </span>
 
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        {item.image && (
-          <img
-            src={item.image}
-            alt={item.symbol}
-            className="w-5 h-5 rounded-sm object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
-          />
-        )}
+      <div className="flex flex-col min-w-0 flex-1">
         <span className="text-sm font-mono font-bold text-foreground truncate">
           {item.symbol}
         </span>
+        {item.name && (
+          <span className="text-[10px] text-muted-foreground truncate">
+            {item.name}
+          </span>
+        )}
       </div>
 
       <div className="text-right">
@@ -142,17 +136,19 @@ const MarketMovers = ({
         </span>
       </div>
 
-      {loading ? (
-        [...Array(4)].map((_, i) => (
-          <div key={i} className="skeleton-shimmer h-12 rounded" />
-        ))
-      ) : data.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2">No data.</p>
-      ) : (
-        data.slice(0, 4).map((item, i) => (
-          <MoverRow key={item.symbol} item={item} rank={i} type={type} />
-        ))
-      )}
+      <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 scrollbar-thin">
+        {loading ? (
+          [...Array(6)].map((_, i) => (
+            <div key={i} className="skeleton-shimmer h-12 rounded" />
+          ))
+        ) : data.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-2">No data.</p>
+        ) : (
+          data.map((item, i) => (
+            <MoverRow key={item.symbol} item={item} rank={i} type={type} />
+          ))
+        )}
+      </div>
     </div>
   );
 
