@@ -187,15 +187,39 @@ const Dashboard = () => {
     try {
       setLoadingMovers(true);
 
-      const url = encodeURIComponent(
-        "https://www.perplexity.ai/rest/finance/top-movers/market?country=US"
-      );
-      const response = await fetch(`${PROXY_URL}${url}`);
-      const data = await response.json();
+      const endpoints = [
+        "https://tr-cdn.tipranks.com/research/prod/markets/top-gainers/payload.json?ver=0",
+        "https://tr-cdn.tipranks.com/research/prod/markets/top-losers/payload.json?ver=0",
+        "https://tr-cdn.tipranks.com/research/prod/markets/most-active-stocks/payload.json?ver=0",
+      ];
 
-      setGainers((data?.gainers || []).slice(0, 5));
-      setLosers((data?.losers || []).slice(0, 5));
-      setActives((data?.actives || []).slice(0, 5));
+      const mapRow = (r: any): MoverData => ({
+        symbol: r.ticker || r.symbol || "",
+        name: r.name || r.fullName || "",
+        price: parseFloat(r.price ?? 0),
+        changesPercentage:
+          (parseFloat(r?.change?.percent ?? r?.lastChange?.percent ?? 0)) * 100,
+      });
+
+      const extract = (data: any): any[] => {
+        const container = data?.StocksOnTheMoveScreener?.data || data?.data || {};
+        const firstArrayKey = Object.keys(container).find((k) =>
+          Array.isArray(container[k])
+        );
+        return firstArrayKey ? container[firstArrayKey] : [];
+      };
+
+      const results = await Promise.all(
+        endpoints.map((u) =>
+          fetch(`${PROXY_URL}${encodeURIComponent(u)}`)
+            .then((r) => r.json())
+            .catch(() => ({}))
+        )
+      );
+
+      setGainers(extract(results[0]).map(mapRow));
+      setLosers(extract(results[1]).map(mapRow));
+      setActives(extract(results[2]).map(mapRow));
     } catch (e) {
       console.error("Mover fetch failed", e);
     } finally {
