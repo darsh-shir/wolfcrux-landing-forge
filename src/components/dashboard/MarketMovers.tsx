@@ -136,17 +136,19 @@ const MarketMovers = ({
         </span>
       </div>
 
-      {loading ? (
-        [...Array(4)].map((_, i) => (
-          <div key={i} className="skeleton-shimmer h-12 rounded" />
-        ))
-      ) : data.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2">No data.</p>
-      ) : (
-        data.slice(0, 4).map((item, i) => (
-          <MoverRow key={item.symbol} item={item} rank={i} type={type} />
-        ))
-      )}
+      <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 scrollbar-thin">
+        {loading ? (
+          [...Array(6)].map((_, i) => (
+            <div key={i} className="skeleton-shimmer h-12 rounded" />
+          ))
+        ) : data.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-2">No data.</p>
+        ) : (
+          data.map((item, i) => (
+            <MoverRow key={item.symbol} item={item} rank={i} type={type} />
+          ))
+        )}
+      </div>
     </div>
   );
 
