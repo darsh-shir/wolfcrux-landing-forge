@@ -77,20 +77,15 @@ const MoverRow = ({
         {String(rank + 1).padStart(2, "0")}
       </span>
 
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        {item.image && (
-          <img
-            src={item.image}
-            alt={item.symbol}
-            className="w-5 h-5 rounded-sm object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
-          />
-        )}
+      <div className="flex flex-col min-w-0 flex-1">
         <span className="text-sm font-mono font-bold text-foreground truncate">
           {item.symbol}
         </span>
+        {item.name && (
+          <span className="text-[10px] text-muted-foreground truncate">
+            {item.name}
+          </span>
+        )}
       </div>
 
       <div className="text-right">
