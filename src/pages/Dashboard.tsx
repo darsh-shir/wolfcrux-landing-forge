@@ -217,9 +217,13 @@ const Dashboard = () => {
         )
       );
 
-      setGainers(extract(results[0]).map(mapRow));
-      setLosers(extract(results[1]).map(mapRow));
-      setActives(extract(results[2]).map(mapRow));
+      const g = extract(results[0]).map(mapRow).sort((a, b) => b.changesPercentage - a.changesPercentage);
+      const l = extract(results[1]).map(mapRow).sort((a, b) => a.changesPercentage - b.changesPercentage);
+      const a = extract(results[2]).map(mapRow).sort((x, y) => Math.abs(y.changesPercentage) - Math.abs(x.changesPercentage));
+      setGainers(g);
+      setLosers(l);
+      setActives(a);
+      try { localStorage.setItem("wolfcrux-movers-cache", JSON.stringify({ date: new Date().toDateString(), g, l, a })); } catch {}
     } catch (e) {
       console.error("Mover fetch failed", e);
     } finally {
@@ -251,7 +255,6 @@ const Dashboard = () => {
       fetchSentiment(),
       fetchIndices(),
       fetchSectors(),
-      fetchMovers(),
       fetchNews(),
       fetchEconomicCalendar(),
     ]);
@@ -264,6 +267,24 @@ const Dashboard = () => {
     const interval = setInterval(fetchAll, 30000);
     return () => clearInterval(interval);
   }, [fetchAll]);
+
+  /* ===================== MOVERS — ONCE PER DAY ===================== */
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("wolfcrux-movers-cache");
+      if (cached) {
+        const { date, g, l, a } = JSON.parse(cached);
+        if (date === new Date().toDateString()) {
+          setGainers(g);
+          setLosers(l);
+          setActives(a);
+          setLoadingMovers(false);
+          return;
+        }
+      }
+    } catch {}
+    fetchMovers();
+  }, []);
 
   /* ===================== SENTIMENT 10s REFRESH ===================== */
   useEffect(() => {

@@ -1,7 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Activity, Flame } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import AnimatedNumber from "@/components/AnimatedNumber";
 
 interface MoverData {
   symbol: string;
@@ -17,35 +15,14 @@ interface MarketMoversProps {
   loading: boolean;
 }
 
-/** Brief flash effect when a price changes between renders. */
-const useFlash = (value: number) => {
-  const prev = useRef<number | null>(null);
-  const [flash, setFlash] = useState<"up" | "down" | null>(null);
-  useEffect(() => {
-    if (prev.current === null) {
-      prev.current = value;
-      return;
-    }
-    if (value === prev.current) return;
-    setFlash(value > prev.current ? "up" : "down");
-    prev.current = value;
-    const id = setTimeout(() => setFlash(null), 700);
-    return () => clearTimeout(id);
-  }, [value]);
-  return flash;
-};
-
 const MoverRow = ({
   item,
-  rank,
   type,
 }: {
   item: MoverData;
-  rank: number;
   type: "gainer" | "loser" | "active";
 }) => {
   const isPositive = item.changesPercentage >= 0;
-  const flash = useFlash(item.price);
 
   const tint =
     type === "active"
@@ -61,22 +38,8 @@ const MoverRow = ({
       ? "text-emerald-600"
       : "text-red-600";
 
-  const flashClass =
-    flash === "up"
-      ? "ring-1 ring-emerald-500/40 bg-emerald-500/10"
-      : flash === "down"
-      ? "ring-1 ring-red-500/40 bg-red-500/10"
-      : "";
-
   return (
-    <div
-      className={`relative px-2.5 py-2 rounded-md border ${tint} ${flashClass} flex items-center gap-2 transition-all duration-500 animate-fade-in`}
-      style={{ animationDelay: `${rank * 50}ms` }}
-    >
-      <span className="text-[10px] font-mono text-muted-foreground w-4 text-center">
-        {String(rank + 1).padStart(2, "0")}
-      </span>
-
+    <div className={`relative px-2.5 py-2 rounded-md border ${tint} flex items-center gap-2`}>
       <div className="flex flex-col min-w-0 flex-1">
         <span className="text-sm font-mono font-bold text-foreground truncate">
           {item.symbol}
@@ -90,13 +53,7 @@ const MoverRow = ({
 
       <div className="text-right">
         <p className="text-xs font-mono font-semibold text-foreground tabular-nums">
-          $
-          <AnimatedNumber
-            value={item.price}
-            format={(n) => n.toFixed(2)}
-            resetKey={item.price}
-            duration={700}
-          />
+          ${item.price.toFixed(2)}
         </p>
         <p className={`text-[11px] font-mono font-bold tabular-nums ${textColor}`}>
           {isPositive ? "+" : ""}
@@ -144,8 +101,8 @@ const MarketMovers = ({
         ) : data.length === 0 ? (
           <p className="text-xs text-muted-foreground py-2">No data.</p>
         ) : (
-          data.map((item, i) => (
-            <MoverRow key={item.symbol} item={item} rank={i} type={type} />
+          data.map((item) => (
+            <MoverRow key={item.symbol} item={item} type={type} />
           ))
         )}
       </div>
