@@ -188,9 +188,9 @@ const Dashboard = () => {
       setLoadingMovers(true);
 
       const endpoints = [
-        "https://tr-cdn.tipranks.com/research/prod/markets/top-gainers/payload.json?ver=0",
-        "https://tr-cdn.tipranks.com/research/prod/markets/top-losers/payload.json?ver=0",
-        "https://tr-cdn.tipranks.com/research/prod/markets/most-active-stocks/payload.json?ver=0",
+        "https://tr-cdn.tipranks.com/research/prod/markets/top-gainers/payload.json",
+        "https://tr-cdn.tipranks.com/research/prod/markets/top-losers/payload.json",
+        "https://tr-cdn.tipranks.com/research/prod/markets/most-active-stocks/payload.json",
       ];
 
       const mapRow = (r: any): MoverData => ({
