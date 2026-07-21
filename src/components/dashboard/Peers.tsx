@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, TrendingUp, TrendingDown, Loader2, ChevronDown, ChevronUp, ExternalLink, Sparkles, ArrowRight } from "lucide-react";
-
-const PROXY_URL = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+import { fetchTipranksSimilar } from "@/lib/tipranksPeers";
 
 /**
  * Curated peer pairs traders frequently watch together.
