@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, TrendingUp, TrendingDown, Loader2, ChevronDown, ChevronUp, ExternalLink, Sparkles, ArrowRight } from "lucide-react";
-
-const PROXY_URL = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+import { fetchTipranksSimilar } from "@/lib/tipranksPeers";
 
 /**
  * Curated peer pairs traders frequently watch together.
@@ -196,26 +195,10 @@ const Peers = () => {
     setDescExpanded(false);
 
     try {
-      const [peersRes, profileRes, quoteRes] = await Promise.all([
-        fetch(`${PROXY_URL}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/peers/${trimmed}?version=2.18&source=default`)}`),
-        fetch(`${PROXY_URL}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/profile/${trimmed}`)}`),
-        fetch(`${PROXY_URL}${encodeURIComponent(`https://www.perplexity.ai/rest/finance/quote/${trimmed}`)}`),
-      ]);
-
-      const peersData = await peersRes.json();
-      const items: PeerData[] = Array.isArray(peersData) ? peersData : [];
-      items.sort((a, b) => b.marketCap - a.marketCap);
-      setPeers(items);
-
-      const profileData = await profileRes.json();
-      if (profileData && profileData.symbol) {
-        setProfile(profileData);
-      }
-
-      const quoteData = await quoteRes.json();
-      if (quoteData && quoteData.symbol) {
-        setQuote(quoteData);
-      }
+      const { profile: pf, quote: qt, peers: pr } = await fetchTipranksSimilar(trimmed);
+      setPeers(pr as any);
+      if (pf) setProfile(pf as any);
+      if (qt) setQuote(qt as any);
     } catch (e) {
       console.error("Fetch failed", e);
       setPeers([]);
