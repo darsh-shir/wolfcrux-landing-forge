@@ -253,41 +253,31 @@ const CompareStocks = () => {
     setProfile(null);
     setPeers([]);
     try {
-      const [profileRes, peersRes] = await Promise.all([
-        fetch(
-          `${PROXY_URL}${encodeURIComponent(
-            `https://www.perplexity.ai/rest/finance/profile/${sym}`
-          )}`
-        ),
-        fetch(
-          `${PROXY_URL}${encodeURIComponent(
-            `https://www.perplexity.ai/rest/finance/peers/${sym}?version=2.18&source=default`
-          )}`
-        ),
-      ]);
-      const profileData = await profileRes.json();
-      const peersData = await peersRes.json();
-      if (profileData && profileData.symbol) {
+      const { fetchTipranksSimilar } = await import("@/lib/tipranksPeers");
+      const { profile: pf, peers: pr } = await fetchTipranksSimilar(sym);
+      if (pf && pf.symbol) {
         setProfile({
-          symbol: profileData.symbol,
-          companyName: profileData.companyName,
-          sector: profileData.sector,
-          industry: profileData.industry,
-          image: profileData.image,
+          symbol: pf.symbol,
+          companyName: pf.companyName,
+          sector: pf.sector,
+          industry: pf.industry,
         });
-        // Auto-add the searched stock to the comparison
-        if (!symbols.find((s) => s.symbol === profileData.symbol)) {
-          addSymbol(profileData.symbol);
+        if (!symbols.find((s) => s.symbol === pf.symbol)) {
+          addSymbol(pf.symbol);
         }
       } else {
         setPeerError("Symbol not found");
       }
-      if (Array.isArray(peersData)) {
-        const sorted = [...peersData].sort(
-          (a, b) => (b.marketCap || 0) - (a.marketCap || 0)
-        );
-        setPeers(sorted);
-      }
+      setPeers(
+        pr.map((p) => ({
+          symbol: p.symbol,
+          name: p.name,
+          price: p.price,
+          changesPercentage: p.changesPercentage,
+          marketCap: p.marketCap,
+          exchange: p.exchange,
+        }))
+      );
     } catch (e) {
       setPeerError("Failed to load peers");
     } finally {
