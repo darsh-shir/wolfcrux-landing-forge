@@ -82,8 +82,35 @@ const FinvizNews = ({ onSymbolSubmit }: Props) => {
     }
   };
 
+  const loadDefault = async () => {
+    if (inflight.current) return;
+    inflight.current = true;
+    setLoading(true);
+    try {
+      const target = "https://tr-cdn.tipranks.com/blog/prod/news/data/sideBarV2/payload.json";
+      const res = await fetch(`${PROXY}${encodeURIComponent(target)}`);
+      const json = await res.json();
+      const posts = json?.posts?.more || [];
+      const mapped: FinvizItem[] = posts.map((p: any) => ({
+        date: p.timeAgo || "",
+        headline: p.title || "",
+        url: p.link ? `https://www.tipranks.com${p.link}` : "#",
+        source: p.author?.name || "TipRanks",
+      })).filter((i: FinvizItem) => i.headline);
+      setItems(mapped);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+      inflight.current = false;
+    }
+  };
+
   useEffect(() => {
-    if (!symbol) return;
+    if (!symbol) {
+      loadDefault();
+      return;
+    }
     load(symbol);
     onSymbolSubmit?.(symbol);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,7 +147,7 @@ const FinvizNews = ({ onSymbolSubmit }: Props) => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground flex items-center gap-2">
               <Rss className="w-3.5 h-3.5" />
-              // Finviz Wire{symbol ? <> · <span className="text-foreground">{symbol}</span></> : null}
+              // Finviz Wire{symbol ? <> · <span className="text-foreground">{symbol}</span></> : <> · <span className="text-foreground">MARKET</span></>}
             </CardTitle>
             <span className="flex items-center gap-1.5 text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-sm">
               <Radio className="w-3 h-3 animate-pulse" />
@@ -161,11 +188,7 @@ const FinvizNews = ({ onSymbolSubmit }: Props) => {
       </CardHeader>
 
       <CardContent className="p-0">
-        {!symbol && !loading ? (
-          <p className="text-sm font-mono text-muted-foreground text-center py-10 uppercase tracking-wider">
-            // Enter a symbol or pick a suggestion
-          </p>
-        ) : loading && items.length === 0 ? (
+        {loading && items.length === 0 ? (
           <div className="p-4 space-y-3">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="skeleton-shimmer h-5 w-full" />
@@ -173,7 +196,7 @@ const FinvizNews = ({ onSymbolSubmit }: Props) => {
           </div>
         ) : items.length === 0 ? (
           <p className="text-sm font-mono text-muted-foreground text-center py-10 uppercase tracking-wider">
-            // No headlines for {symbol}
+            // No headlines{symbol ? ` for ${symbol}` : ""}
           </p>
         ) : (
           <div className="max-h-[560px] overflow-y-auto divide-y divide-border/40">
