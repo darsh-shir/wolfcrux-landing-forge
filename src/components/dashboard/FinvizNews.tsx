@@ -147,7 +147,7 @@ const FinvizNews = ({ onSymbolSubmit }: Props) => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground flex items-center gap-2">
               <Rss className="w-3.5 h-3.5" />
-              // Finviz Wire{symbol ? <> · <span className="text-foreground">{symbol}</span></> : null}
+              // Finviz Wire{symbol ? <> · <span className="text-foreground">{symbol}</span></> : <> · <span className="text-foreground">MARKET</span></>}
             </CardTitle>
             <span className="flex items-center gap-1.5 text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-sm">
               <Radio className="w-3 h-3 animate-pulse" />
