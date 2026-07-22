@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Newspaper, Radio } from "lucide-react";
+import { Newspaper, Radio, ExternalLink, Clock } from "lucide-react";
 
 interface NewsOverviewProps {
   data: any[];
@@ -18,7 +18,7 @@ const NewsOverview = ({ data, loading }: NewsOverviewProps) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
+            {[...Array(4)].map((_, i) => (
               <div key={i} className="space-y-2">
                 <div className="skeleton-shimmer h-4 w-full" />
                 <div className="skeleton-shimmer h-3 w-3/4" />
@@ -46,22 +46,55 @@ const NewsOverview = ({ data, loading }: NewsOverviewProps) => {
       </CardHeader>
 
       <CardContent>
-        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-          {posts.slice(0, 5).map((item: any, i: number) => (
-            <div
-              key={i}
-              className="relative pl-3 border-l-2 border-border hover:border-foreground transition-colors pb-3 animate-fade-in"
-              style={{ animationDelay: `${i * 70}ms` }}
-            >
-              <span className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-foreground/70" />
-              <h3 className="text-sm font-semibold text-foreground leading-snug">
-                {item.headline}
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-3 font-mono">
-                {item.text}
-              </p>
-            </div>
-          ))}
+        <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+          {posts.slice(0, 8).map((item: any, i: number) => {
+            const title = item.title || item.headline;
+            const desc = item.description || item.text;
+            const tickers: string[] = item.tickers || [];
+            const Wrap: any = item.link ? "a" : "div";
+            const wrapProps = item.link
+              ? { href: item.link, target: "_blank", rel: "noopener noreferrer" }
+              : {};
+            return (
+              <Wrap
+                key={i}
+                {...wrapProps}
+                className="group relative pl-3 border-l-2 border-border hover:border-foreground transition-colors pb-3 block animate-fade-in"
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
+                <span className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-foreground/70" />
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-foreground leading-snug group-hover:underline">
+                    {title}
+                  </h3>
+                  {item.link && (
+                    <ExternalLink className="w-3 h-3 mt-1 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+                  )}
+                </div>
+                {desc && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2 font-mono">
+                    {desc}
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  {item.timeAgo && (
+                    <span className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                      <Clock className="w-2.5 h-2.5" />
+                      {item.timeAgo}
+                    </span>
+                  )}
+                  {tickers.slice(0, 5).map((t) => (
+                    <span
+                      key={t}
+                      className="text-[10px] font-mono font-semibold text-foreground/80 bg-muted/60 border border-border/50 px-1.5 py-0.5 rounded-sm"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </Wrap>
+            );
+          })}
 
           {posts.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">
