@@ -236,12 +236,22 @@ const Dashboard = () => {
     try {
       setLoadingNews(true);
       const url = encodeURIComponent(
-        "https://www.perplexity.ai/rest/finance/general-news/market?country=US"
+        "https://tr-cdn.tipranks.com/blog/prod/news/data/sideBarV2/payload.json"
       );
       const response = await fetch(`${PROXY_URL}${url}`);
       const data = await response.json();
-
-      setNewsPosts(data?.posts || []);
+      const items = data?.posts?.more || [];
+      setNewsPosts(
+        items.map((p: any) => ({
+          title: p.title,
+          description: p.description,
+          timeAgo: p.timeAgo,
+          date: p.date,
+          link: p.link ? `https://www.tipranks.com${p.link}` : null,
+          tickers: (p.stocks || []).map((s: any) => s.ticker).filter(Boolean),
+          author: p.author?.name,
+        }))
+      );
     } catch (e) {
       console.error("News fetch failed", e);
     } finally {
