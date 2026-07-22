@@ -3,8 +3,7 @@ import { formatIndian } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
-
-const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+import { fetchTipranksSimilar } from "@/lib/tipranksPeers";
 
 interface EarningStock {
   ticker: string;
