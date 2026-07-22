@@ -3,8 +3,7 @@ import { formatIndian } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
-
-const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+import { fetchTipranksSimilar } from "@/lib/tipranksPeers";
 
 interface EarningStock {
   ticker: string;
@@ -48,12 +47,8 @@ const EarningsOverview = () => {
     if (peersCache[ticker]) return;
     setPeersCache((p) => ({ ...p, [ticker]: { loading: true, data: [] } }));
     try {
-      const url = `https://www.perplexity.ai/rest/finance/peers/${ticker}?version=2.18&source=default`;
-      const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
-      const json = await resp.json();
-      const items = Array.isArray(json) ? json : [];
-      items.sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0));
-      setPeersCache((p) => ({ ...p, [ticker]: { loading: false, data: items } }));
+      const { peers } = await fetchTipranksSimilar(ticker);
+      setPeersCache((p) => ({ ...p, [ticker]: { loading: false, data: peers } }));
     } catch (e) {
       console.error("Peers fetch failed", e);
       setPeersCache((p) => ({ ...p, [ticker]: { loading: false, data: [] } }));
