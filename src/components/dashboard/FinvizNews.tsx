@@ -82,8 +82,35 @@ const FinvizNews = ({ onSymbolSubmit }: Props) => {
     }
   };
 
+  const loadDefault = async () => {
+    if (inflight.current) return;
+    inflight.current = true;
+    setLoading(true);
+    try {
+      const target = "https://tr-cdn.tipranks.com/blog/prod/news/data/sideBarV2/payload.json";
+      const res = await fetch(`${PROXY}${encodeURIComponent(target)}`);
+      const json = await res.json();
+      const posts = json?.posts?.more || [];
+      const mapped: FinvizItem[] = posts.map((p: any) => ({
+        date: p.timeAgo || "",
+        headline: p.title || "",
+        url: p.link ? `https://www.tipranks.com${p.link}` : "#",
+        source: p.author?.name || "TipRanks",
+      })).filter((i: FinvizItem) => i.headline);
+      setItems(mapped);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+      inflight.current = false;
+    }
+  };
+
   useEffect(() => {
-    if (!symbol) return;
+    if (!symbol) {
+      loadDefault();
+      return;
+    }
     load(symbol);
     onSymbolSubmit?.(symbol);
     // eslint-disable-next-line react-hooks/exhaustive-deps
