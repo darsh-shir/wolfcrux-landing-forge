@@ -188,11 +188,7 @@ const FinvizNews = ({ onSymbolSubmit }: Props) => {
       </CardHeader>
 
       <CardContent className="p-0">
-        {!symbol && !loading ? (
-          <p className="text-sm font-mono text-muted-foreground text-center py-10 uppercase tracking-wider">
-            // Enter a symbol or pick a suggestion
-          </p>
-        ) : loading && items.length === 0 ? (
+        {loading && items.length === 0 ? (
           <div className="p-4 space-y-3">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="skeleton-shimmer h-5 w-full" />
@@ -200,7 +196,7 @@ const FinvizNews = ({ onSymbolSubmit }: Props) => {
           </div>
         ) : items.length === 0 ? (
           <p className="text-sm font-mono text-muted-foreground text-center py-10 uppercase tracking-wider">
-            // No headlines for {symbol}
+            // No headlines{symbol ? ` for ${symbol}` : ""}
           </p>
         ) : (
           <div className="max-h-[560px] overflow-y-auto divide-y divide-border/40">
