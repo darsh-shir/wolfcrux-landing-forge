@@ -462,6 +462,10 @@ const Dashboard = () => {
                 <SectorPerformance
                   data={sectors}
                   loading={loadingSectors}
+                  onSelect={(s) => {
+                    setSelectedSector(s);
+                    setSectorDialogOpen(true);
+                  }}
                 />
 
                 <MarketMovers
