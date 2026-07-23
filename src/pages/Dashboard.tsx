@@ -24,6 +24,7 @@ import TickerTape from "@/components/dashboard/TickerTape";
 import MarketClock from "@/components/dashboard/MarketClock";
 import MarketPulse from "@/components/dashboard/MarketPulse";
 import { useTickerWatchlist } from "@/hooks/useTickerWatchlist";
+import SectorDetailDialog from "@/components/dashboard/SectorDetailDialog";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
