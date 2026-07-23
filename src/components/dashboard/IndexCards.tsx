@@ -91,6 +91,10 @@ const Sparkline = ({
 
 const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) => {
   const nameMap: Record<string, string> = {
+    SPY: "S&P 500",
+    QQQ: "NASDAQ",
+    DIA: "Dow Jones",
+    VXX: "VIX",
     ESUSD: "S&P Futures",
     NQUSD: "NASDAQ Futures",
     YMUSD: "Dow Futures",
@@ -104,11 +108,12 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
         name: nameMap[item.symbol] || item.name,
       }))
     : [
-        { symbol: "ESUSD", name: "S&P Futures", price: 6846.25, change: -2.25, changesPercentage: -0.03, history: [] },
-        { symbol: "NQUSD", name: "NASDAQ Futures", price: 25670.25, change: -29.5, changesPercentage: -0.11, history: [] },
-        { symbol: "YMUSD", name: "Dow Futures", price: 47604, change: -9, changesPercentage: -0.02, history: [] },
-        { symbol: "^VIX", name: "VIX", price: 16.93, change: 0.27, changesPercentage: 1.62, history: [] },
+        { symbol: "SPY", name: "S&P 500", price: 0, change: 0, changesPercentage: 0, history: [] },
+        { symbol: "QQQ", name: "NASDAQ", price: 0, change: 0, changesPercentage: 0, history: [] },
+        { symbol: "DIA", name: "Dow Jones", price: 0, change: 0, changesPercentage: 0, history: [] },
+        { symbol: "VXX", name: "VIX", price: 0, change: 0, changesPercentage: 0, history: [] },
       ];
+
 
   if (loading && data.length === 0) {
     return (
