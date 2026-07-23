@@ -42,6 +42,7 @@ interface IndexData {
 interface SectorData {
   name: string;
   changesPercentage: number;
+  ticker?: string;
 }
 
 interface MoverData {
