@@ -123,34 +123,52 @@ const Dashboard = () => {
   }, []);
 
   /* ===================== FETCH INDICES ===================== */
+  const INDEX_MAP: Record<string, string> = {
+    SPY: "S&P 500",
+    QQQ: "NASDAQ",
+    DIA: "Dow Jones",
+    VXX: "VIX",
+  };
+
   const fetchIndices = async () => {
     try {
       setLoadingIndices(true);
+      const tickers = Object.keys(INDEX_MAP).join("%2C");
       const url = encodeURIComponent(
-        "https://www.perplexity.ai/rest/finance/top-indices/market?with_history=true&history_period=1d&country=US"
+        `https://marketsv3.tipranks.com/api/quotes/GetQuotes?app_name=tr&v=2&tickers=${tickers}`
       );
       const response = await fetch(`${PROXY_URL}${url}`);
       const data = await response.json();
-      const items = data?.data || data?.indices || data || [];
+      const quotes: any[] = data?.quotes || [];
 
-      if (Array.isArray(items)) {
-        setIndices(
-          items.map((item: any) => ({
-            symbol: item.symbol || item.ticker || "",
-            name: item.name || item.display_name || "",
-            price: parseFloat(item.price || item.last_price || 0),
-            change: parseFloat(item.change || 0),
-            changesPercentage: parseFloat(item.changesPercentage || 0),
-            history: (item.history || []).map((h: any) => h.close || 0),
-          }))
-        );
-      }
+      const mapped = Object.keys(INDEX_MAP).map((sym) => {
+        const q = quotes.find((x) => x?.ticker === sym);
+        if (!q) {
+          return { symbol: sym, name: INDEX_MAP[sym], price: 0, change: 0, changesPercentage: 0, history: [] };
+        }
+        const isClosed = q?.isMarketOpen === false;
+        const pp = q?.prePostMarket;
+        const price = isClosed && pp?.price ? Number(pp.price) : Number(q.price);
+        const change = isClosed && pp ? Number(pp.changeAmount) : Number(q.changeAmount);
+        const changePct = isClosed && pp ? Number(pp.changePercent) : Number(q.changePercent);
+        return {
+          symbol: sym,
+          name: INDEX_MAP[sym],
+          price: isFinite(price) ? price : 0,
+          change: isFinite(change) ? change : 0,
+          changesPercentage: isFinite(changePct) ? changePct : 0,
+          history: [],
+        };
+      });
+
+      setIndices(mapped);
     } catch (e) {
       console.error("Indices fetch failed", e);
     } finally {
       setLoadingIndices(false);
     }
   };
+
 
   /* ===================== FETCH SECTORS ===================== */
   const SECTOR_MAP: Record<string, string> = {
