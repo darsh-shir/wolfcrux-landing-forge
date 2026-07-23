@@ -208,6 +208,7 @@ const Dashboard = () => {
             : q.changePercent;
           return {
             name: SECTOR_MAP[q.ticker] || q.ticker,
+            ticker: q.ticker,
             changesPercentage: Number(changesPercentage) || 0,
           };
         });
