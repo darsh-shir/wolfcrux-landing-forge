@@ -6,14 +6,16 @@ import AnimatedNumber from "@/components/AnimatedNumber";
 interface SectorData {
   name: string;
   changesPercentage: number;
+  ticker?: string;
 }
 
 interface SectorPerformanceProps {
   data: SectorData[];
   loading: boolean;
+  onSelect?: (sector: SectorData) => void;
 }
 
-const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
+const SectorPerformance = ({ data, loading, onSelect }: SectorPerformanceProps) => {
   const sectors = (
     data.length > 0
       ? data
