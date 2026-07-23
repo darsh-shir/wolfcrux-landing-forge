@@ -35,25 +35,41 @@ const LEGACY_KEY_PREFIX = "wolfcrux:ticker-watchlist:";
 
 const sanitize = (s: string) => s.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, "");
 
-const fetchQuote = async (symbol: string): Promise<TickerQuote | null> => {
+const fetchQuotes = async (symbols: string[]): Promise<TickerQuote[]> => {
+  if (symbols.length === 0) return [];
   try {
-    const target = `https://www.perplexity.ai/rest/finance/quote/${encodeURIComponent(
-      symbol
-    )}?with_history=false&with_ui_hints=false`;
+    const joined = symbols.map((s) => encodeURIComponent(s)).join("%2C");
+    const target = `https://marketsv3.tipranks.com/api/quotes/GetQuotes?app_name=tr&v=2&tickers=${joined}`;
     const res = await fetch(`${PROXY_URL}${encodeURIComponent(target)}`);
-    if (!res.ok) return null;
+    if (!res.ok) return [];
     const d = await res.json();
-    if (!d?.symbol || typeof d.price !== "number") return null;
-    return {
-      symbol: d.symbol,
-      name: d.name,
-      price: Number(d.price) || 0,
-      change: Number(d.change) || 0,
-      changesPercentage: Number(d.changesPercentage) || 0,
-    };
+    const quotes = Array.isArray(d?.quotes) ? d.quotes : [];
+    return quotes
+      .map((q: any): TickerQuote | null => {
+        if (!q?.ticker) return null;
+        const isClosed = q?.isMarketOpen === false;
+        const pp = q?.prePostMarket;
+        const price = isClosed && pp?.price ? Number(pp.price) : Number(q.price);
+        const change = isClosed && pp ? Number(pp.changeAmount) : Number(q.changeAmount);
+        const changePct = isClosed && pp ? Number(pp.changePercent) : Number(q.changePercent);
+        if (!isFinite(price) || price <= 0) return null;
+        return {
+          symbol: q.ticker,
+          name: q.companyName,
+          price,
+          change: isFinite(change) ? change : 0,
+          changesPercentage: isFinite(changePct) ? changePct : 0,
+        };
+      })
+      .filter((q: TickerQuote | null): q is TickerQuote => !!q);
   } catch {
-    return null;
+    return [];
   }
+};
+
+const fetchQuote = async (symbol: string): Promise<TickerQuote | null> => {
+  const list = await fetchQuotes([symbol]);
+  return list[0] ?? null;
 };
 
 /**
