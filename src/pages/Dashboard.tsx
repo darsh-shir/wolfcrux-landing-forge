@@ -522,6 +522,13 @@ const Dashboard = () => {
           </Tabs>
         </main>
       </div>
+      <SectorDetailDialog
+        open={sectorDialogOpen}
+        onOpenChange={setSectorDialogOpen}
+        ticker={selectedSector?.ticker ?? null}
+        sectorName={selectedSector?.name ?? null}
+        changePct={selectedSector?.changesPercentage}
+      />
     </>
   );
 };
