@@ -135,8 +135,7 @@ export const useTickerWatchlist = () => {
     if (inflight.current) return;
     inflight.current = true;
     try {
-      const results = await Promise.all(allSymbols.map(fetchQuote));
-      const clean = results.filter((q): q is TickerQuote => !!q);
+      const clean = await fetchQuotes(allSymbols);
       if (clean.length > 0) setQuotes(clean);
     } finally {
       inflight.current = false;
