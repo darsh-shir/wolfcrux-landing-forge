@@ -133,7 +133,7 @@ const SectorPerformance = ({ data, loading, onSelect }: SectorPerformanceProps) 
                     duration={900}
                   />
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>
