@@ -65,6 +65,8 @@ interface SentimentData {
 const Dashboard = () => {
   const [indices, setIndices] = useState<IndexData[]>([]);
   const [sectors, setSectors] = useState<SectorData[]>([]);
+  const [selectedSector, setSelectedSector] = useState<SectorData | null>(null);
+  const [sectorDialogOpen, setSectorDialogOpen] = useState(false);
   const [gainers, setGainers] = useState<MoverData[]>([]);
   const [losers, setLosers] = useState<MoverData[]>([]);
   const [actives, setActives] = useState<MoverData[]>([]);
