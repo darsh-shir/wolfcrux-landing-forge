@@ -24,6 +24,7 @@ import TickerTape from "@/components/dashboard/TickerTape";
 import MarketClock from "@/components/dashboard/MarketClock";
 import MarketPulse from "@/components/dashboard/MarketPulse";
 import { useTickerWatchlist } from "@/hooks/useTickerWatchlist";
+import SectorDetailDialog from "@/components/dashboard/SectorDetailDialog";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
@@ -42,6 +43,7 @@ interface IndexData {
 interface SectorData {
   name: string;
   changesPercentage: number;
+  ticker?: string;
 }
 
 interface MoverData {
@@ -63,6 +65,8 @@ interface SentimentData {
 const Dashboard = () => {
   const [indices, setIndices] = useState<IndexData[]>([]);
   const [sectors, setSectors] = useState<SectorData[]>([]);
+  const [selectedSector, setSelectedSector] = useState<SectorData | null>(null);
+  const [sectorDialogOpen, setSectorDialogOpen] = useState(false);
   const [gainers, setGainers] = useState<MoverData[]>([]);
   const [losers, setLosers] = useState<MoverData[]>([]);
   const [actives, setActives] = useState<MoverData[]>([]);
@@ -208,6 +212,7 @@ const Dashboard = () => {
             : q.changePercent;
           return {
             name: SECTOR_MAP[q.ticker] || q.ticker,
+            ticker: q.ticker,
             changesPercentage: Number(changesPercentage) || 0,
           };
         });
@@ -457,6 +462,10 @@ const Dashboard = () => {
                 <SectorPerformance
                   data={sectors}
                   loading={loadingSectors}
+                  onSelect={(s) => {
+                    setSelectedSector(s);
+                    setSectorDialogOpen(true);
+                  }}
                 />
 
                 <MarketMovers
@@ -513,6 +522,13 @@ const Dashboard = () => {
           </Tabs>
         </main>
       </div>
+      <SectorDetailDialog
+        open={sectorDialogOpen}
+        onOpenChange={setSectorDialogOpen}
+        ticker={selectedSector?.ticker ?? null}
+        sectorName={selectedSector?.name ?? null}
+        changePct={selectedSector?.changesPercentage}
+      />
     </>
   );
 };

@@ -6,14 +6,16 @@ import AnimatedNumber from "@/components/AnimatedNumber";
 interface SectorData {
   name: string;
   changesPercentage: number;
+  ticker?: string;
 }
 
 interface SectorPerformanceProps {
   data: SectorData[];
   loading: boolean;
+  onSelect?: (sector: SectorData) => void;
 }
 
-const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
+const SectorPerformance = ({ data, loading, onSelect }: SectorPerformanceProps) => {
   const sectors = (
     data.length > 0
       ? data
@@ -81,9 +83,11 @@ const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
             const barWidth = (Math.abs(sector.changesPercentage) / maxAbs) * 100;
 
             return (
-              <div
+              <button
+                type="button"
                 key={sector.name}
-                className="group relative flex items-center gap-2 sm:gap-3 py-1.5 px-2 sm:px-3 rounded-md hover:bg-muted/40 transition-colors animate-fade-in"
+                onClick={() => onSelect?.(sector)}
+                className="w-full text-left group relative flex items-center gap-2 sm:gap-3 py-1.5 px-2 sm:px-3 rounded-md hover:bg-muted/40 transition-colors animate-fade-in cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/40"
                 style={{ animationDelay: `${i * 35}ms` }}
               >
                 <div className="shrink-0">
@@ -129,7 +133,7 @@ const SectorPerformance = ({ data, loading }: SectorPerformanceProps) => {
                     duration={900}
                   />
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>
