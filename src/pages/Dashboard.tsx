@@ -153,21 +153,46 @@ const Dashboard = () => {
   };
 
   /* ===================== FETCH SECTORS ===================== */
+  const SECTOR_MAP: Record<string, string> = {
+    XLK: "Technology",
+    XLE: "Energy",
+    XLY: "Consumer Discretionary",
+    XLP: "Consumer Staples",
+    XLC: "Communication Services",
+    XLI: "Industrials",
+    XLF: "Financials",
+    XLU: "Utilities",
+    XLB: "Materials",
+    XLRE: "Real Estate",
+    XLV: "Healthcare",
+  };
+
   const fetchSectors = async () => {
     try {
       setLoadingSectors(true);
+      const tickers = Object.keys(SECTOR_MAP).join("%2C");
       const url = encodeURIComponent(
-        "https://www.perplexity.ai/rest/finance/equity-sectors"
+        `https://marketsv3.tipranks.com/api/quotes/GetQuotes?app_name=tr&v=2&tickers=${tickers}`
       );
       const response = await fetch(`${PROXY_URL}${url}`);
       const data = await response.json();
-      const items = data?.data || data || [];
+      const quotes: any[] = data?.quotes || [];
 
-      if (Array.isArray(items)) {
-        const mapped = items.map((item: any) => ({
-          name: item.name || item.sector || "",
-          changesPercentage: parseFloat(item.changesPercentage || 0),
-        }));
+      if (Array.isArray(quotes) && quotes.length > 0) {
+        // Prefer pre/post-market change if market is closed and pre/post data exists
+        const mapped = quotes.map((q) => {
+          const usePrePost =
+            !q.isMarketOpen &&
+            q.prePostMarket &&
+            typeof q.prePostMarket.changePercent === "number";
+          const changesPercentage = usePrePost
+            ? q.prePostMarket.changePercent
+            : q.changePercent;
+          return {
+            name: SECTOR_MAP[q.ticker] || q.ticker,
+            changesPercentage: Number(changesPercentage) || 0,
+          };
+        });
 
         mapped.sort(
           (a, b) => Math.abs(b.changesPercentage) - Math.abs(a.changesPercentage)
