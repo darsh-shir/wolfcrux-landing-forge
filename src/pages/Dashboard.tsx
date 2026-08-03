@@ -4,6 +4,8 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock, LineChart, Activity } from "lucide-react";
+import { normalizeTipranksQuote } from "@/lib/tipranksQuote";
+
 
 // Dashboard components
 import IndexCards from "@/components/dashboard/IndexCards";
@@ -147,23 +149,20 @@ const Dashboard = () => {
 
       const mapped = Object.keys(INDEX_MAP).map((sym) => {
         const q = quotes.find((x) => x?.ticker === sym);
-        if (!q) {
+        const n = q ? normalizeTipranksQuote(q) : null;
+        if (!n) {
           return { symbol: sym, name: INDEX_MAP[sym], price: 0, change: 0, changesPercentage: 0, history: [] };
         }
-        const isClosed = q?.isMarketOpen === false;
-        const pp = q?.prePostMarket;
-        const price = isClosed && pp?.price ? Number(pp.price) : Number(q.price);
-        const change = isClosed && pp ? Number(pp.changeAmount) : Number(q.changeAmount);
-        const changePct = isClosed && pp ? Number(pp.changePercent) : Number(q.changePercent);
         return {
           symbol: sym,
           name: INDEX_MAP[sym],
-          price: isFinite(price) ? price : 0,
-          change: isFinite(change) ? change : 0,
-          changesPercentage: isFinite(changePct) ? changePct : 0,
+          price: n.price,
+          change: n.change,
+          changesPercentage: n.changesPercentage,
           history: [],
         };
       });
+
 
       setIndices(mapped);
     } catch (e) {
@@ -201,21 +200,16 @@ const Dashboard = () => {
       const quotes: any[] = data?.quotes || [];
 
       if (Array.isArray(quotes) && quotes.length > 0) {
-        // Prefer pre/post-market change if market is closed and pre/post data exists
+        // Uses pre/post-market price vs prior close when the regular session is shut
         const mapped = quotes.map((q) => {
-          const usePrePost =
-            !q.isMarketOpen &&
-            q.prePostMarket &&
-            typeof q.prePostMarket.changePercent === "number";
-          const changesPercentage = usePrePost
-            ? q.prePostMarket.changePercent
-            : q.changePercent;
+          const n = normalizeTipranksQuote(q);
           return {
             name: SECTOR_MAP[q.ticker] || q.ticker,
             ticker: q.ticker,
-            changesPercentage: Number(changesPercentage) || 0,
+            changesPercentage: n?.changesPercentage ?? 0,
           };
         });
+
 
         mapped.sort(
           (a, b) => Math.abs(b.changesPercentage) - Math.abs(a.changesPercentage)

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { normalizeTipranksQuotes } from "@/lib/tipranksQuote";
+
 
 /**
  * Industry leaders shown by default in the live ticker tape.
@@ -43,29 +45,18 @@ const fetchQuotes = async (symbols: string[]): Promise<TickerQuote[]> => {
     const res = await fetch(`${PROXY_URL}${encodeURIComponent(target)}`);
     if (!res.ok) return [];
     const d = await res.json();
-    const quotes = Array.isArray(d?.quotes) ? d.quotes : [];
-    return quotes
-      .map((q: any): TickerQuote | null => {
-        if (!q?.ticker) return null;
-        const isClosed = q?.isMarketOpen === false;
-        const pp = q?.prePostMarket;
-        const price = isClosed && pp?.price ? Number(pp.price) : Number(q.price);
-        const change = isClosed && pp ? Number(pp.changeAmount) : Number(q.changeAmount);
-        const changePct = isClosed && pp ? Number(pp.changePercent) : Number(q.changePercent);
-        if (!isFinite(price) || price <= 0) return null;
-        return {
-          symbol: q.ticker,
-          name: q.companyName,
-          price,
-          change: isFinite(change) ? change : 0,
-          changesPercentage: isFinite(changePct) ? changePct : 0,
-        };
-      })
-      .filter((q: TickerQuote | null): q is TickerQuote => !!q);
+    return normalizeTipranksQuotes(d).map((q) => ({
+      symbol: q.symbol,
+      name: q.name,
+      price: q.price,
+      change: q.change,
+      changesPercentage: q.changesPercentage,
+    }));
   } catch {
     return [];
   }
 };
+
 
 const fetchQuote = async (symbol: string): Promise<TickerQuote | null> => {
   const list = await fetchQuotes([symbol]);
