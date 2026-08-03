@@ -4,6 +4,8 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock, LineChart, Activity } from "lucide-react";
+import { normalizeTipranksQuote } from "@/lib/tipranksQuote";
+
 
 // Dashboard components
 import IndexCards from "@/components/dashboard/IndexCards";
