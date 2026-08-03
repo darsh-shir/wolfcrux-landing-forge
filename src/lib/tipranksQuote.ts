@@ -38,10 +38,13 @@ export const normalizeTipranksQuote = (q: any): NormalizedQuote | null => {
   const ppPrice = pp ? num(pp.price) : null;
 
   if (closed && ppPrice && ppPrice > 0) {
-    // Baseline = last regular-session close
-    const base = num(q.lastClose) ?? regularPrice ?? 0;
+    // Baseline = last regular-session close price (`price`), which is what
+    // TipRanks measures prePostMarket against. `lastClose` is the close BEFORE
+    // that session, so using it double-counts the previous day's move.
+    const base = regularPrice > 0 ? regularPrice : num(q.lastClose) ?? 0;
     const change = base > 0 ? ppPrice - base : num(pp.changeAmount) ?? 0;
     const pct = base > 0 ? (change / base) * 100 : num(pp.changePercent) ?? 0;
+
     return {
       symbol: q.ticker,
       name: q.companyName,
