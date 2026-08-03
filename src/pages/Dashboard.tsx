@@ -198,21 +198,16 @@ const Dashboard = () => {
       const quotes: any[] = data?.quotes || [];
 
       if (Array.isArray(quotes) && quotes.length > 0) {
-        // Prefer pre/post-market change if market is closed and pre/post data exists
+        // Uses pre/post-market price vs prior close when the regular session is shut
         const mapped = quotes.map((q) => {
-          const usePrePost =
-            !q.isMarketOpen &&
-            q.prePostMarket &&
-            typeof q.prePostMarket.changePercent === "number";
-          const changesPercentage = usePrePost
-            ? q.prePostMarket.changePercent
-            : q.changePercent;
+          const n = normalizeTipranksQuote(q);
           return {
             name: SECTOR_MAP[q.ticker] || q.ticker,
             ticker: q.ticker,
-            changesPercentage: Number(changesPercentage) || 0,
+            changesPercentage: n?.changesPercentage ?? 0,
           };
         });
+
 
         mapped.sort(
           (a, b) => Math.abs(b.changesPercentage) - Math.abs(a.changesPercentage)
