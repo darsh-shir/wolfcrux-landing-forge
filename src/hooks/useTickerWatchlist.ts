@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { normalizeTipranksQuotes } from "@/lib/tipranksQuote";
+
 
 /**
  * Industry leaders shown by default in the live ticker tape.
