@@ -279,7 +279,7 @@ const LtoLoyaltyView = () => {
                         <tr key={l.id} className="border-t hover:bg-muted/20 transition-colors">
                           <td className="p-3 font-medium">{MONTHS[(l.month || 1) - 1]} {l.year}</td>
                           <td className="p-3 text-right">{l.lto_percentage}%</td>
-                          <td className="p-3 text-right font-medium">{formatCurrencyINR(Number(l.lto_amount))}</td>
+                          <td className={`p-3 text-right font-medium ${Number(l.lto_amount) < 0 ? "text-destructive" : ""}`}>{formatCurrencyINR(Number(l.lto_amount))}</td>
                           <td className="p-3 text-right text-muted-foreground">{l.unlock_date}</td>
                           <td className="p-3 text-center">
                             <Badge
