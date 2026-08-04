@@ -243,7 +243,8 @@ const LtoView = ({ users }: LtoViewProps) => {
                         <TableBody>
                           {summary.entries.map(e => {
                             const dateReached = new Date(e.unlock_date) <= new Date();
-                            const releasable = isLtoEntryReleasable({
+                            const amt = Number(e.lto_amount) || 0;
+                            const releasable = amt > 0 && isLtoEntryReleasable({
                               unlockDate: e.unlock_date,
                               currentLevel: level,
                               totalLtoPool: summary.total,
@@ -255,7 +256,7 @@ const LtoView = ({ users }: LtoViewProps) => {
                               </TableCell>
                               <TableCell>{formatCurrency(e.net_profit)}</TableCell>
                               <TableCell>{Number(e.lto_percentage).toFixed(1)}%</TableCell>
-                              <TableCell className="font-semibold">{formatCurrency(e.lto_amount)}</TableCell>
+                              <TableCell className={`font-semibold ${amt < 0 ? "text-destructive" : ""}`}>{formatCurrency(amt)}</TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-1 text-sm">
                                   <Calendar className="h-3 w-3 text-muted-foreground" />
