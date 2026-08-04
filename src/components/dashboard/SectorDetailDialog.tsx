@@ -222,13 +222,11 @@ const SectorDetailDialog = ({ ticker, sectorName, changePct, open, onOpenChange 
                 <div className="rounded-md border border-border/50 overflow-hidden">
                   <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] uppercase tracking-widest font-mono text-muted-foreground bg-muted/40">
                     <span className="col-span-2">Ticker</span>
-                    <span className="col-span-6">Name</span>
-                    <span className="col-span-2 text-right">1Y</span>
-                    <span className="col-span-2 text-right">Weight</span>
+                    <span className="col-span-7">Name</span>
+                    <span className="col-span-3 text-right">Weight</span>
                   </div>
                   <div className="max-h-80 overflow-y-auto divide-y divide-border/40">
                     {holdings.map((h) => {
-                      const g = h.gain?.yearly;
                       const w = h.holdingData?.ratio;
                       return (
                         <a
@@ -242,17 +240,10 @@ const SectorDetailDialog = ({ ticker, sectorName, changePct, open, onOpenChange 
                             {h.ticker}
                             <ExternalLink className="w-3 h-3 opacity-40" />
                           </span>
-                          <span className="col-span-6 truncate text-muted-foreground">
+                          <span className="col-span-7 truncate text-muted-foreground">
                             {h.name}
                           </span>
-                          <span
-                            className={`col-span-2 text-right font-mono tabular-nums ${
-                              (g ?? 0) >= 0 ? "text-emerald-600" : "text-red-600"
-                            }`}
-                          >
-                            {typeof g === "number" ? `${g >= 0 ? "+" : ""}${(g * 100).toFixed(1)}%` : "—"}
-                          </span>
-                          <span className="col-span-2 text-right font-mono font-bold tabular-nums">
+                          <span className="col-span-3 text-right font-mono font-bold tabular-nums">
                             {typeof w === "number" ? `${(w * 100).toFixed(2)}%` : "—"}
                           </span>
                         </a>
