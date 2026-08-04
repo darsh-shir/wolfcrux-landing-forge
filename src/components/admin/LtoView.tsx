@@ -287,7 +287,7 @@ const LtoView = ({ users }: LtoViewProps) => {
                                 )}
                               </TableCell>
                               <TableCell>
-                                {!e.is_released && (
+                                {!e.is_released && amt > 0 && (
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -309,6 +309,15 @@ const LtoView = ({ users }: LtoViewProps) => {
                             );
                           })}
                         </TableBody>
+                        <TableFooter>
+                          <TableRow>
+                            <TableCell colSpan={3} className="font-semibold">Net Total</TableCell>
+                            <TableCell className={`font-bold ${summary.total < 0 ? "text-destructive" : ""}`}>
+                              {formatCurrency(summary.total)}
+                            </TableCell>
+                            <TableCell colSpan={3}></TableCell>
+                          </TableRow>
+                        </TableFooter>
                       </Table>
                       </div>
                     </div>
