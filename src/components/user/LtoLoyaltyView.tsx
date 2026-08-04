@@ -279,7 +279,7 @@ const LtoLoyaltyView = () => {
                         <tr key={l.id} className="border-t hover:bg-muted/20 transition-colors">
                           <td className="p-3 font-medium">{MONTHS[(l.month || 1) - 1]} {l.year}</td>
                           <td className="p-3 text-right">{l.lto_percentage}%</td>
-                          <td className="p-3 text-right font-medium">{formatCurrencyINR(Number(l.lto_amount))}</td>
+                          <td className={`p-3 text-right font-medium ${Number(l.lto_amount) < 0 ? "text-destructive" : ""}`}>{formatCurrencyINR(Number(l.lto_amount))}</td>
                           <td className="p-3 text-right text-muted-foreground">{l.unlock_date}</td>
                           <td className="p-3 text-center">
                             <Badge
@@ -296,6 +296,15 @@ const LtoLoyaltyView = () => {
                       );
                     })}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 bg-muted/40 font-semibold">
+                      <td className="p-3" colSpan={2}>Net Total</td>
+                      <td className={`p-3 text-right ${totalPool < 0 ? "text-destructive" : ""}`}>
+                        {formatCurrencyINR(totalPool)}
+                      </td>
+                      <td className="p-3" colSpan={2}></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}

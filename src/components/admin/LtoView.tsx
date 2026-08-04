@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { Landmark, ChevronDown, ChevronRight, Lock, Unlock, Calendar, AlertCircle } from "lucide-react";
@@ -243,7 +243,8 @@ const LtoView = ({ users }: LtoViewProps) => {
                         <TableBody>
                           {summary.entries.map(e => {
                             const dateReached = new Date(e.unlock_date) <= new Date();
-                            const releasable = isLtoEntryReleasable({
+                            const amt = Number(e.lto_amount) || 0;
+                            const releasable = amt > 0 && isLtoEntryReleasable({
                               unlockDate: e.unlock_date,
                               currentLevel: level,
                               totalLtoPool: summary.total,
@@ -255,7 +256,7 @@ const LtoView = ({ users }: LtoViewProps) => {
                               </TableCell>
                               <TableCell>{formatCurrency(e.net_profit)}</TableCell>
                               <TableCell>{Number(e.lto_percentage).toFixed(1)}%</TableCell>
-                              <TableCell className="font-semibold">{formatCurrency(e.lto_amount)}</TableCell>
+                              <TableCell className={`font-semibold ${amt < 0 ? "text-destructive" : ""}`}>{formatCurrency(amt)}</TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-1 text-sm">
                                   <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -271,6 +272,10 @@ const LtoView = ({ users }: LtoViewProps) => {
                                   <Badge variant="outline" className="gap-1 border-success/40 text-success">
                                     <Unlock className="h-3 w-3" /> Ready
                                   </Badge>
+                                ) : amt < 0 ? (
+                                  <Badge variant="secondary" className="gap-1 text-destructive">
+                                    Loss adjustment
+                                  </Badge>
                                 ) : dateReached ? (
                                   <Badge variant="secondary" className="gap-1">
                                     <Lock className="h-3 w-3" /> Awaiting Min
@@ -282,7 +287,7 @@ const LtoView = ({ users }: LtoViewProps) => {
                                 )}
                               </TableCell>
                               <TableCell>
-                                {!e.is_released && (
+                                {!e.is_released && amt > 0 && (
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -304,6 +309,15 @@ const LtoView = ({ users }: LtoViewProps) => {
                             );
                           })}
                         </TableBody>
+                        <TableFooter>
+                          <TableRow>
+                            <TableCell colSpan={3} className="font-semibold">Net Total</TableCell>
+                            <TableCell className={`font-bold ${summary.total < 0 ? "text-destructive" : ""}`}>
+                              {formatCurrency(summary.total)}
+                            </TableCell>
+                            <TableCell colSpan={3}></TableCell>
+                          </TableRow>
+                        </TableFooter>
                       </Table>
                       </div>
                     </div>
