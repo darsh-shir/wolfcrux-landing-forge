@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, ExternalLink, TrendingUp, TrendingDown } from "lucide-react";
+import { normalizeTipranksQuotes, NormalizedQuote } from "@/lib/tipranksQuote";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+
 
 interface Holding {
   ticker: string;
