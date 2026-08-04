@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, ExternalLink, TrendingUp, TrendingDown } from "lucide-react";
+import { normalizeTipranksQuotes, NormalizedQuote } from "@/lib/tipranksQuote";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
+
 
 interface Holding {
   ticker: string;
@@ -76,11 +78,13 @@ const SectorDetailDialog = ({ ticker, sectorName, changePct, open, onOpenChange 
   const [data, setData] = useState<EtfPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quotes, setQuotes] = useState<Record<string, NormalizedQuote>>({});
 
   useEffect(() => {
     if (!open || !ticker) return;
     setData(null);
     setError(null);
+    setQuotes({});
     setLoading(true);
     const url = encodeURIComponent(
       `https://tr-cdn.tipranks.com/assets/prod/etf/${ticker.toLowerCase()}/payload.json?`
@@ -99,6 +103,44 @@ const SectorDetailDialog = ({ ticker, sectorName, changePct, open, onOpenChange 
   const distSector =
     etf?.distribution?.sector ?? data?.holdings?.exposures?.distribution?.sector ?? {};
   const isPos = (changePct ?? 0) >= 0;
+
+  /* Live (pre/post aware) quotes for the holdings — batched in chunks of 40 */
+  useEffect(() => {
+    if (!open || holdings.length === 0) return;
+    let cancelled = false;
+    const symbols = holdings.map((h) => h.ticker).filter(Boolean);
+    const chunks: string[][] = [];
+    for (let i = 0; i < symbols.length; i += 40) chunks.push(symbols.slice(i, i + 40));
+
+    Promise.all(
+      chunks.map((c) =>
+        fetch(
+          `${PROXY_URL}${encodeURIComponent(
+            `https://marketsv3.tipranks.com/api/quotes/GetQuotes?app_name=tr&v=2&tickers=${c
+              .map(encodeURIComponent)
+              .join("%2C")}`
+          )}`
+        )
+          .then((r) => r.json())
+          .catch(() => null)
+      )
+    ).then((results) => {
+      if (cancelled) return;
+      const map: Record<string, NormalizedQuote> = {};
+      results.forEach((res) => {
+        normalizeTipranksQuotes(res).forEach((q) => {
+          map[q.symbol.toUpperCase()] = q;
+        });
+      });
+      setQuotes(map);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, holdings.length, ticker]);
+
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -222,12 +264,15 @@ const SectorDetailDialog = ({ ticker, sectorName, changePct, open, onOpenChange 
                 <div className="rounded-md border border-border/50 overflow-hidden">
                   <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] uppercase tracking-widest font-mono text-muted-foreground bg-muted/40">
                     <span className="col-span-2">Ticker</span>
-                    <span className="col-span-7">Name</span>
+                    <span className="col-span-5">Name</span>
+                    <span className="col-span-2 text-right">Chg %</span>
                     <span className="col-span-3 text-right">Weight</span>
                   </div>
                   <div className="max-h-80 overflow-y-auto divide-y divide-border/40">
                     {holdings.map((h) => {
                       const w = h.holdingData?.ratio;
+                      const q = quotes[h.ticker?.toUpperCase()];
+                      const chg = q?.changesPercentage;
                       return (
                         <a
                           key={h.ticker}
@@ -240,8 +285,21 @@ const SectorDetailDialog = ({ ticker, sectorName, changePct, open, onOpenChange 
                             {h.ticker}
                             <ExternalLink className="w-3 h-3 opacity-40" />
                           </span>
-                          <span className="col-span-7 truncate text-muted-foreground">
+                          <span className="col-span-5 truncate text-muted-foreground">
                             {h.name}
+                          </span>
+                          <span
+                            className={`col-span-2 text-right font-mono font-bold tabular-nums ${
+                              typeof chg !== "number"
+                                ? "text-muted-foreground"
+                                : chg >= 0
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-red-600 dark:text-red-400"
+                            }`}
+                          >
+                            {typeof chg === "number"
+                              ? `${chg >= 0 ? "+" : ""}${chg.toFixed(2)}%`
+                              : "—"}
                           </span>
                           <span className="col-span-3 text-right font-mono font-bold tabular-nums">
                             {typeof w === "number" ? `${(w * 100).toFixed(2)}%` : "—"}
@@ -250,6 +308,7 @@ const SectorDetailDialog = ({ ticker, sectorName, changePct, open, onOpenChange 
                       );
                     })}
                   </div>
+
                 </div>
               </div>
             )}
