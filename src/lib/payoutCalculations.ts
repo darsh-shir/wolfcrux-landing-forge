@@ -367,7 +367,8 @@ export function calculateMonthlyPayout(params: {
   const { shareCost, netProfit } = calculateNetProfit(grossProfit, sharesTraded, softwareCost);
 
   const stoAmount = netProfit > 0 ? netProfit * (stoPercent / 100) : 0;
-  const ltoAmount = netProfit > 0 ? netProfit * (ltoPercent / 100) : 0;
+  // LTO mirrors losses: a negative net profit produces a negative LTO entry.
+  const ltoAmount = netProfit * (ltoPercent / 100);
 
   const leaveDeductionAmount = stoAmount * (leaveDeductionPct / 100);
   const stoAfterLeave = stoAmount - leaveDeductionAmount;
