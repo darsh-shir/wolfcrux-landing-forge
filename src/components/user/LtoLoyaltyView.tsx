@@ -296,6 +296,15 @@ const LtoLoyaltyView = () => {
                       );
                     })}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 bg-muted/40 font-semibold">
+                      <td className="p-3" colSpan={2}>Net Total</td>
+                      <td className={`p-3 text-right ${totalPool < 0 ? "text-destructive" : ""}`}>
+                        {formatCurrencyINR(totalPool)}
+                      </td>
+                      <td className="p-3" colSpan={2}></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}
