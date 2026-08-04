@@ -78,11 +78,13 @@ const SectorDetailDialog = ({ ticker, sectorName, changePct, open, onOpenChange 
   const [data, setData] = useState<EtfPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quotes, setQuotes] = useState<Record<string, NormalizedQuote>>({});
 
   useEffect(() => {
     if (!open || !ticker) return;
     setData(null);
     setError(null);
+    setQuotes({});
     setLoading(true);
     const url = encodeURIComponent(
       `https://tr-cdn.tipranks.com/assets/prod/etf/${ticker.toLowerCase()}/payload.json?`
@@ -101,6 +103,44 @@ const SectorDetailDialog = ({ ticker, sectorName, changePct, open, onOpenChange 
   const distSector =
     etf?.distribution?.sector ?? data?.holdings?.exposures?.distribution?.sector ?? {};
   const isPos = (changePct ?? 0) >= 0;
+
+  /* Live (pre/post aware) quotes for the holdings — batched in chunks of 40 */
+  useEffect(() => {
+    if (!open || holdings.length === 0) return;
+    let cancelled = false;
+    const symbols = holdings.map((h) => h.ticker).filter(Boolean);
+    const chunks: string[][] = [];
+    for (let i = 0; i < symbols.length; i += 40) chunks.push(symbols.slice(i, i + 40));
+
+    Promise.all(
+      chunks.map((c) =>
+        fetch(
+          `${PROXY_URL}${encodeURIComponent(
+            `https://marketsv3.tipranks.com/api/quotes/GetQuotes?app_name=tr&v=2&tickers=${c
+              .map(encodeURIComponent)
+              .join("%2C")}`
+          )}`
+        )
+          .then((r) => r.json())
+          .catch(() => null)
+      )
+    ).then((results) => {
+      if (cancelled) return;
+      const map: Record<string, NormalizedQuote> = {};
+      results.forEach((res) => {
+        normalizeTipranksQuotes(res).forEach((q) => {
+          map[q.symbol.toUpperCase()] = q;
+        });
+      });
+      setQuotes(map);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, holdings.length, ticker]);
+
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
