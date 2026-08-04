@@ -272,6 +272,10 @@ const LtoView = ({ users }: LtoViewProps) => {
                                   <Badge variant="outline" className="gap-1 border-success/40 text-success">
                                     <Unlock className="h-3 w-3" /> Ready
                                   </Badge>
+                                ) : amt < 0 ? (
+                                  <Badge variant="secondary" className="gap-1 text-destructive">
+                                    Loss adjustment
+                                  </Badge>
                                 ) : dateReached ? (
                                   <Badge variant="secondary" className="gap-1">
                                     <Lock className="h-3 w-3" /> Awaiting Min
