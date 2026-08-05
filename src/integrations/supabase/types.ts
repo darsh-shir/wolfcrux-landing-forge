@@ -821,6 +821,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      all_correlations: {
+        Args: { _ticker: string }
+        Returns: {
+          correlation: number
+          peer: string
+        }[]
+      }
       get_company_birthdays: {
         Args: never
         Returns: {
@@ -834,6 +841,13 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      top_correlations: {
+        Args: { _limit?: number; _ticker: string }
+        Returns: {
+          correlation: number
+          peer: string
+        }[]
       }
     }
     Enums: {
