@@ -16,7 +16,9 @@ import MyData from "./pages/MyData";
 import Admin from "./pages/Admin";
 import Practice from "./pages/Practice";
 import NewsCheck from "./pages/NewsCheck";
+import Followers from "./pages/Followers";
 import NotFound from "./pages/NotFound";
+
 import { RouteTransition } from "@/components/RouteTransition";
 
 const queryClient = new QueryClient();
