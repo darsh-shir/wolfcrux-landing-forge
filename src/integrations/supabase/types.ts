@@ -828,6 +828,7 @@ export type Database = {
           peer: string
         }[]
       }
+      clear_stock_correlations: { Args: never; Returns: undefined }
       get_company_birthdays: {
         Args: never
         Returns: {
