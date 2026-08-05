@@ -497,6 +497,27 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_correlations: {
+        Row: {
+          correlation: number
+          id: number
+          stock1: string
+          stock2: string
+        }
+        Insert: {
+          correlation: number
+          id?: never
+          stock1: string
+          stock2: string
+        }
+        Update: {
+          correlation?: number
+          id?: never
+          stock1?: string
+          stock2?: string
+        }
+        Relationships: []
+      }
       trader_account_assignments: {
         Row: {
           account_id: string
