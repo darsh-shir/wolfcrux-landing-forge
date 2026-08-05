@@ -497,6 +497,27 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_correlations: {
+        Row: {
+          correlation: number
+          id: number
+          stock1: string
+          stock2: string
+        }
+        Insert: {
+          correlation: number
+          id?: never
+          stock1: string
+          stock2: string
+        }
+        Update: {
+          correlation?: number
+          id?: never
+          stock1?: string
+          stock2?: string
+        }
+        Relationships: []
+      }
       trader_account_assignments: {
         Row: {
           account_id: string
@@ -800,6 +821,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      all_correlations: {
+        Args: { _ticker: string }
+        Returns: {
+          correlation: number
+          peer: string
+        }[]
+      }
+      clear_stock_correlations: { Args: never; Returns: undefined }
       get_company_birthdays: {
         Args: never
         Returns: {
@@ -813,6 +842,13 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      top_correlations: {
+        Args: { _limit?: number; _ticker: string }
+        Returns: {
+          correlation: number
+          peer: string
+        }[]
       }
     }
     Enums: {

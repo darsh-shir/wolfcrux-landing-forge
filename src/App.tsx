@@ -16,7 +16,9 @@ import MyData from "./pages/MyData";
 import Admin from "./pages/Admin";
 import Practice from "./pages/Practice";
 import NewsCheck from "./pages/NewsCheck";
+import Followers from "./pages/Followers";
 import NotFound from "./pages/NotFound";
+
 import { RouteTransition } from "@/components/RouteTransition";
 
 const queryClient = new QueryClient();
@@ -45,6 +47,8 @@ const App = () => (
               <Route path="/practice" element={<Practice />} />
               <Route path="/newscheck/:ticker" element={<NewsCheck />} />
               <Route path="/newscheck" element={<NewsCheck />} />
+              <Route path="/followers" element={<Followers />} />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
