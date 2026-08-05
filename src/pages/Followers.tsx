@@ -121,18 +121,22 @@ const Followers = () => {
       for (let i = 0; i < earningsTickers.length; i += 6) {
         const chunk = earningsTickers.slice(i, i + 6);
         const results = await Promise.all(
-          chunk.map((t) =>
-            supabase
-              .rpc("top_correlations", { _ticker: t.ticker, _limit: topN })
-              .then(({ data }) =>
-                (data ?? []).map((d: any) => ({
-                  peer: d.peer as string,
-                  correlation: Number(d.correlation),
-                })),
-              )
-              .catch(() => [] as Pair[]),
-          ),
+          chunk.map(async (t): Promise<Pair[]> => {
+            try {
+              const { data } = await supabase.rpc("top_correlations", {
+                _ticker: t.ticker,
+                _limit: topN,
+              });
+              return (data ?? []).map((d: any) => ({
+                peer: d.peer as string,
+                correlation: Number(d.correlation),
+              }));
+            } catch {
+              return [];
+            }
+          }),
         );
+
         chunk.forEach((t, idx) => {
           next[t.ticker] = results[idx];
         });
