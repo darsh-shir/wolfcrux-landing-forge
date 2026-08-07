@@ -48,6 +48,8 @@ const App = () => (
               <Route path="/newscheck/:ticker" element={<NewsCheck />} />
               <Route path="/newscheck" element={<NewsCheck />} />
               <Route path="/followers" element={<Followers />} />
+              <Route path="/follower" element={<Followers />} />
+              <Route path="/Followers" element={<Followers />} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
