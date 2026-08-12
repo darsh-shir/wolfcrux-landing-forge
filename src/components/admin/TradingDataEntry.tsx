@@ -402,7 +402,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             .eq("id", existingEntries[1].id);
           if (error) throw error;
         } else if (account2 && existingEntries.length < 2) {
-          const { error } = await supabase.from("trading_data").insert({
+          const { error } = await supabase.from("trading_data").upsert({
             user_id: trader1,
             account_id: account2,
             trade_date: tradeDate,
@@ -414,7 +414,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             trader2_attendance: t2att,
             is_holiday: trader1Attendance === "holiday",
             notes: notes || null,
-          });
+          }, { onConflict: "user_id,account_id,trade_date" });
           if (error) throw error;
         } else if (!account2 && existingEntries.length >= 2) {
           const { error } = await supabase
@@ -458,7 +458,9 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
           });
         }
 
-        const { error } = await supabase.from("trading_data").insert(entries);
+        const { error } = await supabase
+          .from("trading_data")
+          .upsert(entries, { onConflict: "user_id,account_id,trade_date" });
         if (error) throw error;
 
         toast({ title: "Success", description: `Trading data added for ${entries.length} account(s)` });
