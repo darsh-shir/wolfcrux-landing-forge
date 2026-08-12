@@ -95,20 +95,21 @@ const Admin = () => {
     const fetchAllTrades = async () => {
       const pageSize = 1000;
       let from = 0;
-      const all: any[] = [];
+      const tradesById = new Map<string, TradingData>();
       // safety cap to avoid infinite loops
       for (let i = 0; i < 100; i++) {
         const { data, error } = await supabase
           .from("trading_data")
           .select("*")
           .order("trade_date", { ascending: false })
+          .order("id", { ascending: true })
           .range(from, from + pageSize - 1);
         if (error || !data) break;
-        all.push(...data);
+        data.forEach((trade) => tradesById.set(trade.id, trade));
         if (data.length < pageSize) break;
         from += pageSize;
       }
-      return all;
+      return Array.from(tradesById.values());
     };
 
     const [usersRes, accountsRes, allTrades] = await Promise.all([
