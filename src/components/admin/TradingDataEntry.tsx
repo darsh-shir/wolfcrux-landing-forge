@@ -414,7 +414,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             trader2_attendance: t2att,
             is_holiday: trader1Attendance === "holiday",
             notes: notes || null,
-          });
+          }, { onConflict: "user_id,account_id,trade_date" });
           if (error) throw error;
         } else if (!account2 && existingEntries.length >= 2) {
           const { error } = await supabase
