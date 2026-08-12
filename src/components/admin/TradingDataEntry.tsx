@@ -402,7 +402,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             .eq("id", existingEntries[1].id);
           if (error) throw error;
         } else if (account2 && existingEntries.length < 2) {
-          const { error } = await supabase.from("trading_data").insert({
+          const { error } = await supabase.from("trading_data").upsert({
             user_id: trader1,
             account_id: account2,
             trade_date: tradeDate,
