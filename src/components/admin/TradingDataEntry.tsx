@@ -458,7 +458,9 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
           });
         }
 
-        const { error } = await supabase.from("trading_data").insert(entries);
+        const { error } = await supabase
+          .from("trading_data")
+          .upsert(entries, { onConflict: "user_id,account_id,trade_date" });
         if (error) throw error;
 
         toast({ title: "Success", description: `Trading data added for ${entries.length} account(s)` });
