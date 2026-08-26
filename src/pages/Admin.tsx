@@ -24,6 +24,8 @@ import MonthlyPnL from "@/components/admin/MonthlyPnL";
 import TraderProgress from "@/components/admin/TraderProgress";
 import LtoView from "@/components/admin/LtoView";
 import BaselineSeeder from "@/components/admin/BaselineSeeder";
+import MonthlyMilestones from "@/components/admin/MonthlyMilestones";
+
 
 interface Profile {
   id: string;
@@ -197,10 +199,15 @@ const Admin = () => {
                   <TrendingUp className="h-4 w-4" />
                   Trader Progress
                 </TabsTrigger>
+                <TabsTrigger value="milestones" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <TrendingUp className="h-4 w-4" />
+                  Milestones
+                </TabsTrigger>
                 <TabsTrigger value="baseline" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
                   <History className="h-4 w-4" />
                   Baseline Seeder
                 </TabsTrigger>
+
                 <TabsTrigger value="documents" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
                   <Folder className="h-4 w-4" />
                   Documents
@@ -318,6 +325,12 @@ const Admin = () => {
             <TabsContent value="progress">
               <TraderProgress />
             </TabsContent>
+
+            {/* MONTHLY MILESTONES (MANUAL) TAB */}
+            <TabsContent value="milestones">
+              <MonthlyMilestones users={users} />
+            </TabsContent>
+
 
             {/* BASELINE SEEDER TAB */}
             <TabsContent value="baseline">

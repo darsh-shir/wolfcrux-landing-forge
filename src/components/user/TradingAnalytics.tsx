@@ -1,4 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   TrendingUp, TrendingDown, Calendar, Target, 
@@ -50,6 +53,41 @@ interface TradingAnalyticsProps {
 }
 
 const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDays, allTradingData, allDailySummary, softwareCosts = {}, calendarMonth }: TradingAnalyticsProps) => {
+  const { user } = useAuth();
+  const [totalGiven, setTotalGiven] = useState(0);
+
+  // Total money given till date — manually recorded by admin per month.
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+
+    const load = async () => {
+      const { data } = await supabase
+        .from("trader_monthly_manual" as any)
+        .select("amount_given")
+        .eq("user_id", user.id);
+      if (!active) return;
+      setTotalGiven((data || []).reduce((s: number, r: any) => s + Number(r.amount_given || 0), 0));
+    };
+
+    load();
+
+    const channel = supabase
+      .channel("analytics-money-given")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trader_monthly_manual", filter: `user_id=eq.${user.id}` },
+        () => load()
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+
   const analytics = useMemo(() => {
     if (dailySummary.length === 0) {
       return {
@@ -193,15 +231,16 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
                 <Briefcase className="h-4 w-4 text-primary" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Total P&L (Till Date)</p>
-                <p className={`text-xl font-bold ${lifetimeNet >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  <AnimatedNumber value={lifetimeNet} format={formatCurrency} resetKey={lifetimeNet} />
+                <p className="text-xs text-muted-foreground truncate">Total Money Given (Till Date)</p>
+                <p className="text-xl font-bold text-emerald-600">
+                  <AnimatedNumber value={totalGiven} format={formatCurrency} resetKey={totalGiven} />
                 </p>
-                <p className="text-xs text-muted-foreground">Net after brokerage & software</p>
+                <p className="text-xs text-muted-foreground">As recorded by admin each month</p>
               </div>
             </div>
           </CardContent>
         </Card>
+
 
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="pt-4 pb-4">
