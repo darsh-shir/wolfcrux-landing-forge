@@ -53,6 +53,41 @@ interface TradingAnalyticsProps {
 }
 
 const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDays, allTradingData, allDailySummary, softwareCosts = {}, calendarMonth }: TradingAnalyticsProps) => {
+  const { user } = useAuth();
+  const [totalGiven, setTotalGiven] = useState(0);
+
+  // Total money given till date — manually recorded by admin per month.
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+
+    const load = async () => {
+      const { data } = await supabase
+        .from("trader_monthly_manual" as any)
+        .select("amount_given")
+        .eq("user_id", user.id);
+      if (!active) return;
+      setTotalGiven((data || []).reduce((s: number, r: any) => s + Number(r.amount_given || 0), 0));
+    };
+
+    load();
+
+    const channel = supabase
+      .channel("analytics-money-given")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trader_monthly_manual", filter: `user_id=eq.${user.id}` },
+        () => load()
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+
   const analytics = useMemo(() => {
     if (dailySummary.length === 0) {
       return {
