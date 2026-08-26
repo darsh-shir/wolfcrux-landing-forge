@@ -670,6 +670,42 @@ export type Database = {
         }
         Relationships: []
       }
+      trader_monthly_manual: {
+        Row: {
+          amount_given: number
+          created_at: string
+          id: string
+          milestone_amount: number
+          month: number
+          notes: string | null
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          amount_given?: number
+          created_at?: string
+          id?: string
+          milestone_amount?: number
+          month: number
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          amount_given?: number
+          created_at?: string
+          id?: string
+          milestone_amount?: number
+          month?: number
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       trading_accounts: {
         Row: {
           account_name: string
