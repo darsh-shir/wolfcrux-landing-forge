@@ -18,6 +18,8 @@ import TradingAnalytics from "@/components/user/TradingAnalytics";
 import PayoutSummary from "@/components/user/PayoutSummary";
 import LtoLoyaltyView from "@/components/user/LtoLoyaltyView";
 import MyProgress from "@/components/user/MyProgress";
+import MyMilestones from "@/components/user/MyMilestones";
+
 import MyDocuments from "@/components/user/MyDocuments";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, parseISO } from "date-fns";
 import { MILESTONES } from "@/lib/payoutCalculations";
