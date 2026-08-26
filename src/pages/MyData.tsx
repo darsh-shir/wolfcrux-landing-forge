@@ -679,8 +679,12 @@ const MyData = () => {
 
             {/* PROGRESS TAB */}
             <TabsContent value="progress" className="tab-anim">
-              <MyProgress />
+              <div className="space-y-6">
+                <MyMilestones />
+                <MyProgress />
+              </div>
             </TabsContent>
+
 
             {/* DOCUMENTS TAB */}
             <TabsContent value="documents" className="tab-anim">
