@@ -326,6 +326,12 @@ const Admin = () => {
               <TraderProgress />
             </TabsContent>
 
+            {/* MONTHLY MILESTONES (MANUAL) TAB */}
+            <TabsContent value="milestones">
+              <MonthlyMilestones users={users} />
+            </TabsContent>
+
+
             {/* BASELINE SEEDER TAB */}
             <TabsContent value="baseline">
               <BaselineSeeder users={users} />
