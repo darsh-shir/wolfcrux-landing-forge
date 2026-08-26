@@ -24,6 +24,8 @@ import MonthlyPnL from "@/components/admin/MonthlyPnL";
 import TraderProgress from "@/components/admin/TraderProgress";
 import LtoView from "@/components/admin/LtoView";
 import BaselineSeeder from "@/components/admin/BaselineSeeder";
+import MonthlyMilestones from "@/components/admin/MonthlyMilestones";
+
 
 interface Profile {
   id: string;
