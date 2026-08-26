@@ -193,15 +193,16 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
                 <Briefcase className="h-4 w-4 text-primary" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Total P&L (Till Date)</p>
-                <p className={`text-xl font-bold ${lifetimeNet >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  <AnimatedNumber value={lifetimeNet} format={formatCurrency} resetKey={lifetimeNet} />
+                <p className="text-xs text-muted-foreground truncate">Total Money Given (Till Date)</p>
+                <p className="text-xl font-bold text-emerald-600">
+                  <AnimatedNumber value={totalGiven} format={formatCurrency} resetKey={totalGiven} />
                 </p>
-                <p className="text-xs text-muted-foreground">Net after brokerage & software</p>
+                <p className="text-xs text-muted-foreground">As recorded by admin each month</p>
               </div>
             </div>
           </CardContent>
         </Card>
+
 
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="pt-4 pb-4">
