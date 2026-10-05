@@ -97,6 +97,11 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
 
   useEffect(() => {
     fetchData();
+    // Auto-refresh when fingerprint punches update attendance
+    const ch = supabase.channel("leaves-attendance-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "attendance_records" }, () => fetchData())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
   useEffect(() => {

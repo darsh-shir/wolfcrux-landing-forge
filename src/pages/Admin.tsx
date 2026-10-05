@@ -6,8 +6,9 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History, Folder } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History, Folder, Fingerprint } from "lucide-react";
 import EmployeeDocuments from "@/components/admin/EmployeeDocuments";
+import BiometricAttendance from "@/components/admin/BiometricAttendance";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
 import TradingDataView from "@/components/admin/TradingDataView";
@@ -211,6 +212,10 @@ const Admin = () => {
                 <TabsTrigger value="documents" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
                   <Folder className="h-4 w-4" />
                   Documents
+                </TabsTrigger>
+                <TabsTrigger value="biometric" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Fingerprint className="h-4 w-4" />
+                  Biometric
                 </TabsTrigger>
               </TabsList>
             </div>
