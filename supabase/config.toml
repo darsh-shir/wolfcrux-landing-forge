@@ -2,3 +2,6 @@ project_id = "gcdkemngjeaxenjtgoeo"
 
 [functions.trading-dashboard]
 verify_jwt = true
+
+[functions.adms-attendance]
+verify_jwt = false
