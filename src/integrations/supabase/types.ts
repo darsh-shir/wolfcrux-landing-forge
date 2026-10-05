@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      adms_device_events: {
+        Row: {
+          created_at: string
+          device_serial_number: string | null
+          error: string | null
+          event_type: string
+          id: string
+          method: string | null
+          path: string | null
+          payload_excerpt: string | null
+          records_accepted: number | null
+          records_duplicate: number | null
+          records_malformed: number | null
+          records_received: number | null
+          records_unmatched: number | null
+          table_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_serial_number?: string | null
+          error?: string | null
+          event_type: string
+          id?: string
+          method?: string | null
+          path?: string | null
+          payload_excerpt?: string | null
+          records_accepted?: number | null
+          records_duplicate?: number | null
+          records_malformed?: number | null
+          records_received?: number | null
+          records_unmatched?: number | null
+          table_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_serial_number?: string | null
+          error?: string | null
+          event_type?: string
+          id?: string
+          method?: string | null
+          path?: string | null
+          payload_excerpt?: string | null
+          records_accepted?: number | null
+          records_duplicate?: number | null
+          records_malformed?: number | null
+          records_received?: number | null
+          records_unmatched?: number | null
+          table_name?: string | null
+        }
+        Relationships: []
+      }
+      attendance_devices: {
+        Row: {
+          created_at: string
+          device_name: string
+          device_serial_number: string
+          id: string
+          is_active: boolean
+          last_punch_at: string | null
+          last_seen_at: string | null
+          location: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_name: string
+          device_serial_number: string
+          id?: string
+          is_active?: boolean
+          last_punch_at?: string | null
+          last_seen_at?: string | null
+          location?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_name?: string
+          device_serial_number?: string
+          id?: string
+          is_active?: boolean
+          last_punch_at?: string | null
+          last_seen_at?: string | null
+          location?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       attendance_records: {
         Row: {
           created_at: string
@@ -21,6 +108,7 @@ export type Database = {
           is_deductible: boolean
           notes: string | null
           record_date: string
+          source: string
           status: string
           updated_at: string
           user_id: string
@@ -31,6 +119,7 @@ export type Database = {
           is_deductible?: boolean
           notes?: string | null
           record_date: string
+          source?: string
           status: string
           updated_at?: string
           user_id: string
@@ -41,11 +130,104 @@ export type Database = {
           is_deductible?: boolean
           notes?: string | null
           record_date?: string
+          source?: string
           status?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      attendance_shift_settings: {
+        Row: {
+          created_at: string
+          effective_from: string
+          grace_minutes: number
+          half_day_min_hours: number
+          id: string
+          notes: string | null
+          shift_start: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          effective_from: string
+          grace_minutes?: number
+          half_day_min_hours?: number
+          id?: string
+          notes?: string | null
+          shift_start: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          grace_minutes?: number
+          half_day_min_hours?: number
+          id?: string
+          notes?: string | null
+          shift_start?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      biometric_attendance_logs: {
+        Row: {
+          biometric_pin: string
+          created_at: string
+          device_id: string | null
+          device_local_time: string
+          device_serial_number: string
+          employee_id: string | null
+          id: string
+          in_out_status: string | null
+          punch_date: string
+          punch_timestamp: string
+          raw_payload: string
+          received_at: string
+          verify_mode: string | null
+          work_code: string | null
+        }
+        Insert: {
+          biometric_pin: string
+          created_at?: string
+          device_id?: string | null
+          device_local_time: string
+          device_serial_number: string
+          employee_id?: string | null
+          id?: string
+          in_out_status?: string | null
+          punch_date: string
+          punch_timestamp: string
+          raw_payload: string
+          received_at?: string
+          verify_mode?: string | null
+          work_code?: string | null
+        }
+        Update: {
+          biometric_pin?: string
+          created_at?: string
+          device_id?: string | null
+          device_local_time?: string
+          device_serial_number?: string
+          employee_id?: string | null
+          id?: string
+          in_out_status?: string | null
+          punch_date?: string
+          punch_timestamp?: string
+          raw_payload?: string
+          received_at?: string
+          verify_mode?: string | null
+          work_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biometric_attendance_logs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       desk_costs: {
         Row: {
@@ -353,6 +535,7 @@ export type Database = {
       profiles: {
         Row: {
           assigned_trader_id: string | null
+          biometric_pin: string | null
           birthdate: string | null
           created_at: string
           email: string
@@ -366,6 +549,7 @@ export type Database = {
         }
         Insert: {
           assigned_trader_id?: string | null
+          biometric_pin?: string | null
           birthdate?: string | null
           created_at?: string
           email: string
@@ -379,6 +563,7 @@ export type Database = {
         }
         Update: {
           assigned_trader_id?: string | null
+          biometric_pin?: string | null
           birthdate?: string | null
           created_at?: string
           email?: string
@@ -878,6 +1063,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      process_biometric_day: {
+        Args: { _date: string; _user_id: string }
+        Returns: undefined
+      }
+      recompute_biometric_range: {
+        Args: { _from: string; _to: string }
+        Returns: number
       }
       top_correlations: {
         Args: { _limit?: number; _ticker: string }
