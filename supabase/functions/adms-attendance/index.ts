@@ -30,7 +30,10 @@ const cors = {
 const text = (body: string, status = 200) =>
   new Response(body, { status, headers: { ...cors, "Content-Type": "text/plain" } });
 
-const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const supabaseUrl = Deno.env.get("SUPABASE_URL");
+const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+if (!supabaseUrl || !serviceKey) throw new Error("ADMS server configuration is incomplete");
+const admin = createClient(supabaseUrl, serviceKey);
 
 type Parsed = {
   pin: string; local: string; iso: string; date: string;
@@ -77,10 +80,11 @@ Deno.serve(async (req) => {
     if (req.method === "POST" && (req.headers.get("content-type") || "").includes("application/json")) {
       const auth = req.headers.get("Authorization");
       if (!auth) return text("Unauthorized", 401);
-      const { data: { user } } = await admin.auth.getUser(auth.replace("Bearer ", ""));
+      const { data: { user } } = await admin.auth.getUser(auth.replace(/^Bearer\s+/i, ""));
       if (!user) return text("Unauthorized", 401);
-      const { data: isAdmin } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      if (!isAdmin) return text("Forbidden", 403);
+      const { data: adminRole } = await admin.from("user_roles").select("role")
+        .eq("user_id", user.id).eq("role", "admin").maybeSingle();
+      if (!adminRole) return text("Forbidden", 403);
       const body = await req.json().catch(() => ({}));
       if (body.action !== "parse_test" || typeof body.payload !== "string" || body.payload.length > 20000) {
         return text("Bad request", 400);
@@ -115,7 +119,8 @@ Deno.serve(async (req) => {
       await logEvent({ device_serial_number: sn, event_type: "registration", method: "GET", path,
         payload_excerpt: url.search.slice(0, 500) });
       return text([
-        `GET OPTION FROM: ${sn}`, "ATTLOGStamp=None", "OPERLOGStamp=9999", "ATTPHOTOStamp=None",
+        `GET OPTION FROM: ${sn}`, "Stamp=0", "OpStamp=0", "PhotoStamp=0", "ATTLOGStamp=0",
+        "OPERLOGStamp=0", "ATTPHOTOStamp=0",
         "ErrorDelay=30", "Delay=10", "TransTimes=00:00;14:05", "TransInterval=1",
         "TransFlag=TransData AttLog", "TimeZone=5.5", "Realtime=1", "Encrypt=None", "ServerVer=2.4.1",
       ].join("\n") + "\n");
@@ -125,12 +130,17 @@ Deno.serve(async (req) => {
     if (path.endsWith("/iclock/cdata") && req.method === "POST") {
       const table = (url.searchParams.get("table") || "").toUpperCase();
       const body = await req.text();
-      if (table !== "ATTLOG") {
+      if (table && table !== "ATTLOG") {
         await logEvent({ device_serial_number: sn, event_type: "upload_other", method: "POST", path,
           table_name: table || null, payload_excerpt: body.slice(0, 300) });
         return text("OK");
       }
-      const { rows, malformed } = parseAttlog(body);
+      const { rows: parsedRows, malformed } = parseAttlog(body);
+      // A retry can contain the same punch more than once in one POST; de-dupe before upsert
+      // because Postgres rejects multiple input rows targeting the same unique key.
+      const rowMap = new Map<string, Parsed>();
+      for (const row of parsedRows) rowMap.set(`${row.pin}\u0000${row.iso}`, row);
+      const rows = [...rowMap.values()];
       const pins = [...new Set(rows.map((r) => r.pin))];
       const pinMap = new Map<string, string>();
       if (pins.length) {
@@ -158,8 +168,8 @@ Deno.serve(async (req) => {
         }
       }
       await logEvent({ device_serial_number: sn, event_type: "attlog", method: "POST", path, table_name: table,
-        records_received: rows.length + malformed.length, records_accepted: accepted,
-        records_duplicate: rows.length - accepted, records_unmatched: unmatched, records_malformed: malformed.length,
+        records_received: parsedRows.length + malformed.length, records_accepted: accepted,
+        records_duplicate: parsedRows.length - accepted, records_unmatched: unmatched, records_malformed: malformed.length,
         payload_excerpt: body.slice(0, 1000), error: malformed.length ? `Malformed: ${malformed.slice(0, 3).join(" | ")}` : null });
       console.log(`ATTLOG ${sn}: rows=${rows.length} accepted=${accepted} unmatched=${unmatched} malformed=${malformed.length}`);
       return text(`OK: ${rows.length}`);

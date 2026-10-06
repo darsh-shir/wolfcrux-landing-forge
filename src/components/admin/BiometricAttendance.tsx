@@ -130,7 +130,12 @@ const BiometricAttendance = () => {
     const { data: n } = await supabase.rpc("recompute_biometric_range", { _from: newShift.from, _to: today });
     toast({ title: "Shift timing saved", description: `${n ?? 0} day(s) recalculated` }); load();
   };
-  const delShift = async (s: Shift) => { await supabase.from("attendance_shift_settings").delete().eq("id", s.id); load(); };
+  const delShift = async (s: Shift) => {
+    const { error } = await supabase.from("attendance_shift_settings").delete().eq("id", s.id);
+    if (error) return toast({ title: "Could not delete shift rule", description: error.message, variant: "destructive" });
+    await supabase.rpc("recompute_biometric_range", { _from: s.effective_from, _to: today });
+    load();
+  };
 
   const runTest = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -161,7 +166,7 @@ const BiometricAttendance = () => {
             ["Last device serial", lastHeartbeat?.device_serial_number || events[0]?.device_serial_number || "—"],
             ["Last upload", lastUpload ? `${fmt(lastUpload.created_at)} · ${lastUpload.records_accepted} new / ${lastUpload.records_duplicate} dup` : "—"],
             ["Punches today", String(todayCount)],
-            ["Last matched punch", lastGoodPunch ? `${nameOf.get(lastGoodPunch.employee_id!) ?? "?"} · ${fmt(lastGoodPunch.punch_timestamp)}` : "—"],
+          ["Last matched punch", lastGoodPunch ? `${(lastGoodPunch.employee_id && nameOf.get(lastGoodPunch.employee_id)) ?? "?"} · ${fmt(lastGoodPunch.punch_timestamp)}` : "—"],
             ["Unknown PINs", String(unknown.length)],
             ["Last error", lastError ? `${lastError.error} (${fmt(lastError.created_at)})` : "None"],
             ["Endpoint", events.length ? "Receiving" : "Waiting for device"],
