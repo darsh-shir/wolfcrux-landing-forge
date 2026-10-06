@@ -119,7 +119,8 @@ Deno.serve(async (req) => {
       await logEvent({ device_serial_number: sn, event_type: "registration", method: "GET", path,
         payload_excerpt: url.search.slice(0, 500) });
       return text([
-        `GET OPTION FROM: ${sn}`, "ATTLOGStamp=None", "OPERLOGStamp=9999", "ATTPHOTOStamp=None",
+        `GET OPTION FROM: ${sn}`, "Stamp=0", "OpStamp=0", "PhotoStamp=0", "ATTLOGStamp=0",
+        "OPERLOGStamp=0", "ATTPHOTOStamp=0",
         "ErrorDelay=30", "Delay=10", "TransTimes=00:00;14:05", "TransInterval=1",
         "TransFlag=TransData AttLog", "TimeZone=5.5", "Realtime=1", "Encrypt=None", "ServerVer=2.4.1",
       ].join("\n") + "\n");
@@ -129,7 +130,7 @@ Deno.serve(async (req) => {
     if (path.endsWith("/iclock/cdata") && req.method === "POST") {
       const table = (url.searchParams.get("table") || "").toUpperCase();
       const body = await req.text();
-      if (table !== "ATTLOG") {
+      if (table && table !== "ATTLOG") {
         await logEvent({ device_serial_number: sn, event_type: "upload_other", method: "POST", path,
           table_name: table || null, payload_excerpt: body.slice(0, 300) });
         return text("OK");
