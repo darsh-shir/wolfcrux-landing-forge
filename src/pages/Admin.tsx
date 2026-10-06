@@ -346,6 +346,10 @@ const Admin = () => {
             <TabsContent value="documents">
               <EmployeeDocuments users={users} />
             </TabsContent>
+
+            <TabsContent value="biometric">
+              <BiometricAttendance />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
