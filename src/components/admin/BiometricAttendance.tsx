@@ -21,8 +21,7 @@ const FUNCTION_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supaba
 
 const WORKER_CODE = `// Cloudflare Worker for attendance.wolfcrux.com
 // Relays the K90 Pro's ADMS calls (/iclock/...) to the Wolfcrux backend.
-// Replace this placeholder with the deployed adms-attendance function URL.
-const TARGET = "https://YOUR-LOVABLE-CLOUD-ENDPOINT/functions/v1/adms-attendance";
+const TARGET = "${import.meta.env.VITE_SUPABASE_URL}/functions/v1/adms-attendance";
 export default {
   async fetch(request) {
     const url = new URL(request.url);
@@ -286,7 +285,7 @@ const BiometricAttendance = () => {
       {/* Device configuration */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Server className="h-5 w-5" />Device Configuration</CardTitle>
-          <CardDescription>Settings to enter on the K90 Pro once the attendance.wolfcrux.com relay is live.</CardDescription></CardHeader>
+          <CardDescription>Set the device only after the subdomain has been attached to the relay and tested from the device network.</CardDescription></CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div className="grid md:grid-cols-2 gap-2">
             {[
@@ -302,6 +301,7 @@ const BiometricAttendance = () => {
             <div className="flex items-center justify-between mb-1"><p className="text-xs text-muted-foreground">Cloudflare Worker code for attendance.wolfcrux.com</p>
               <Button size="sm" variant="ghost" onClick={() => copy(WORKER_CODE)}><Copy className="h-4 w-4 mr-1" />Copy</Button></div>
             <pre className="text-xs p-3 rounded bg-muted overflow-x-auto max-h-64">{WORKER_CODE}</pre>
+            <p className="mt-2 text-xs text-muted-foreground">The worker's custom domain/DNS route must be enabled in Cloudflare before this address can receive traffic. The K90 Pro's HTTPS support and accepted port must be verified on the unit; do not change its current settings yet.</p>
           </div>
         </CardContent>
       </Card>
