@@ -21,14 +21,10 @@
  * parses and returns rows; nothing is written to attendance.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
 const text = (body: string, status = 200) =>
-  new Response(body, { status, headers: { ...cors, "Content-Type": "text/plain" } });
+  new Response(body, { status, headers: { ...corsHeaders, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Content-Type": "text/plain" } });
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -95,7 +91,7 @@ Deno.serve(async (req) => {
         ? await admin.from("profiles").select("full_name, biometric_pin").in("biometric_pin", pins)
         : { data: [] };
       return new Response(JSON.stringify({ ...res, matches: profs ?? [] }), {
-        headers: { ...cors, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Content-Type": "application/json" },
       });
     }
 
