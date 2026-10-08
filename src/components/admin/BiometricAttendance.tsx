@@ -21,7 +21,7 @@ const FUNCTION_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supaba
 
 const WORKER_CODE = `// Cloudflare Worker for attendance.wolfcrux.com
 // Relays the K90 Pro's ADMS calls (/iclock/...) to the Wolfcrux backend.
-const TARGET = "${FUNCTION_URL}";
+const TARGET = "${import.meta.env.VITE_SUPABASE_URL}/functions/v1/adms-attendance";
 export default {
   async fetch(request) {
     const url = new URL(request.url);
@@ -262,7 +262,7 @@ const BiometricAttendance = () => {
       {/* Shift timing */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Clock className="h-5 w-5" />Shift Timing (IST)</CardTitle>
-          <CardDescription>Add a new row whenever the start time changes (e.g. daylight saving). Each rule applies from its date until the next one. Late = first punch after start + grace. Half day = worked less than the minimum hours (needs IN and OUT punch). Manual entries are never overwritten.</CardDescription></CardHeader>
+          <CardDescription>Add a new row whenever the start time changes (e.g. daylight saving). Each rule applies from its date until the next one. The first punch creates Present; a first punch after start + grace marks Late; a day with at least two punches and too few hours marks Half Day. Manual entries are never overwritten.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid md:grid-cols-6 gap-2 items-end">
             <div><Label>Effective from</Label><Input type="date" value={newShift.from} onChange={(e) => setNewShift({ ...newShift, from: e.target.value })} /></div>
@@ -272,7 +272,7 @@ const BiometricAttendance = () => {
             <div><Label>Note</Label><Input value={newShift.notes} onChange={(e) => setNewShift({ ...newShift, notes: e.target.value })} placeholder="DST" /></div>
             <Button onClick={addShift}>Save rule</Button>
           </div>
-          {shifts.length === 0 && <p className="text-sm text-destructive">No shift rule yet — punches are stored but Late/Half Day won't be auto-marked until you add one.</p>}
+          {shifts.length === 0 && <p className="text-sm text-destructive">No shift rule yet — punches are stored, but automatic attendance marking starts after you add a rule.</p>}
           <div className="flex flex-wrap gap-2">{shifts.map((s) => (
             <Badge key={s.id} variant="outline" className="gap-2 py-1">
               From {s.effective_from}: {s.shift_start.slice(0, 5)} +{s.grace_minutes}m, half &lt;{s.half_day_min_hours}h {s.notes ? `(${s.notes})` : ""}
@@ -285,14 +285,14 @@ const BiometricAttendance = () => {
       {/* Device configuration */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Server className="h-5 w-5" />Device Configuration</CardTitle>
-          <CardDescription>Settings to enter on the K90 Pro once the attendance.wolfcrux.com relay is live.</CardDescription></CardHeader>
+          <CardDescription>Set the device only after the subdomain has been attached to the relay and tested from the device network.</CardDescription></CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div className="grid md:grid-cols-2 gap-2">
             {[
               ["Server Mode", "ADMS"], ["Enable Domain Name", "ON"], ["Server Address", "attendance.wolfcrux.com"],
-              ["Server Port", "80 (HTTP) — or 443 if the firmware offers HTTPS"], ["Server Path (fixed by device)", "/iclock/cdata"],
+              ["Server Port", "Not configured yet — Cloudflare relay and firmware HTTPS capability must be verified"], ["Server Path", "/iclock (the device sends /cdata, /getrequest and /devicecmd)"],
               ["Enable Proxy Server", "OFF"], ["Device Serial Number", devices.map((d) => d.device_serial_number).join(", ") || "Register it above"],
-              ["Backend endpoint (relay target)", FUNCTION_URL],
+              ["Backend function path", "/functions/v1/adms-attendance"],
             ].map(([k, v]) => (
               <div key={k} className="p-2 rounded border flex justify-between gap-2"><span className="text-muted-foreground">{k}</span><span className="font-mono text-xs text-right break-all">{v}</span></div>
             ))}
@@ -301,6 +301,7 @@ const BiometricAttendance = () => {
             <div className="flex items-center justify-between mb-1"><p className="text-xs text-muted-foreground">Cloudflare Worker code for attendance.wolfcrux.com</p>
               <Button size="sm" variant="ghost" onClick={() => copy(WORKER_CODE)}><Copy className="h-4 w-4 mr-1" />Copy</Button></div>
             <pre className="text-xs p-3 rounded bg-muted overflow-x-auto max-h-64">{WORKER_CODE}</pre>
+            <p className="mt-2 text-xs text-muted-foreground">The worker's custom domain/DNS route must be enabled in Cloudflare before this address can receive traffic. The K90 Pro's HTTPS support and accepted port must be verified on the unit; do not change its current settings yet.</p>
           </div>
         </CardContent>
       </Card>
