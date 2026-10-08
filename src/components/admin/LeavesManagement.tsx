@@ -110,18 +110,22 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [holidaysRes, attendanceRes, summariesRes, tradingRes] = await Promise.all([
+    const [holidaysRes, attendanceRes, summariesRes, tradingRes, bioRes] = await Promise.all([
       supabase.from("holidays").select("*").order("holiday_date"),
       supabase.from("attendance_records").select("*").order("record_date", { ascending: false }),
       supabase.from("monthly_leave_summary").select("*"),
       supabase.from("trading_data").select("id,user_id,trader2_id,trade_date,trader1_attendance,trader2_attendance,late_remarks").order("trade_date", { ascending: false }),
+      supabase.from("attendance_records").select("*").eq("source", "biometric").order("record_date", { ascending: false }),
     ]);
 
     if (holidaysRes.data) setHolidays(holidaysRes.data);
     if (summariesRes.data) setMonthlySummaries(summariesRes.data as MonthlySummary[]);
 
     // Merge manual attendance with auto-derived attendance from trading_data
-    const manual: AttendanceRecord[] = (attendanceRes.data || []).map((r: any) => ({ ...r, source: "manual" as const }));
+    const manual: AttendanceRecord[] = [
+      ...(attendanceRes.data || []).filter((r: any) => r.source !== "biometric"),
+      ...(bioRes.data || []),
+    ].map((r: any) => ({ ...r, source: r.source === "biometric" ? "biometric" : "manual" }));
     const derived: AttendanceRecord[] = [];
     const seen = new Set(manual.map((r) => `${r.user_id}|${r.record_date}`));
 
