@@ -351,6 +351,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
           status: attendanceStatus,
           is_deductible: isDeductible,
           notes: attendanceNotes || null,
+          source: "manual",
         })
         .eq("id", editingAttendance.id);
 
@@ -369,6 +370,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
         status: attendanceStatus,
         is_deductible: isDeductible,
         notes: attendanceNotes || null,
+        source: "manual",
       }, { onConflict: "user_id,record_date" });
 
       if (error) {
