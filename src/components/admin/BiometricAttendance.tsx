@@ -290,7 +290,7 @@ const BiometricAttendance = () => {
           <div className="grid md:grid-cols-2 gap-2">
             {[
               ["Server Mode", "ADMS"], ["Enable Domain Name", "ON"], ["Server Address", "attendance.wolfcrux.com"],
-              ["Server Port", "80 (HTTP) — or 443 if the firmware offers HTTPS"], ["Server Path (fixed by device)", "/iclock/cdata"],
+              ["Server Port", "Not configured yet — Cloudflare relay and firmware HTTPS capability must be verified"], ["Server Path", "/iclock (the device sends /cdata, /getrequest and /devicecmd)"],
               ["Enable Proxy Server", "OFF"], ["Device Serial Number", devices.map((d) => d.device_serial_number).join(", ") || "Register it above"],
               ["Backend endpoint (relay target)", FUNCTION_URL],
             ].map(([k, v]) => (
