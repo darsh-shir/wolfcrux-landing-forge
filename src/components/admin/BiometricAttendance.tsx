@@ -21,7 +21,8 @@ const FUNCTION_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supaba
 
 const WORKER_CODE = `// Cloudflare Worker for attendance.wolfcrux.com
 // Relays the K90 Pro's ADMS calls (/iclock/...) to the Wolfcrux backend.
-const TARGET = "${FUNCTION_URL}";
+// Replace this placeholder with the deployed adms-attendance function URL.
+const TARGET = "https://YOUR-LOVABLE-CLOUD-ENDPOINT/functions/v1/adms-attendance";
 export default {
   async fetch(request) {
     const url = new URL(request.url);
@@ -292,7 +293,7 @@ const BiometricAttendance = () => {
               ["Server Mode", "ADMS"], ["Enable Domain Name", "ON"], ["Server Address", "attendance.wolfcrux.com"],
               ["Server Port", "Not configured yet — Cloudflare relay and firmware HTTPS capability must be verified"], ["Server Path", "/iclock (the device sends /cdata, /getrequest and /devicecmd)"],
               ["Enable Proxy Server", "OFF"], ["Device Serial Number", devices.map((d) => d.device_serial_number).join(", ") || "Register it above"],
-              ["Backend endpoint (relay target)", FUNCTION_URL],
+              ["Backend function path", "/functions/v1/adms-attendance"],
             ].map(([k, v]) => (
               <div key={k} className="p-2 rounded border flex justify-between gap-2"><span className="text-muted-foreground">{k}</span><span className="font-mono text-xs text-right break-all">{v}</span></div>
             ))}
