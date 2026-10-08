@@ -262,7 +262,7 @@ const BiometricAttendance = () => {
       {/* Shift timing */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Clock className="h-5 w-5" />Shift Timing (IST)</CardTitle>
-          <CardDescription>Add a new row whenever the start time changes (e.g. daylight saving). Each rule applies from its date until the next one. Late = first punch after start + grace. Half day = worked less than the minimum hours (needs IN and OUT punch). Manual entries are never overwritten.</CardDescription></CardHeader>
+          <CardDescription>Add a new row whenever the start time changes (e.g. daylight saving). Each rule applies from its date until the next one. The first punch creates Present; a first punch after start + grace marks Late; a day with at least two punches and too few hours marks Half Day. Manual entries are never overwritten.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid md:grid-cols-6 gap-2 items-end">
             <div><Label>Effective from</Label><Input type="date" value={newShift.from} onChange={(e) => setNewShift({ ...newShift, from: e.target.value })} /></div>
@@ -272,7 +272,7 @@ const BiometricAttendance = () => {
             <div><Label>Note</Label><Input value={newShift.notes} onChange={(e) => setNewShift({ ...newShift, notes: e.target.value })} placeholder="DST" /></div>
             <Button onClick={addShift}>Save rule</Button>
           </div>
-          {shifts.length === 0 && <p className="text-sm text-destructive">No shift rule yet — punches are stored but Late/Half Day won't be auto-marked until you add one.</p>}
+          {shifts.length === 0 && <p className="text-sm text-destructive">No shift rule yet — punches are stored, but automatic attendance marking starts after you add a rule.</p>}
           <div className="flex flex-wrap gap-2">{shifts.map((s) => (
             <Badge key={s.id} variant="outline" className="gap-2 py-1">
               From {s.effective_from}: {s.shift_start.slice(0, 5)} +{s.grace_minutes}m, half &lt;{s.half_day_min_hours}h {s.notes ? `(${s.notes})` : ""}
