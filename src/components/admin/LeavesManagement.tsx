@@ -110,24 +110,23 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [holidaysRes, attendanceRes, summariesRes, tradingRes, bioRes] = await Promise.all([
+    const [holidaysRes, attendanceRes, summariesRes, tradingRes] = await Promise.all([
       supabase.from("holidays").select("*").order("holiday_date"),
       supabase.from("attendance_records").select("*").order("record_date", { ascending: false }),
       supabase.from("monthly_leave_summary").select("*"),
       supabase.from("trading_data").select("id,user_id,trader2_id,trade_date,trader1_attendance,trader2_attendance,late_remarks").order("trade_date", { ascending: false }),
-      supabase.from("attendance_records").select("*").eq("source", "biometric").order("record_date", { ascending: false }),
     ]);
 
     if (holidaysRes.data) setHolidays(holidaysRes.data);
     if (summariesRes.data) setMonthlySummaries(summariesRes.data as MonthlySummary[]);
 
     // Merge manual attendance with auto-derived attendance from trading_data
-    const manual: AttendanceRecord[] = [
-      ...(attendanceRes.data || []).filter((r: any) => r.source !== "biometric"),
-      ...(bioRes.data || []),
-    ].map((r: any) => ({ ...r, source: r.source === "biometric" ? "biometric" : "manual" }));
+    const stored: AttendanceRecord[] = (attendanceRes.data || []).map((r: any) => ({
+      ...r,
+      source: r.source === "biometric" ? "biometric" : "manual",
+    }));
     const derived: AttendanceRecord[] = [];
-    const seen = new Set(manual.map((r) => `${r.user_id}|${r.record_date}`));
+    const seen = new Set(stored.map((r) => `${r.user_id}|${r.record_date}`));
 
     (tradingRes.data || []).forEach((row: any) => {
       const addEntry = (uid: string | null, status: string, isLate: boolean) => {
@@ -151,7 +150,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
       addEntry(row.trader2_id, row.trader2_attendance, false);
     });
 
-    setAttendanceRecords([...manual, ...derived]);
+    setAttendanceRecords([...stored, ...derived]);
     setLoading(false);
   };
 
@@ -585,9 +584,8 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                       <TableRow key={record.id}>
                         <TableCell className="font-medium">
                           {getUserName(record.user_id)}
-                          {record.source === "trading" && (
-                            <Badge variant="outline" className="ml-2 text-xs">Auto</Badge>
-                          )}
+                            {record.source === "trading" && <Badge variant="outline" className="ml-2 text-xs">Auto</Badge>}
+                            {record.source === "biometric" && <Badge variant="secondary" className="ml-2 text-xs">Biometric</Badge>}
                         </TableCell>
                         <TableCell>{getStatusBadge(record.status)}</TableCell>
                         <TableCell className="text-muted-foreground">{record.notes || "—"}</TableCell>
