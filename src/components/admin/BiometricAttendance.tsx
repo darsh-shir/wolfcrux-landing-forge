@@ -36,7 +36,7 @@ export default {
 type Device = { id: string; device_serial_number: string; device_name: string; location: string | null; is_active: boolean; last_seen_at: string | null; last_punch_at: string | null };
 type Punch = { id: string; biometric_pin: string; employee_id: string | null; punch_timestamp: string; received_at: string; device_serial_number: string; verify_mode: string | null; in_out_status: string | null };
 type Evt = { id: string; device_serial_number: string | null; event_type: string; created_at: string; records_received: number; records_accepted: number; records_duplicate: number; records_unmatched: number; records_malformed: number; payload_excerpt: string | null; error: string | null };
-type Shift = { id: string; effective_from: string; shift_start: string; grace_minutes: number; half_day_min_hours: number; notes: string | null };
+type Shift = { id: string; effective_from: string; shift_start: string; notes: string | null };
 type Prof = { user_id: string; full_name: string; biometric_pin: string | null };
 
 const BiometricAttendance = () => {
@@ -47,7 +47,7 @@ const BiometricAttendance = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [profiles, setProfiles] = useState<Prof[]>([]);
   const [newDev, setNewDev] = useState({ name: "", sn: "", location: "", active: true });
-  const [newShift, setNewShift] = useState({ from: todayIST(), start: "13:15", grace: "0", half: "4", notes: "" });
+  const [newShift, setNewShift] = useState({ from: todayIST(), start: "", notes: "" });
   const [mapSel, setMapSel] = useState<Record<string, string>>({});
   const [testPayload, setTestPayload] = useState("1001\t2026-10-01 09:02:15\t1\t0\t0");
   const [testResult, setTestResult] = useState<string>("");
@@ -122,18 +122,16 @@ const BiometricAttendance = () => {
   };
 
   const addShift = async () => {
+    if (!newShift.from || !newShift.start) return toast({ title: "Choose an effective date and start time", variant: "destructive" });
     const { error } = await supabase.from("attendance_shift_settings").upsert({
-      effective_from: newShift.from, shift_start: newShift.start, grace_minutes: Number(newShift.grace) || 0,
-      half_day_min_hours: Number(newShift.half) || 4, notes: newShift.notes || null,
+      effective_from: newShift.from, shift_start: newShift.start, notes: newShift.notes.trim() || null,
     }, { onConflict: "effective_from" });
     if (error) return toast({ title: "Could not save", description: error.message, variant: "destructive" });
-    const { data: n } = await supabase.rpc("recompute_biometric_range", { _from: newShift.from, _to: today });
-    toast({ title: "Shift timing saved", description: `${n ?? 0} day(s) recalculated` }); load();
+    toast({ title: "Shift timing saved", description: "Punches remain review-only; attendance was not changed." }); load();
   };
   const delShift = async (s: Shift) => {
     const { error } = await supabase.from("attendance_shift_settings").delete().eq("id", s.id);
     if (error) return toast({ title: "Could not delete shift rule", description: error.message, variant: "destructive" });
-    await supabase.rpc("recompute_biometric_range", { _from: s.effective_from, _to: today });
     load();
   };
 
@@ -215,6 +213,28 @@ const BiometricAttendance = () => {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader><CardTitle className="font-['Space_Grotesk']">Recent punches</CardTitle>
+          <CardDescription>Device punches are saved for review only. They never create or change attendance records.</CardDescription></CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader><TableRow><TableHead>Punch time (IST)</TableHead><TableHead>Employee</TableHead><TableHead>PIN</TableHead><TableHead>In / Out</TableHead><TableHead>Verification</TableHead><TableHead>Device</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {punches.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No punches received yet</TableCell></TableRow> : punches.slice(0, 50).map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell className="text-xs whitespace-nowrap">{fmt(p.punch_timestamp)}</TableCell>
+                  <TableCell>{p.employee_id ? nameOf.get(p.employee_id) ?? "Mapped employee" : <Badge variant="outline">Unknown PIN</Badge>}</TableCell>
+                  <TableCell className="font-mono text-xs">{p.biometric_pin}</TableCell>
+                  <TableCell>{p.in_out_status ?? "—"}</TableCell>
+                  <TableCell>{p.verify_mode ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{p.device_serial_number}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
       {/* Unknown PINs */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><UserX className="h-5 w-5" />Unknown biometric PIN</CardTitle>
@@ -262,20 +282,23 @@ const BiometricAttendance = () => {
       {/* Shift timing */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Clock className="h-5 w-5" />Shift Timing (IST)</CardTitle>
-          <CardDescription>Add a new row whenever the start time changes (e.g. daylight saving). Each rule applies from its date until the next one. The first punch creates Present; a first punch after start + grace marks Late; a day with at least two punches and too few hours marks Half Day. Manual entries are never overwritten.</CardDescription></CardHeader>
+          <CardDescription>Set a start time for each date when the schedule changes. It remains in effect until the next date you enter. These settings are for reference; punches do not mark attendance.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-6 gap-2 items-end">
+          <div className="grid md:grid-cols-3 gap-2 items-end">
             <div><Label>Effective from</Label><Input type="date" value={newShift.from} onChange={(e) => setNewShift({ ...newShift, from: e.target.value })} /></div>
-            <div><Label>Shift start</Label><Input type="time" value={newShift.start} onChange={(e) => setNewShift({ ...newShift, start: e.target.value })} /></div>
-            <div><Label>Grace (min)</Label><Input type="number" value={newShift.grace} onChange={(e) => setNewShift({ ...newShift, grace: e.target.value })} /></div>
-            <div><Label>Half-day below (hrs)</Label><Input type="number" step="0.5" value={newShift.half} onChange={(e) => setNewShift({ ...newShift, half: e.target.value })} /></div>
-            <div><Label>Note</Label><Input value={newShift.notes} onChange={(e) => setNewShift({ ...newShift, notes: e.target.value })} placeholder="DST" /></div>
-            <Button onClick={addShift}>Save rule</Button>
+            <div><Label>Start time (IST)</Label><Input type="time" required value={newShift.start} onChange={(e) => setNewShift({ ...newShift, start: e.target.value })} /></div>
+            <div><Label>Note</Label><Input value={newShift.notes} onChange={(e) => setNewShift({ ...newShift, notes: e.target.value })} placeholder="Seasonal schedule" /></div>
           </div>
-          {shifts.length === 0 && <p className="text-sm text-destructive">No shift rule yet — punches are stored, but automatic attendance marking starts after you add a rule.</p>}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">Common starts:</span>
+            {[{ value: "13:15", label: "1:15 PM" }, { value: "14:15", label: "2:15 PM" }, { value: "15:15", label: "3:15 PM" }].map((time) => (
+              <Button key={time.value} type="button" size="sm" variant="outline" onClick={() => setNewShift({ ...newShift, start: time.value })}>{time.label}</Button>
+            ))}
+            <Button onClick={addShift}>Save date and time</Button>
+          </div>
           <div className="flex flex-wrap gap-2">{shifts.map((s) => (
             <Badge key={s.id} variant="outline" className="gap-2 py-1">
-              From {s.effective_from}: {s.shift_start.slice(0, 5)} +{s.grace_minutes}m, half &lt;{s.half_day_min_hours}h {s.notes ? `(${s.notes})` : ""}
+              From {s.effective_from}: {s.shift_start.slice(0, 5)} IST {s.notes ? `(${s.notes})` : ""}
               <button onClick={() => delShift(s)} aria-label="Delete rule"><Trash2 className="h-3 w-3" /></button>
             </Badge>
           ))}</div>
