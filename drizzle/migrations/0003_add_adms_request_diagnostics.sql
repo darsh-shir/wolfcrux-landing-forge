@@ -1,0 +1,2 @@
+ALTER TABLE public.adms_device_events ADD COLUMN request_diagnostic jsonb;
+COMMENT ON COLUMN public.adms_device_events.request_diagnostic IS 'Redacted request metadata only; excludes credentials, cookies, raw punch values, and unredacted bodies.';

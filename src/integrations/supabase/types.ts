@@ -29,6 +29,7 @@ export type Database = {
           records_malformed: number | null
           records_received: number | null
           records_unmatched: number | null
+          request_diagnostic: Json | null
           table_name: string | null
         }
         Insert: {
@@ -45,6 +46,7 @@ export type Database = {
           records_malformed?: number | null
           records_received?: number | null
           records_unmatched?: number | null
+          request_diagnostic?: Json | null
           table_name?: string | null
         }
         Update: {
@@ -61,6 +63,7 @@ export type Database = {
           records_malformed?: number | null
           records_received?: number | null
           records_unmatched?: number | null
+          request_diagnostic?: Json | null
           table_name?: string | null
         }
         Relationships: []
