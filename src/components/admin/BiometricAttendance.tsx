@@ -20,22 +20,25 @@ const todayIST = () => new Date().toLocaleDateString("en-CA", { timeZone: TZ });
 const FUNCTION_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/adms-attendance`;
 
 const WORKER_CODE = `// Cloudflare Worker for attendance.wolfcrux.com
-// Relays the K90 Pro's ADMS calls (/iclock/...) to the Wolfcrux backend.
+// Relays K90 Pro ADMS calls without changing method, query, body, or headers.
 const TARGET = "${import.meta.env.VITE_SUPABASE_URL}/functions/v1/adms-attendance";
 export default {
   async fetch(request) {
-    const url = new URL(request.url);
-    if (!url.pathname.toLowerCase().startsWith("/iclock/")) return new Response("Not found", { status: 404 });
-    const init = { method: request.method, headers: { "Content-Type": request.headers.get("Content-Type") || "text/plain" } };
-    if (request.method !== "GET" && request.method !== "HEAD") init.body = await request.text();
-    const res = await fetch(TARGET + url.pathname + url.search, init);
-    return new Response(await res.text(), { status: res.status, headers: { "Content-Type": "text/plain" } });
+    const source = new URL(request.url);
+    if (!source.pathname.toLowerCase().startsWith("/iclock/")) return new Response("Not found", { status: 404 });
+    const target = new URL(TARGET);
+    target.pathname = target.pathname.replace(/\\/$/, "") + source.pathname;
+    target.search = source.search;
+    const headers = new Headers(request.headers);
+    headers.delete("host");
+    const response = await fetch(new Request(target.toString(), { method: request.method, headers, body: request.body, redirect: "manual" }));
+    return response;
   },
 };`;
 
 type Device = { id: string; device_serial_number: string; device_name: string; location: string | null; is_active: boolean; last_seen_at: string | null; last_punch_at: string | null };
 type Punch = { id: string; biometric_pin: string; employee_id: string | null; punch_timestamp: string; received_at: string; device_serial_number: string; verify_mode: string | null; in_out_status: string | null };
-type Evt = { id: string; device_serial_number: string | null; event_type: string; created_at: string; records_received: number; records_accepted: number; records_duplicate: number; records_unmatched: number; records_malformed: number; payload_excerpt: string | null; error: string | null };
+type Evt = { id: string; device_serial_number: string | null; event_type: string; created_at: string; method: string | null; path: string | null; table_name: string | null; records_received: number; records_accepted: number; records_duplicate: number; records_unmatched: number; records_malformed: number; payload_excerpt: string | null; error: string | null; request_diagnostic: unknown };
 type Shift = { id: string; effective_from: string; shift_start: string; notes: string | null };
 type Prof = { user_id: string; full_name: string; biometric_pin: string | null };
 
@@ -51,6 +54,7 @@ const BiometricAttendance = () => {
   const [mapSel, setMapSel] = useState<Record<string, string>>({});
   const [testPayload, setTestPayload] = useState("1001\t2026-10-01 09:02:15\t1\t0\t0");
   const [testResult, setTestResult] = useState<string>("");
+  const [connectivityResult, setConnectivityResult] = useState<string>("");
 
   const load = async () => {
     const [d, p, e, s, pr] = await Promise.all([
@@ -144,6 +148,21 @@ const BiometricAttendance = () => {
     }).catch(() => null);
     if (!res) return setTestResult("Endpoint unreachable");
     setTestResult(`HTTP ${res.status}\n` + JSON.stringify(await res.json().catch(() => ({})), null, 2));
+  };
+  const runConnectivityTest = async () => {
+    setConnectivityResult("Sending a safe probe through the public relay…");
+    try {
+      const probeUrl = new URL("https://attendance.wolfcrux.com/iclock/cdata");
+      probeUrl.searchParams.set("options", "all");
+      probeUrl.searchParams.set("pushver", "diagnostic");
+      probeUrl.searchParams.set("SN", "WOLFCRUX-CONNECTIVITY-TEST");
+      const response = await fetch(probeUrl.toString(), { method: "GET", headers: { "Accept": "text/plain" } });
+      const body = await response.text();
+      setConnectivityResult(`HTTP ${response.status}\n${body.slice(0, 1000)}`);
+      await load();
+    } catch (error) {
+      setConnectivityResult(`Could not reach attendance.wolfcrux.com: ${error instanceof Error ? error.message : "Network error"}`);
+    }
   };
   const copy = (s: string) => { navigator.clipboard.writeText(s); toast({ title: "Copied" }); };
 
@@ -340,11 +359,20 @@ const BiometricAttendance = () => {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader><CardTitle className="font-['Space_Grotesk']">ADMS Connectivity Test</CardTitle>
+          <CardDescription>Sends a non-registered GET probe through the public relay. It cannot create or modify punches or attendance.</CardDescription></CardHeader>
+        <CardContent className="space-y-2">
+          <Button onClick={runConnectivityTest}><Activity className="h-4 w-4 mr-2" />Test public connection</Button>
+          {connectivityResult && <pre className="text-xs p-2 rounded bg-muted overflow-x-auto max-h-64 whitespace-pre-wrap">{connectivityResult}</pre>}
+        </CardContent>
+      </Card>
+
       {/* Event log */}
       <Card>
         <CardHeader><CardTitle className="font-['Space_Grotesk']">Device Event Log</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto"><Table>
-          <TableHeader><TableRow><TableHead>Time</TableHead><TableHead>Serial</TableHead><TableHead>Event</TableHead><TableHead>Recv/New/Dup/Unk/Bad</TableHead><TableHead>Error</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Time</TableHead><TableHead>Serial</TableHead><TableHead>Event</TableHead><TableHead>Recv/New/Dup/Unk/Bad</TableHead><TableHead>Error</TableHead><TableHead>Request details</TableHead></TableRow></TableHeader>
           <TableBody>{events.map((e) => (
             <TableRow key={e.id}>
               <TableCell className="text-xs whitespace-nowrap">{fmt(e.created_at)}</TableCell>
@@ -352,6 +380,7 @@ const BiometricAttendance = () => {
               <TableCell><Badge variant={e.error ? "destructive" : "outline"}>{e.event_type}</Badge></TableCell>
               <TableCell className="text-xs">{e.event_type === "attlog" ? `${e.records_received}/${e.records_accepted}/${e.records_duplicate}/${e.records_unmatched}/${e.records_malformed}` : "—"}</TableCell>
               <TableCell className="text-xs text-destructive">{e.error || ""}</TableCell>
+              <TableCell className="min-w-64 max-w-md"><pre className="text-xs whitespace-pre-wrap break-all">{e.request_diagnostic ? JSON.stringify(e.request_diagnostic, null, 2) : "Not captured"}</pre></TableCell>
             </TableRow>
           ))}</TableBody>
         </Table></CardContent>
