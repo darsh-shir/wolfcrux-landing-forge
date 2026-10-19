@@ -48,7 +48,7 @@ export function parseAttlog(body: string): { rows: Parsed[]; malformed: string[]
 type RequestClass = "device registration / handshake" | "heartbeat" | "attendance upload" | "command polling" | "other ADMS request";
 const classify = (path: string, method: string, table: string) => {
   if (path.endsWith("/iclock/cdata") && method === "GET") return "device registration / handshake" as const;
-  if (path.endsWith("/iclock/cdata") && method === "POST" && table === "ATTLOG") return "attendance upload" as const;
+  if (path.endsWith("/iclock/cdata") && method === "POST" && (!table || table === "ATTLOG")) return "attendance upload" as const;
   if (path.endsWith("/iclock/getrequest")) return "heartbeat" as const;
   if (path.endsWith("/iclock/devicecmd")) return "command polling" as const;
   return "other ADMS request" as const;
@@ -58,9 +58,14 @@ const masked = (value: string) => value.length <= 4 ? "••••" : `${"•".
 
 function requestInfo(req: Request, url: URL, serial: string | null, serialSource: string | null, kind: RequestClass, table: string, body: string) {
   const safeHeaders: Record<string, string> = {};
-  for (const key of ["user-agent", "content-type", "content-length", "accept", "x-forwarded-proto", "x-device-sn", "x-device-serial-number", "sn"]) {
-    const value = req.headers.get(key);
-    if (value) safeHeaders[key] = key.includes("serial") || key === "sn" ? masked(value.trim()) : value.slice(0, 200);
+  const headerNames: string[] = [];
+  const sensitiveHeader = /authorization|cookie|token|secret|password|api[-_]?key|credential|forwarded-for|client-ip/i;
+  for (const [key, value] of req.headers.entries()) {
+    headerNames.push(key);
+    if (sensitiveHeader.test(key)) continue;
+    if (key === "sn" || key.includes("serial")) safeHeaders[key] = masked(value.trim());
+    else if (["user-agent", "content-type", "content-length", "accept", "x-forwarded-proto"].includes(key)) safeHeaders[key] = value.slice(0, 200);
+    else safeHeaders[key] = "[REDACTED VALUE]";
   }
   const params: Record<string, string> = {};
   for (const [key, value] of url.searchParams.entries()) {
@@ -83,6 +88,7 @@ function requestInfo(req: Request, url: URL, serial: string | null, serialSource
     method: req.method,
     pathname: url.pathname,
     queryString: params,
+    headerNames: headerNames.filter((key) => !sensitiveHeader.test(key)),
     headers: safeHeaders,
     contentType: req.headers.get("content-type"),
     serialNumber: serial ? masked(serial) : null,
@@ -127,6 +133,8 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const path = url.pathname.toLowerCase();
 
+  try {
+
   // Browser-only admin tools; no device records are created by either action.
   if (req.method === "POST" && (req.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
     if (!await requireAdmin(req)) return text("Unauthorized", 401);
@@ -147,7 +155,7 @@ Deno.serve(async (req) => {
     if (input.action === "connectivity_test") {
       const info = requestInfo(req, url, null, null, "other ADMS request", "", body);
       await logEvent({ event_type: "connectivity_test", method: req.method, path, request_diagnostic: info });
-      return new Response(JSON.stringify({ ok: true, reached: "adms-attendance", method: req.method, path: url.pathname, queryReceived: Object.fromEntries(url.searchParams.keys().map((key) => [key, true])), bodyReceived: input.action === "connectivity_test" }), {
+      return new Response(JSON.stringify({ ok: true, reached: "adms-attendance", method: req.method, path: url.pathname, queryReceived: Object.fromEntries([...url.searchParams.keys()].map((key) => [key, true])), bodyReceived: true }), {
         headers: { ...corsHeaders, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Content-Type": "application/json" },
       });
     }
@@ -245,4 +253,9 @@ Deno.serve(async (req) => {
 
   await logEvent({ device_serial_number: serial, event_type: "other_request", method: req.method, path, request_diagnostic: diagnostic });
   return text("Not found", 404);
+  } catch (err) {
+    console.error("ADMS request processing failed", err instanceof Error ? err.name : "unknown error");
+    await logEvent({ method: req.method, path, event_type: "error", error: "Request processing failed" });
+    return text("ERROR", 500);
+  }
 });

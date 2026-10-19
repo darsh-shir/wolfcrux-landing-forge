@@ -150,15 +150,28 @@ const BiometricAttendance = () => {
     setTestResult(`HTTP ${res.status}\n` + JSON.stringify(await res.json().catch(() => ({})), null, 2));
   };
   const runConnectivityTest = async () => {
-    setConnectivityResult("Sending a safe probe through the public relay…");
+    setConnectivityResult("Checking GET handshake and POST forwarding through the public relay…");
     try {
-      const probeUrl = new URL("https://attendance.wolfcrux.com/iclock/cdata");
-      probeUrl.searchParams.set("options", "all");
-      probeUrl.searchParams.set("pushver", "diagnostic");
-      probeUrl.searchParams.set("SN", "WOLFCRUX-CONNECTIVITY-TEST");
-      const response = await fetch(probeUrl.toString(), { method: "GET", headers: { "Accept": "text/plain" } });
-      const body = await response.text();
-      setConnectivityResult(`HTTP ${response.status}\n${body.slice(0, 1000)}`);
+      const getUrl = new URL("https://attendance.wolfcrux.com/iclock/cdata");
+      getUrl.searchParams.set("options", "all");
+      getUrl.searchParams.set("pushver", "diagnostic");
+      getUrl.searchParams.set("SN", "WOLFCRUX-CONNECTIVITY-TEST");
+      const getResponse = await fetch(getUrl.toString(), { method: "GET", headers: { "Accept": "text/plain" } });
+      const getBody = await getResponse.text();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setConnectivityResult(`GET handshake: HTTP ${getResponse.status}\n${getBody.slice(0, 500)}\nPOST forwarding test requires an admin session.`);
+        return;
+      }
+      const postUrl = new URL("https://attendance.wolfcrux.com/iclock/cdata");
+      postUrl.searchParams.set("probe", "connectivity-test");
+      const postResponse = await fetch(postUrl.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: "connectivity_test" }),
+      });
+      const postBody = await postResponse.text();
+      setConnectivityResult(`GET handshake: HTTP ${getResponse.status}\n${getBody.slice(0, 500)}\n\nPOST forwarding: HTTP ${postResponse.status}\n${postBody.slice(0, 1000)}`);
       await load();
     } catch (error) {
       setConnectivityResult(`Could not reach attendance.wolfcrux.com: ${error instanceof Error ? error.message : "Network error"}`);
@@ -361,7 +374,7 @@ const BiometricAttendance = () => {
 
       <Card>
         <CardHeader><CardTitle className="font-['Space_Grotesk']">ADMS Connectivity Test</CardTitle>
-          <CardDescription>Sends a non-registered GET probe through the public relay. It cannot create or modify punches or attendance.</CardDescription></CardHeader>
+          <CardDescription>Tests a read-only handshake and an admin-authenticated POST probe through the public relay. Neither can create punches or alter attendance.</CardDescription></CardHeader>
         <CardContent className="space-y-2">
           <Button onClick={runConnectivityTest}><Activity className="h-4 w-4 mr-2" />Test public connection</Button>
           {connectivityResult && <pre className="text-xs p-2 rounded bg-muted overflow-x-auto max-h-64 whitespace-pre-wrap">{connectivityResult}</pre>}
