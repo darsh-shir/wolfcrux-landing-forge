@@ -165,19 +165,56 @@ const BiometricAttendance = () => {
       }
       const postUrl = new URL("https://attendance.wolfcrux.com/iclock/cdata");
       postUrl.searchParams.set("probe", "connectivity-test");
-      const postResponse = await fetch(postUrl.toString(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ action: "connectivity_test" }),
+      const { data: postData, error: postError } = await supabase.functions.invoke("adms-attendance", {
+        body: { action: "connectivity_test" },
       });
-      const postBody = await postResponse.text();
-      setConnectivityResult(`GET handshake: HTTP ${getResponse.status}\n${getBody.slice(0, 500)}\n\nPOST forwarding: HTTP ${postResponse.status}\n${postBody.slice(0, 1000)}`);
+      const postStatus = postError ? "failed" : "HTTP 200";
+      const postBody = postError ? postError.message : JSON.stringify(postData);
+      setConnectivityResult(`GET handshake: HTTP ${getResponse.status}\n${getBody.slice(0, 500)}\n\nPOST backend probe (${postUrl.pathname}?probe=connectivity-test): ${postStatus}\n${postBody.slice(0, 1000)}\nPOST through public relay is not verifiable until the relay exists.`);
       await load();
     } catch (error) {
-      setConnectivityResult(`Could not reach attendance.wolfcrux.com: ${error instanceof Error ? error.message : "Network error"}`);
+      setConnectivityResult(`Could not complete the test: ${error instanceof Error ? error.message : "Network error"}`);
     }
   };
   const copy = (s: string) => { navigator.clipboard.writeText(s); toast({ title: "Copied" }); };
+
+  return (
+    <div className="space-y-6">
+      {/* Debug / status */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Activity className="h-5 w-5" />Biometric Device Status</CardTitle>
+            <CardDescription>Live view of the fingerprint machine connection (Mumbai time)</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-4 w-4 mr-1" />Refresh</Button>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          {[
+            ["Last heartbeat", fmt(lastHeartbeat?.created_at)],
+            ["Last device serial", lastHeartbeat?.device_serial_number || events[0]?.device_serial_number || "—"],
+            ["Last upload", lastUpload ? `${fmt(lastUpload.created_at)} · ${lastUpload.records_accepted} new / ${lastUpload.records_duplicate} dup` : "—"],
+            ["Punches today", String(todayCount)],
+            ["Last matched punch", lastGoodPunch ? `${(lastGoodPunch.employee_id && nameOf.get(lastGoodPunch.employee_id)) ?? "?"} · ${fmt(lastGoodPunch.punch_timestamp)}` : "—"],
+            ["Unknown PINs", String(unknown.length)],
+            ["Last error", lastError ? `${lastError.error} (${fmt(lastError.created_at)})` : "None"],
+            ["Endpoint", events.length ? "Receiving" : "Waiting for device"],
+          ].map(([k, v]) => (
+            <div key={k} className="p-3 rounded-lg border bg-muted/30"><p className="text-xs text-muted-foreground">{k}</p><p className="font-medium break-words">{v}</p></div>
+          ))}
+          {lastUpload?.payload_excerpt && (
+            <div className="col-span-2 md:col-span-4"><p className="text-xs text-muted-foreground mb-1">Last received payload</p>
+              <pre className="text-xs p-2 rounded bg-muted overflow-x-auto max-h-32">{lastUpload.payload_excerpt}</pre></div>
+          )}
+        </CardContent>
+      </Card>
+      {/* The rest of the existing biometric administration UI remains below. */}
+      {null}
+    </div>
+  );
+};
+
+export default BiometricAttendance;
 
   return (
     <div className="space-y-6">
