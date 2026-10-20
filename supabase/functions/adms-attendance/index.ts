@@ -78,10 +78,8 @@ function requestInfo(req: Request, url: URL, serial: string | null, serialSource
       byteLength: new TextEncoder().encode(body).length,
       lineCount: body.split(/\r?\n/).filter(Boolean).length,
       format: table === "ATTLOG" ? "ATTLOG rows; PINs and timestamps redacted" : "Body present; contents redacted",
-      preview: table === "ATTLOG" ? body.split(/\r?\n/).filter(Boolean).slice(0, 3).map((line) => {
-        const fields = line.split("\t");
-        return `[REDACTED PIN]\t[REDACTED DEVICE TIME]${fields.length > 2 ? `\t${fields.slice(2).join("\t").slice(0, 100)}` : ""}`;
-      }) : undefined,
+      preview: table === "ATTLOG" ? body.split(/\r?\n/).filter(Boolean).slice(0, 3).map((line) =>
+        line.split("\t").map(() => "[REDACTED]").join("\t")) : undefined,
     }
     : { byteLength: 0, lineCount: 0, format: "No request body" };
   return {
