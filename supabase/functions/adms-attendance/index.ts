@@ -105,10 +105,8 @@ function findSerial(req: Request, url: URL) {
     const distinct = [...new Set(querySerials)];
     return { serial: distinct.length === 1 ? distinct[0] : null, source: "query", conflict: distinct.length > 1 };
   }
-  for (const key of ["SN", "X-Device-SN", "X-Device-Serial-Number"]) {
-    const value = req.headers.get(key)?.trim();
-    if (value) return { serial: value, source: `header:${key.toLowerCase()}`, conflict: false };
-  }
+  // Serial-like headers are recorded as redacted diagnostics only; an arbitrary client
+  // can forge them, so they are never accepted as device identity.
   return { serial: null, source: null, conflict: false };
 }
 
@@ -167,6 +165,13 @@ Deno.serve(async (req) => {
   const serial = serialInfo.serial && serialInfo.serial.length <= 64 ? serialInfo.serial : null;
   const diagnostic = requestInfo(req, url, serial, serialInfo.source, kind, table, requestBody);
   const serialRequired = kind !== "other ADMS request";
+
+  // ADMS can post auxiliary tables (such as OPERLOG/USERINFO) that are intentionally
+  // ignored. They do not create punches, so acknowledge them even if SN is absent.
+  if (kind === "other ADMS request" && path.endsWith("/iclock/cdata") && req.method === "POST") {
+    await logEvent({ event_type: "upload_other", method: req.method, path, table_name: table || null, request_diagnostic: diagnostic });
+    return text("OK");
+  }
 
   if (serialInfo.conflict || (serialRequired && !serial)) {
     await logEvent({ event_type: "rejected", method: req.method, path, error: serialInfo.conflict ? "Conflicting serial number values" : "Missing or invalid serial number", request_diagnostic: diagnostic });
