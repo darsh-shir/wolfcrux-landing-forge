@@ -186,7 +186,7 @@ const BiometricAttendance = () => {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Activity className="h-5 w-5" />Biometric Device Status</CardTitle>
-            <CardDescription>Live view of the fingerprint machine connection (Mumbai time)</CardDescription>
+          <CardDescription>Live device status and redacted request diagnostics (Mumbai time)</CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-4 w-4 mr-1" />Refresh</Button>
         </CardHeader>
@@ -230,10 +230,6 @@ const BiometricAttendance = () => {
           ].map(([k, v]) => (
             <div key={k} className="p-3 rounded-lg border bg-muted/30"><p className="text-xs text-muted-foreground">{k}</p><p className="font-medium break-words">{v}</p></div>
           ))}
-          {lastUpload?.payload_excerpt && (
-            <div className="col-span-2 md:col-span-4"><p className="text-xs text-muted-foreground mb-1">Last received payload</p>
-              <pre className="text-xs p-2 rounded bg-muted overflow-x-auto max-h-32">{lastUpload.payload_excerpt}</pre></div>
-          )}
         </CardContent>
       </Card>
 
