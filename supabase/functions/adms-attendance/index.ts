@@ -166,6 +166,13 @@ Deno.serve(async (req) => {
   const diagnostic = requestInfo(req, url, serial, serialInfo.source, kind, table, requestBody);
   const serialRequired = kind !== "other ADMS request";
 
+  // ADMS can post auxiliary tables (such as OPERLOG/USERINFO) that are intentionally
+  // ignored. They do not create punches, so acknowledge them even if SN is absent.
+  if (kind === "other ADMS request" && path.endsWith("/iclock/cdata") && req.method === "POST") {
+    await logEvent({ event_type: "upload_other", method: req.method, path, table_name: table || null, request_diagnostic: diagnostic });
+    return text("OK");
+  }
+
   if (serialInfo.conflict || (serialRequired && !serial)) {
     await logEvent({ event_type: "rejected", method: req.method, path, error: serialInfo.conflict ? "Conflicting serial number values" : "Missing or invalid serial number", request_diagnostic: diagnostic });
     return text("ERROR: serial number required", 400);
