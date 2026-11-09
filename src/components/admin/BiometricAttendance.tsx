@@ -202,19 +202,8 @@ const BiometricAttendance = () => {
           ].map(([k, v]) => (
             <div key={k} className="p-3 rounded-lg border bg-muted/30"><p className="text-xs text-muted-foreground">{k}</p><p className="font-medium break-words">{v}</p></div>
           ))}
-          {lastUpload?.payload_excerpt && (
-            <div className="col-span-2 md:col-span-4"><p className="text-xs text-muted-foreground mb-1">Last received payload</p>
-              <pre className="text-xs p-2 rounded bg-muted overflow-x-auto max-h-32">{lastUpload.payload_excerpt}</pre></div>
-          )}
         </CardContent>
       </Card>
-      {/* The rest of the existing biometric administration UI remains below. */}
-      {null}
-    </div>
-  );
-};
-
-export default BiometricAttendance;
 
   return (
     <div className="space-y-6">
@@ -406,6 +395,15 @@ export default BiometricAttendance;
           <Textarea rows={3} className="font-mono text-xs" value={testPayload} onChange={(e) => setTestPayload(e.target.value)} />
           <Button onClick={runTest}>Test Connection</Button>
           {testResult && <pre className="text-xs p-2 rounded bg-muted overflow-x-auto max-h-64">{testResult}</pre>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="font-['Space_Grotesk']">ADMS Connectivity Test</CardTitle>
+          <CardDescription>Checks the public handshake and a safe backend POST probe. No punches or attendance are created.</CardDescription></CardHeader>
+        <CardContent className="space-y-2">
+          <Button onClick={runConnectivityTest}><Activity className="h-4 w-4 mr-2" />Test connection</Button>
+          {connectivityResult && <pre className="text-xs p-2 rounded bg-muted overflow-x-auto max-h-64 whitespace-pre-wrap">{connectivityResult}</pre>}
         </CardContent>
       </Card>
 
