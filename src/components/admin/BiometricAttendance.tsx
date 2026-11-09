@@ -186,33 +186,6 @@ const BiometricAttendance = () => {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Activity className="h-5 w-5" />Biometric Device Status</CardTitle>
-          <CardDescription>Live device status and redacted request diagnostics (Mumbai time)</CardDescription>
-          </div>
-          <Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-4 w-4 mr-1" />Refresh</Button>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-          {[
-            ["Last heartbeat", fmt(lastHeartbeat?.created_at)],
-            ["Last device serial", lastHeartbeat?.device_serial_number || events[0]?.device_serial_number || "—"],
-            ["Last upload", lastUpload ? `${fmt(lastUpload.created_at)} · ${lastUpload.records_accepted} new / ${lastUpload.records_duplicate} dup` : "—"],
-            ["Punches today", String(todayCount)],
-            ["Last matched punch", lastGoodPunch ? `${(lastGoodPunch.employee_id && nameOf.get(lastGoodPunch.employee_id)) ?? "?"} · ${fmt(lastGoodPunch.punch_timestamp)}` : "—"],
-            ["Unknown PINs", String(unknown.length)],
-            ["Last error", lastError ? `${lastError.error} (${fmt(lastError.created_at)})` : "None"],
-            ["Endpoint", events.length ? "Receiving" : "Waiting for device"],
-          ].map(([k, v]) => (
-            <div key={k} className="p-3 rounded-lg border bg-muted/30"><p className="text-xs text-muted-foreground">{k}</p><p className="font-medium break-words">{v}</p></div>
-          ))}
-        </CardContent>
-      </Card>
-
-  return (
-    <div className="space-y-6">
-      {/* Debug / status */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Activity className="h-5 w-5" />Biometric Device Status</CardTitle>
             <CardDescription>Live view of the fingerprint machine connection (Mumbai time)</CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-4 w-4 mr-1" />Refresh</Button>
@@ -400,15 +373,6 @@ const BiometricAttendance = () => {
           <CardDescription>Checks a read-only GET handshake and sends an admin-authenticated POST through the public address. No punches or attendance are created.</CardDescription></CardHeader>
         <CardContent className="space-y-2">
           <Button onClick={runConnectivityTest}><Activity className="h-4 w-4 mr-2" />Test connection</Button>
-          {connectivityResult && <pre className="text-xs p-2 rounded bg-muted overflow-x-auto max-h-64 whitespace-pre-wrap">{connectivityResult}</pre>}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle className="font-['Space_Grotesk']">ADMS Connectivity Test</CardTitle>
-          <CardDescription>Tests a read-only handshake and an admin-authenticated POST probe through the public relay. Neither can create punches or alter attendance.</CardDescription></CardHeader>
-        <CardContent className="space-y-2">
-          <Button onClick={runConnectivityTest}><Activity className="h-4 w-4 mr-2" />Test public connection</Button>
           {connectivityResult && <pre className="text-xs p-2 rounded bg-muted overflow-x-auto max-h-64 whitespace-pre-wrap">{connectivityResult}</pre>}
         </CardContent>
       </Card>
