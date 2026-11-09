@@ -377,6 +377,15 @@ const BiometricAttendance = () => {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader><CardTitle className="font-['Space_Grotesk']">ADMS Connectivity Test</CardTitle>
+          <CardDescription>Checks a read-only handshake and an authenticated probe through the public address. No punches or attendance are created.</CardDescription></CardHeader>
+        <CardContent className="space-y-2">
+          <Button onClick={runConnectivityTest}><Activity className="h-4 w-4 mr-2" />Test connection</Button>
+          {connectivityResult && <pre className="text-xs p-2 rounded bg-muted overflow-x-auto max-h-64 whitespace-pre-wrap">{connectivityResult}</pre>}
+        </CardContent>
+      </Card>
+
       {/* Event log */}
       <Card>
         <CardHeader><CardTitle className="font-['Space_Grotesk']">Device Event Log</CardTitle></CardHeader>
