@@ -150,7 +150,7 @@ const BiometricAttendance = () => {
     setTestResult(`HTTP ${res.status}\n` + JSON.stringify(await res.json().catch(() => ({})), null, 2));
   };
   const runConnectivityTest = async () => {
-    setConnectivityResult("Checking GET handshake and POST forwarding through the public relay…");
+    setConnectivityResult("Checking the public GET handshake and an authenticated POST probe…");
     try {
       const getUrl = new URL("https://attendance.wolfcrux.com/iclock/cdata");
       getUrl.searchParams.set("options", "all");
@@ -165,12 +165,13 @@ const BiometricAttendance = () => {
       }
       const postUrl = new URL("https://attendance.wolfcrux.com/iclock/cdata");
       postUrl.searchParams.set("probe", "connectivity-test");
-      const { data: postData, error: postError } = await supabase.functions.invoke("adms-attendance", {
-        body: { action: "connectivity_test" },
+      const postResponse = await fetch(postUrl.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: "connectivity_test" }),
       });
-      const postStatus = postError ? "failed" : "HTTP 200";
-      const postBody = postError ? postError.message : JSON.stringify(postData);
-      setConnectivityResult(`GET handshake: HTTP ${getResponse.status}\n${getBody.slice(0, 500)}\n\nPOST backend probe (${postUrl.pathname}?probe=connectivity-test): ${postStatus}\n${postBody.slice(0, 1000)}\nPOST through public relay is not verifiable until the relay exists.`);
+      const postBody = await postResponse.text();
+      setConnectivityResult(`GET handshake: HTTP ${getResponse.status}\n${getBody.slice(0, 500)}\n\nPOST through public relay: HTTP ${postResponse.status}\n${postBody.slice(0, 1000)}`);
       await load();
     } catch (error) {
       setConnectivityResult(`Could not complete the test: ${error instanceof Error ? error.message : "Network error"}`);
@@ -400,7 +401,7 @@ const BiometricAttendance = () => {
 
       <Card>
         <CardHeader><CardTitle className="font-['Space_Grotesk']">ADMS Connectivity Test</CardTitle>
-          <CardDescription>Checks the public handshake and a safe backend POST probe. No punches or attendance are created.</CardDescription></CardHeader>
+          <CardDescription>Checks a read-only GET handshake and sends an admin-authenticated POST through the public address. No punches or attendance are created.</CardDescription></CardHeader>
         <CardContent className="space-y-2">
           <Button onClick={runConnectivityTest}><Activity className="h-4 w-4 mr-2" />Test connection</Button>
           {connectivityResult && <pre className="text-xs p-2 rounded bg-muted overflow-x-auto max-h-64 whitespace-pre-wrap">{connectivityResult}</pre>}

@@ -105,10 +105,8 @@ function findSerial(req: Request, url: URL) {
     const distinct = [...new Set(querySerials)];
     return { serial: distinct.length === 1 ? distinct[0] : null, source: "query", conflict: distinct.length > 1 };
   }
-  for (const key of ["SN", "X-Device-SN", "X-Device-Serial-Number"]) {
-    const value = req.headers.get(key)?.trim();
-    if (value) return { serial: value, source: `header:${key.toLowerCase()}`, conflict: false };
-  }
+  // Serial-like headers are recorded as redacted diagnostics only; an arbitrary client
+  // can forge them, so they are never accepted as device identity.
   return { serial: null, source: null, conflict: false };
 }
 
