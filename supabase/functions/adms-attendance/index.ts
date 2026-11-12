@@ -63,7 +63,7 @@ function requestInfo(req: Request, url: URL, serial: string | null, serialSource
   for (const [key, value] of req.headers.entries()) {
     headerNames.push(key);
     if (sensitiveHeader.test(key)) continue;
-    if (key === "sn" || key.includes("serial")) safeHeaders[key] = masked(value.trim());
+    if (/(^sn$|\bsn\b|serial)/i.test(key)) safeHeaders[key] = masked(value.trim());
     else if (["user-agent", "content-type", "content-length", "accept", "x-forwarded-proto"].includes(key)) safeHeaders[key] = value.slice(0, 200);
     else safeHeaders[key] = "[REDACTED VALUE]";
   }
@@ -73,13 +73,14 @@ function requestInfo(req: Request, url: URL, serial: string | null, serialSource
     else if (/^(table|options|pushver|language|stamp|opstamp)$/i.test(key)) params[key] = value.slice(0, 120);
     else params[key] = "[REDACTED]";
   }
+  const bodyLines = body.split(/\r?\n/).filter(Boolean);
   const bodyInfo = body
     ? {
       byteLength: new TextEncoder().encode(body).length,
-      lineCount: body.split(/\r?\n/).filter(Boolean).length,
+      lineCount: bodyLines.length,
       format: table === "ATTLOG" ? "ATTLOG rows; PINs and timestamps redacted" : "Body present; contents redacted",
-      preview: table === "ATTLOG" ? body.split(/\r?\n/).filter(Boolean).slice(0, 3).map((line) =>
-        line.split("\t").map(() => "[REDACTED]").join("\t")) : undefined,
+      preview: bodyLines.slice(0, 3).map((line) => line.split(/(\t|&|=)/).map((part) =>
+        part === "\t" || part === "&" || part === "=" ? part : part ? "[REDACTED]" : "").join("")),
     }
     : { byteLength: 0, lineCount: 0, format: "No request body" };
   return {
@@ -97,17 +98,28 @@ function requestInfo(req: Request, url: URL, serial: string | null, serialSource
   };
 }
 
-function findSerial(req: Request, url: URL) {
-  const querySerials = [...url.searchParams.entries()]
+function findSerial(req: Request, url: URL, body: string) {
+  const candidates: Array<{ value: string; source: string }> = [...url.searchParams.entries()]
     .filter(([key, value]) => /^(sn)$/i.test(key) && value.trim())
-    .map(([, value]) => value.trim());
-  if (querySerials.length) {
-    const distinct = [...new Set(querySerials)];
-    return { serial: distinct.length === 1 ? distinct[0] : null, source: "query", conflict: distinct.length > 1 };
+    .map(([key, value]) => ({ value: value.trim(), source: `query:${key}` }));
+  for (const key of ["sn", "x-device-sn", "x-device-serial-number"]) {
+    const value = req.headers.get(key)?.trim();
+    if (value) candidates.push({ value, source: `header:${key}` });
   }
-  // Serial-like headers are recorded as redacted diagnostics only; an arbitrary client
-  // can forge them, so they are never accepted as device identity.
-  return { serial: null, source: null, conflict: false };
+  if ((req.headers.get("content-type") || "").toLowerCase().includes("application/x-www-form-urlencoded")) {
+    for (const [key, value] of new URLSearchParams(body)) {
+      if (/^(sn|serial|serial_number|device_serial_number)$/i.test(key) && value.trim()) {
+        candidates.push({ value: value.trim(), source: `form:${key}` });
+      }
+    }
+  }
+  if (!candidates.length) return { serial: null, source: null, conflict: false };
+  const distinct = [...new Set(candidates.map((candidate) => candidate.value))];
+  return {
+    serial: distinct.length === 1 ? distinct[0] : null,
+    source: [...new Set(candidates.map((candidate) => candidate.source))].join(","),
+    conflict: distinct.length > 1,
+  };
 }
 
 async function logEvent(event: Record<string, unknown>) {
@@ -161,7 +173,7 @@ Deno.serve(async (req) => {
   const table = (url.searchParams.get("table") || "").toUpperCase();
   const kind = classify(path, req.method, table);
   const requestBody = req.method === "POST" ? await req.text() : "";
-  const serialInfo = findSerial(req, url);
+  const serialInfo = findSerial(req, url, requestBody);
   const serial = serialInfo.serial && serialInfo.serial.length <= 64 ? serialInfo.serial : null;
   const diagnostic = requestInfo(req, url, serial, serialInfo.source, kind, table, requestBody);
   const serialRequired = kind !== "other ADMS request";
