@@ -159,14 +159,6 @@ async function requireAdmin(req: Request) {
   return Boolean(role);
 }
 
-function isAdminToolRequest(req: Request) {
-  if (req.method !== "POST" || !(req.headers.get("content-type") || "").toLowerCase().includes("application/json")) return false;
-  try {
-    const body = JSON.parse((req as Request & { __admsBody?: string }).__admsBody || "{}");
-    return body.action === "parse_test" || body.action === "connectivity_test";
-  } catch { return false; }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return text("ok");
   const url = new URL(req.url);
@@ -176,13 +168,15 @@ Deno.serve(async (req) => {
   try {
 
   // Browser-only admin tools; no device records are created by either action.
-  if (isAdminToolRequest(Object.assign(req, { __admsBody: requestBody }))) {
+  let adminInput: { action?: string; payload?: unknown } = {};
+  if (req.method === "POST" && (req.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
+    try { adminInput = JSON.parse(requestBody); } catch { /* Device payloads are handled below and recorded redacted. */ }
+  }
+  if (adminInput.action === "parse_test" || adminInput.action === "connectivity_test") {
     if (!await requireAdmin(req)) return text("Unauthorized", 401);
-    let input: { action?: string; payload?: unknown } = {};
-    try { input = JSON.parse(requestBody); } catch { return text("Bad request", 400); }
-    if (input.action === "parse_test") {
-      if (typeof input.payload !== "string" || input.payload.length > 20000) return text("Bad request", 400);
-      const parsed = parseAttlog(input.payload);
+    if (adminInput.action === "parse_test") {
+      if (typeof adminInput.payload !== "string" || adminInput.payload.length > 20000) return text("Bad request", 400);
+      const parsed = parseAttlog(adminInput.payload);
       const pins = [...new Set(parsed.rows.map((row) => row.pin))];
       const { data: profiles } = pins.length
         ? await admin.from("profiles").select("full_name, biometric_pin").in("biometric_pin", pins)
@@ -198,7 +192,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Content-Type": "application/json" },
       });
     }
-    return text("Bad request", 400);
   }
 
   const table = (url.searchParams.get("table") || bodyFields(req, requestBody).get("table") || "").toUpperCase();
