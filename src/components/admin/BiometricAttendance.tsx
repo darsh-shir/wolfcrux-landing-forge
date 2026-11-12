@@ -29,10 +29,8 @@ export default {
     const target = new URL(TARGET);
     target.pathname = target.pathname.replace(/\\/$/, "") + source.pathname;
     target.search = source.search;
-    const headers = new Headers(request.headers);
-    headers.delete("host");
-    const response = await fetch(new Request(target.toString(), { method: request.method, headers, body: request.body, redirect: "manual" }));
-    return response;
+    const forwarded = new Request(target.toString(), request);
+    return fetch(forwarded);
   },
 };`;
 
