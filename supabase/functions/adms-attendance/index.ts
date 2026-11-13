@@ -2,6 +2,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
+const MAX_DIAGNOSTIC_BODY = 4000;
+
 const text = (body: string, status = 200) => new Response(body, {
   status,
   headers: { ...corsHeaders, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Content-Type": "text/plain" },
@@ -73,10 +75,12 @@ function requestInfo(req: Request, url: URL, serial: string | null, serialSource
     else if (/^(table|options|pushver|language|stamp|opstamp)$/i.test(key)) params[key] = value.slice(0, 120);
     else params[key] = "[REDACTED]";
   }
-  const bodyLines = body.split(/\r?\n/).filter(Boolean);
+  const boundedBody = body.slice(0, MAX_DIAGNOSTIC_BODY);
+  const bodyLines = boundedBody.split(/\r?\n/).filter(Boolean);
   const bodyInfo = body
     ? {
       byteLength: new TextEncoder().encode(body).length,
+      truncated: body.length > MAX_DIAGNOSTIC_BODY,
       lineCount: bodyLines.length,
       format: table === "ATTLOG" ? "ATTLOG rows; PINs and timestamps redacted" : "Body present; contents redacted",
       preview: bodyLines.slice(0, 3).map((line) => line.split(/(\t|&|=)/).map((part) =>
@@ -225,6 +229,13 @@ Deno.serve(async (req) => {
       "OPERLOGStamp=0", "ATTPHOTOStamp=0", "ErrorDelay=30", "Delay=10", "TransTimes=00:00;14:05",
       "TransInterval=1", "TransFlag=TransData AttLog", "TimeZone=5.5", "Realtime=1", "Encrypt=None", "ServerVer=2.4.1",
     ].join("\n") + "\n");
+  }
+
+  // Non-mutating connectivity probe allows the admin-only diagnostic check to test
+  // method, query, headers, and body through the same relay without a device SN.
+  if (url.searchParams.get("__wolfcrux_probe") === "connectivity" && req.method === "POST") {
+    await logEvent({ event_type: "connectivity_probe", method: req.method, path, table_name: table || null, request_diagnostic: diagnostic });
+    return text(`CONNECTIVITY OK ${new TextEncoder().encode(requestBody).length}`);
   }
 
   if (!serial) {
