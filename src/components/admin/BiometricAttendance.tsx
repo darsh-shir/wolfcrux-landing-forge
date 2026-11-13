@@ -162,11 +162,13 @@ const BiometricAttendance = () => {
         return;
       }
       const postUrl = new URL("https://attendance.wolfcrux.com/iclock/cdata");
-      postUrl.searchParams.set("probe", "connectivity-test");
+      postUrl.searchParams.set("__wolfcrux_probe", "connectivity");
+      postUrl.searchParams.set("table", "ATTLOG");
+      const probeBody = "ADMS connectivity test; no punch data";
       const postResponse = await fetch(postUrl.toString(), {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ action: "connectivity_test" }),
+        headers: { "Content-Type": "text/plain", "X-ADMS-Diagnostic": "connectivity-test" },
+        body: probeBody,
       });
       const postBody = await postResponse.text();
       setConnectivityResult(`GET handshake: HTTP ${getResponse.status}\n${getBody.slice(0, 500)}\n\nPOST through public relay: HTTP ${postResponse.status}\n${postBody.slice(0, 1000)}`);

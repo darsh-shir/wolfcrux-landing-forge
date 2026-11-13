@@ -231,6 +231,13 @@ Deno.serve(async (req) => {
     ].join("\n") + "\n");
   }
 
+  // Non-mutating connectivity probe allows the admin-only diagnostic check to test
+  // method, query, headers, and body through the same relay without a device SN.
+  if (url.searchParams.get("__wolfcrux_probe") === "connectivity" && req.method === "POST") {
+    await logEvent({ event_type: "connectivity_probe", method: req.method, path, table_name: table || null, request_diagnostic: diagnostic });
+    return text(`CONNECTIVITY OK ${new TextEncoder().encode(requestBody).length}`);
+  }
+
   if (!serial) {
     await logEvent({ event_type: "other_request", method: req.method, path, request_diagnostic: diagnostic });
     return text("Not found", 404);
