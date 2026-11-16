@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Content-Type": "application/json" },
       });
     }
-    if (input.action === "connectivity_test") {
+    if (adminInput.action === "connectivity_test") {
       const info = requestInfo(req, url, null, null, "other ADMS request", "", requestBody);
       await logEvent({ event_type: "connectivity_test", method: req.method, path, request_diagnostic: info });
       return new Response(JSON.stringify({ ok: true, reached: "adms-attendance", method: req.method, path: url.pathname, queryReceived: Object.fromEntries([...url.searchParams.keys()].map((key) => [key, true])), bodyReceived: true }), {
@@ -234,6 +234,7 @@ Deno.serve(async (req) => {
   // Non-mutating connectivity probe allows the admin-only diagnostic check to test
   // method, query, headers, and body through the same relay without a device SN.
   if (url.searchParams.get("__wolfcrux_probe") === "connectivity" && req.method === "POST") {
+    if (!await requireAdmin(req)) return text("Unauthorized", 401);
     await logEvent({ event_type: "connectivity_probe", method: req.method, path, table_name: table || null, request_diagnostic: diagnostic });
     return text(`CONNECTIVITY OK ${new TextEncoder().encode(requestBody).length}`);
   }
