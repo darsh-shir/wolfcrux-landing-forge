@@ -167,7 +167,11 @@ const BiometricAttendance = () => {
       const probeBody = "ADMS connectivity test; no punch data";
       const postResponse = await fetch(postUrl.toString(), {
         method: "POST",
-        headers: { "Content-Type": "text/plain", "X-ADMS-Diagnostic": "connectivity-test" },
+        headers: {
+          "Content-Type": "text/plain",
+          "X-ADMS-Diagnostic": "connectivity-test",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: probeBody,
       });
       const postBody = await postResponse.text();
