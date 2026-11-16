@@ -205,6 +205,14 @@ Deno.serve(async (req) => {
   const diagnostic = requestInfo(req, url, serial, serialInfo.source, kind, table, requestBody);
   const serialRequired = kind !== "other ADMS request";
 
+  // Admin-authenticated, punch-free probe for the real relay path. It is evaluated
+  // before ADMS serial validation because the diagnostic request intentionally has no device SN.
+  if (url.searchParams.get("__wolfcrux_probe") === "connectivity" && req.method === "POST") {
+    if (!await requireAdmin(req)) return text("Unauthorized", 401);
+    await logEvent({ event_type: "connectivity_probe", method: req.method, path, table_name: table || null, request_diagnostic: diagnostic });
+    return text(`CONNECTIVITY OK ${new TextEncoder().encode(requestBody).length}`);
+  }
+
   // ADMS can post auxiliary tables (such as OPERLOG/USERINFO) that are intentionally
   // ignored. They do not create punches, so acknowledge them even if SN is absent.
   if (kind === "other ADMS request" && path.endsWith("/iclock/cdata") && req.method === "POST") {
@@ -229,14 +237,6 @@ Deno.serve(async (req) => {
       "OPERLOGStamp=0", "ATTPHOTOStamp=0", "ErrorDelay=30", "Delay=10", "TransTimes=00:00;14:05",
       "TransInterval=1", "TransFlag=TransData AttLog", "TimeZone=5.5", "Realtime=1", "Encrypt=None", "ServerVer=2.4.1",
     ].join("\n") + "\n");
-  }
-
-  // Non-mutating connectivity probe allows the admin-only diagnostic check to test
-  // method, query, headers, and body through the same relay without a device SN.
-  if (url.searchParams.get("__wolfcrux_probe") === "connectivity" && req.method === "POST") {
-    if (!await requireAdmin(req)) return text("Unauthorized", 401);
-    await logEvent({ event_type: "connectivity_probe", method: req.method, path, table_name: table || null, request_diagnostic: diagnostic });
-    return text(`CONNECTIVITY OK ${new TextEncoder().encode(requestBody).length}`);
   }
 
   if (!serial) {
