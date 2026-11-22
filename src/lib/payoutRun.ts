@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows, must } from "@/lib/fetchAllRows";
+import { getAllTradeRows, rowsByPerson } from "@/lib/tradeCache";
 import { computeHistory, DEFAULT_SEAT_COST, type HistoryMonth } from "@/lib/payoutEngine";
 import { getLeaveBalanceSummary } from "@/lib/payoutCalculations";
 import { mergeAttendance } from "@/lib/attendance";
@@ -36,17 +37,9 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
   const monthKey = key(year, month);
   const monthEnd = `${monthKey}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`;
 
-  const [rows, attendance, configs, transfers, profilesRes, baselinesRes, carryRes, stoRes, recordsRes, rateRes] =
+  const [allRows, attendance, configs, transfers, profilesRes, baselinesRes, carryRes, stoRes, recordsRes, rateRes] =
     await Promise.all([
-      fetchAllRows<any>((f, t) =>
-        supabase
-          .from("trading_data")
-          .select("id, trade_date, user_id, trader2_id, trader2_role, trader1_attendance, trader2_attendance, late_remarks, net_pnl, shares_traded")
-          .lte("trade_date", monthEnd)
-          .order("trade_date")
-          .order("id")
-          .range(f, t)
-      ),
+      getAllTradeRows(),
       fetchAllRows<any>((f, t) =>
         supabase
           .from("attendance_records")
@@ -68,6 +61,8 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
   [profilesRes, baselinesRes, carryRes, stoRes, recordsRes, rateRes].forEach(must);
   if (transfers.error) throw new Error(transfers.error);
 
+  const rows = allRows.filter((r: any) => r.trade_date <= monthEnd);
+  const byPerson = rowsByPerson(rows);
   const profiles = profilesRes.data ?? [];
   const savedByUser = new Map((stoRes.data ?? []).map((s: any) => [s.user_id, s]));
   const recordByUser = new Map((recordsRes.data ?? []).map((r: any) => [r.user_id, r]));
@@ -92,7 +87,7 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
   for (const userId of ids) {
     const profile = profiles.find((p: any) => p.user_id === userId);
     if (!profile) continue;
-    const mine = rows.filter((r) => r.user_id === userId || r.trader2_id === userId);
+    const mine = byPerson.get(userId) ?? [];
     const myConfigs = new Map(configs.filter((c) => c.user_id === userId).map((c) => [key(c.year, c.month), c]));
     const transferNet = transfersNetByMonth(userId, transfers.rows);
     const saved = savedByUser.get(userId) ?? null;

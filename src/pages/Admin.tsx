@@ -11,6 +11,8 @@ import EmployeeDocuments from "@/components/admin/EmployeeDocuments";
 import ContactMessages from "@/components/admin/ContactMessages";
 import JobApplications from "@/components/admin/JobApplications";
 import PayoutRun, { defaultStoMonth } from "@/components/admin/PayoutRun";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import { getAllTradeRows, invalidateTradeCache } from "@/lib/tradeCache";
 import BiometricAttendance from "@/components/admin/BiometricAttendance";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
@@ -98,32 +100,21 @@ const Admin = () => {
     setDataLoading(true);
 
     // Fetch ALL trading_data rows in pages of 1000 to bypass the Supabase default row limit
-    const fetchAllTrades = async () => {
-      const pageSize = 1000;
-      let from = 0;
-      const tradesById = new Map<string, TradingData>();
-      // safety cap to avoid infinite loops
-      for (let i = 0; i < 100; i++) {
-        const { data, error } = await supabase
-          .from("trading_data")
-          .select("*")
-          .order("trade_date", { ascending: false })
-          .order("id", { ascending: true })
-          .range(from, from + pageSize - 1);
-        if (error || !data) {
-          // Never continue silently with partial trade history.
-          toast({
-            title: "Trade history didn't fully load",
-            description: `${error?.message ?? "Unknown error"}. Refresh the page before working on payouts.`,
-            variant: "destructive",
-          });
-          break;
-        }
-        data.forEach((trade) => tradesById.set(trade.id, trade));
-        if (data.length < pageSize) break;
-        from += pageSize;
+    // Trades may have changed: drop the short-lived payout cache.
+    invalidateTradeCache();
+    const fetchAllTrades = async (): Promise<TradingData[]> => {
+      try {
+        // Shared with the payout screens, so the history downloads once.
+        const rows = (await getAllTradeRows()) as TradingData[];
+        return [...rows].sort((a, b) => b.trade_date.localeCompare(a.trade_date) || a.id.localeCompare(b.id));
+      } catch (e) {
+        toast({
+          title: "Trade history didn't fully load",
+          description: `${e instanceof Error ? e.message : String(e)}. Refresh the page before working on payouts.`,
+          variant: "destructive",
+        });
+        return [];
       }
-      return Array.from(tradesById.values());
     };
 
     const [usersRes, accountsRes, allTrades] = await Promise.all([

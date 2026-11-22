@@ -12,6 +12,7 @@ import { AlertTriangle, CalendarCheck, Loader2, RefreshCw, Save } from "lucide-r
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 import { localDateKey, must } from "@/lib/fetchAllRows";
 import { loadPayoutRun, type PayoutRunRow } from "@/lib/payoutRun";
+import { invalidateTradeCache } from "@/lib/tradeCache";
 import { saveExchangeRate, saveTraderMonth } from "@/lib/payoutSave";
 import type { TablesInsert } from "@/integrations/supabase/types";
 
@@ -81,6 +82,19 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
     const paidUsd = paid.reduce((s, r) => s + Number(r.saved.final_sto_amount), 0);
     return { finalUsd, paidCount: paid.length, unpaidUsd: finalUsd - paidUsd };
   }, [rows]);
+
+  const saveRate = async () => {
+    setBusy("rate");
+    try {
+      await saveExchangeRate(year, month, rate);
+      setRateSaved(rate);
+      toast({ title: `Rate saved for ${MONTHS[month - 1]} ${year}`, description: `$1 = ₹${rate}` });
+    } catch (e) {
+      toast({ title: "Couldn't save the rate", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const saveRows = async (targets: PayoutRunRow[]) => {
     setBusy("save");
@@ -171,16 +185,29 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
             </div>
             <div className="space-y-1">
               <Label htmlFor="run-rate">USD → INR</Label>
-              <Input id="run-rate" type="number" step="0.01" className="w-28" value={rate} onChange={(e) => setRate(Number(e.target.value) || 0)} />
+              <div className="flex gap-2">
+                <Input id="run-rate" type="number" step="0.01" className="w-28" value={rate} onChange={(e) => setRate(Number(e.target.value) || 0)} />
+                <Button
+                  variant={rateSaved === rate ? "outline" : "default"}
+                  onClick={() => void saveRate()}
+                  disabled={busy !== null || !(rate > 0) || rateSaved === rate}
+                  className="gap-2"
+                >
+                  {busy === "rate" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {rateSaved === rate ? "Saved" : "Save rate"}
+                </Button>
+              </div>
             </div>
-            <Button variant="outline" size="icon" onClick={() => void load()} disabled={loading} aria-label="Refresh">
+            <Button variant="outline" size="icon" onClick={() => { invalidateTradeCache(); void load(); }} disabled={loading} aria-label="Refresh" title="Reload all data">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
             STO earned in <strong className="text-foreground">{MONTHS[month - 1]} {year}</strong>, payable around 5–10{" "}
             {MONTHS[payable.getMonth()]} {payable.getFullYear()}.
-            {rateSaved !== null && rateSaved !== rate && " The rate changed — it's saved when you save months."}
+            {rateSaved === null
+              ? " No rate saved for this month yet."
+              : rateSaved !== rate && ` Unsaved rate — the saved rate is ${rateSaved}.`}
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

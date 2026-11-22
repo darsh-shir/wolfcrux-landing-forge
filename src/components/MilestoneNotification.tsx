@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getMilestoneLevel, getNextMilestone, MILESTONES } from "@/lib/payoutCalculations";
 import { loadAllTraderHistories } from "@/hooks/useTraderHistory";
+import { getAllTradeRows } from "@/lib/tradeCache";
 import { Progress } from "@/components/ui/progress";
 import { formatIndian } from "@/lib/utils";
 import {
@@ -77,22 +78,8 @@ const MilestoneNotification = () => {
     evaluateMilestones();
   }, [user, isAdmin]);
 
-  const fetchAllTradingData = async () => {
-    const allData: any[] = [];
-    let from = 0;
-    const batchSize = 1000;
-    while (true) {
-      const { data, error } = await supabase
-        .from("trading_data")
-        .select("user_id, trade_date, trader2_id, trader2_role, net_pnl, shares_traded")
-        .range(from, from + batchSize - 1);
-      if (error || !data || data.length === 0) break;
-      allData.push(...data);
-      if (data.length < batchSize) break;
-      from += batchSize;
-    }
-    return allData;
-  };
+  // Shared, cached copy of the trade history (downloads once per page).
+  const fetchAllTradingData = () => getAllTradeRows();
 
   const evaluateMilestones = async () => {
     const [profilesRes, milestonesRes, tradingData] = await Promise.all([

@@ -11,16 +11,25 @@ export const PAGE_SIZE = 1000;
 
 export async function fetchAllRows<T>(
   page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
-  maxPages = 200
+  maxPages = 200,
+  parallel = 4
 ): Promise<T[]> {
   const all: T[] = [];
-  for (let i = 0; i < maxPages; i++) {
-    const from = i * PAGE_SIZE;
-    const { data, error } = await page(from, from + PAGE_SIZE - 1);
-    if (error) throw new Error(error.message);
-    const rows = data ?? [];
-    all.push(...rows);
-    if (rows.length < PAGE_SIZE) return all;
+  // First page alone (most queries fit in one), then the rest `parallel` at a time.
+  for (let start = 0; start < maxPages; start += start === 0 ? 1 : parallel) {
+    const count = start === 0 ? 1 : Math.min(parallel, maxPages - start);
+    const results = await Promise.all(
+      Array.from({ length: count }, (_, i) => {
+        const from = (start + i) * PAGE_SIZE;
+        return page(from, from + PAGE_SIZE - 1);
+      })
+    );
+    for (const { data, error } of results) {
+      if (error) throw new Error(error.message);
+      const rows = data ?? [];
+      all.push(...rows);
+      if (rows.length < PAGE_SIZE) return all;
+    }
   }
   throw new Error(`Stopped after ${maxPages * PAGE_SIZE} rows; refine the query.`);
 }

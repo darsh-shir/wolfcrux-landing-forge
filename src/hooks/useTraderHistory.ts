@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { loadTransfers, transfersNetByMonth } from "@/lib/pnlTransfers";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAllRows";
+import { getAllTradeRows, rowsByPerson } from "@/lib/tradeCache";
 import {
   computeHistory,
   DEFAULT_SEAT_COST,
@@ -99,7 +100,7 @@ export const useTraderHistory = (userId: string | null | undefined) => {
 /** Every trader's history at once (admin screens). */
 export const loadAllTraderHistories = async (userIds: string[]): Promise<Map<string, HistoryResult>> => {
   const [rows, profilesRes, baselinesRes, configsRes, transfers] = await Promise.all([
-    fetchAllRows<any>((f, t) => supabase.from("trading_data").select(TRADE_COLS).order("trade_date").order("id").range(f, t)),
+    getAllTradeRows(),
     supabase.from("profiles").select("user_id, joining_date"),
     supabase.from("trader_baselines").select("user_id, as_of_date, baseline_days, baseline_net_profit"),
     fetchAllRows<any>((f, t) => supabase.from("trader_config").select("*").order("id").range(f, t)),
@@ -109,9 +110,10 @@ export const loadAllTraderHistories = async (userIds: string[]): Promise<Map<str
   if (baselinesRes.error) throw baselinesRes.error;
 
   const through = currentMonthKey();
+  const byPerson = rowsByPerson(rows);
   const result = new Map<string, HistoryResult>();
   for (const id of userIds) {
-    const mine = rows.filter((r: any) => r.user_id === id || r.trader2_id === id);
+    const mine = byPerson.get(id) ?? [];
     result.set(
       id,
       computeHistory({

@@ -22,52 +22,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<AppRole | null>(null);
 
+  // `loading` stays true until BOTH the session and the user's role are known,
+  // so admin-only pages never redirect a real admin while the role is loading.
+  const [sessionReady, setSessionReady] = useState(false);
+  const [roleFor, setRoleFor] = useState<string | null>(null); // user id the role was loaded for
+
   const fetchRole = async (userId: string) => {
     const { data } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .maybeSingle();
-    
-    if (data) {
-      setRole(data.role as AppRole);
-    }
+    setRole((data?.role as AppRole) ?? null);
+    setRoleFor(userId);
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Defer role fetch with setTimeout to avoid deadlock
-          setTimeout(() => {
-            fetchRole(session.user.id);
-          }, 0);
-        } else {
-          setRole(null);
-        }
-        
-        setLoading(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const apply = (session: Session | null) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
       if (session?.user) {
-        fetchRole(session.user.id);
+        // Defer role fetch with setTimeout to avoid an auth-callback deadlock
+        setTimeout(() => void fetchRole(session.user.id), 0);
+      } else {
+        setRole(null);
+        setRoleFor(null);
       }
-      
-      setLoading(false);
-    });
+      setSessionReady(true);
+    };
+
+    // Set up auth state listener FIRST, THEN check for an existing session
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => apply(session));
+    supabase.auth.getSession().then(({ data: { session } }) => apply(session));
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    setLoading(!sessionReady || (!!user && roleFor !== user.id));
+  }, [sessionReady, user, roleFor]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -80,6 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     await supabase.auth.signOut();
     setRole(null);
+    setRoleFor(null);
   };
 
   return (
