@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSharedEmployee } from "@/hooks/useSharedEmployee";
+import EmployeePicker from "@/components/admin/EmployeePicker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -59,7 +61,7 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  const [selectedTrader, setSelectedTrader] = useState(initialTraderId || "");
+  const [selectedTrader, setSelectedTrader] = useSharedEmployee(initialTraderId);
   const [selectedMonth, setSelectedMonth] = useState(initialMonth || currentMonth);
   const [selectedYear, setSelectedYear] = useState(initialYear || currentYear);
 
@@ -294,10 +296,18 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
   // Saves by itself a moment after the figures change. Paid months are left
   // alone, and a month with adjustments from other traders waits for Save.
   const hasAdjustments = monthTransfers.length > 0;
+  // Only the current and previous month save by themselves; an older month
+  // is only rewritten when the admin presses Save.
+  const recentMonth = (() => {
+    const d = new Date();
+    const prev = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+    return selectedKey >= `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+  })();
+  const manualSave = hasAdjustments || !recentMonth;
   const autoSavedRef = React.useRef("");
   const currentFor = `${selectedTrader}|${selectedKey}`;
   useEffect(() => {
-    if (!unsaved || loading || saving !== null || loadError || hasAdjustments) return;
+    if (!unsaved || loading || saving !== null || loadError || manualSave) return;
     if (loadedFor !== currentFor || (isPaid && !unlockPaid)) return;
     // Never retry the same figures (e.g. a released LTO that can't change).
     const signature = `${currentFor}|${month?.finalSto}|${month?.netProfit}|${month?.finalLto}|${seatCostInput}|${inrRate}`;
@@ -308,7 +318,7 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
     }, 1200);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unsaved, loading, saving, loadError, hasAdjustments, loadedFor, currentFor, isPaid, unlockPaid, month, seatCostInput, inrRate]);
+  }, [unsaved, loading, saving, loadError, manualSave, loadedFor, currentFor, isPaid, unlockPaid, month, seatCostInput, inrRate]);
 
   // ---------- Adjustments (P&L moved between traders) ----------
   // "+500" = this trader gets $500 from the chosen trader; "-500" = this trader gives $500 to them.
@@ -412,14 +422,7 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Select Trader</Label>
-              <Select value={selectedTrader} onValueChange={setSelectedTrader}>
-                <SelectTrigger><SelectValue placeholder="Select trader" /></SelectTrigger>
-                <SelectContent>
-                  {users.map((u) => (
-                    <SelectItem key={u.user_id} value={u.user_id}>{u.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <EmployeePicker users={users} value={selectedTrader} onValueChange={setSelectedTrader} placeholder="Select trader" />
             </div>
             <div className="space-y-2">
               <Label>Month</Label>
@@ -717,10 +720,16 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
 
                 {/* Save status: saves by itself; Save only when other traders' amounts are involved */}
                 <div className="flex flex-wrap items-center gap-3 text-sm">
-                  {hasAdjustments && unsaved && !(isPaid && !unlockPaid) ? (
+                  {manualSave && unsaved && !(isPaid && !unlockPaid) ? (
                     <>
                       <SaveButton onClick={() => void saveMonth()} saving={saving === "month"} disabled={saving !== null} />
-                      <span className="text-amber-600">Includes amounts from other traders — press Save to confirm.</span>
+                      <span className="text-amber-600">
+                        {hasAdjustments
+                          ? "Includes amounts from other traders — press Save to confirm."
+                          : existingSto
+                            ? "Figures differ from what was saved for this older month — press Save to update."
+                            : "Older month not saved yet — press Save to save it."}
+                      </span>
                     </>
                   ) : (
                     <span className="text-muted-foreground">
@@ -730,7 +739,9 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                           ? "Paid — not updated automatically."
                           : unsaved
                             ? "Saving shortly…"
-                            : "Saved automatically."}
+                            : manualSave
+                              ? "Saved."
+                              : "Saved automatically."}
                     </span>
                   )}
                 </div>

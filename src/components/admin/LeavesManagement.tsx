@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { mergeAttendance } from "@/lib/attendance";
 import { supabase } from "@/integrations/supabase/client";
+import { useSharedEmployee } from "@/hooks/useSharedEmployee";
+import EmployeePicker from "@/components/admin/EmployeePicker";
 import { getAllTradeRows } from "@/lib/tradeCache";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,7 +79,15 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [selectedTrader, setSelectedTrader] = useState<string>("all");
+  // Starts on the employee last picked in another Admin tab (or everyone).
+  const [sharedEmployee, setSharedEmployee] = useSharedEmployee();
+  const [selectedTrader, setSelectedTraderRaw] = useState<string>(() =>
+    sharedEmployee && users.some((u) => u.user_id === sharedEmployee) ? sharedEmployee : "all"
+  );
+  const setSelectedTrader = (id: string) => {
+    setSelectedTraderRaw(id);
+    if (id !== "all") setSharedEmployee(id);
+  };
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
 
@@ -678,19 +688,9 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2 mb-4">
-                <Select value={selectedTrader} onValueChange={setSelectedTrader}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="All Traders" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Traders</SelectItem>
-                    {users.map((u) => (
-                      <SelectItem key={u.user_id} value={u.user_id}>
-                        {u.full_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="w-56">
+                  <EmployeePicker users={users} value={selectedTrader} onValueChange={setSelectedTrader} allLabel="All traders" />
+                </div>
                 <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                   <SelectTrigger className="w-40">
                     <SelectValue />

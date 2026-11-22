@@ -42,6 +42,7 @@ const Careers = page(() => import("./pages/Careers"));
 const Contact = page(() => import("./pages/Contact"));
 const Dashboard = page(() => import("./pages/Dashboard"));
 const Auth = page(() => import("./pages/Auth"));
+const ResetPassword = page(() => import("./pages/ResetPassword"));
 const MyData = page(() => import("./pages/MyData"));
 const Admin = page(() => import("./pages/Admin"));
 const Practice = page(() => import("./pages/Practice"));
@@ -72,6 +73,7 @@ const App = () => (
               <Route path="/careers" element={<Careers />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/my-data" element={<MyData />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/practice" element={<Practice />} />

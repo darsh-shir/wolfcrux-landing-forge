@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, LogIn, LogOut, User, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,8 @@ import {
 import logo from "@/assets/wolfcrux-logo.png";
 import logoWhite from "@/assets/logo-white.png";
 import BirthdayNotification from "@/components/BirthdayNotification";
-import MilestoneNotification from "@/components/MilestoneNotification";
+// Admin-only, and pulls in the payout engine: load it only on Admin pages.
+const MilestoneNotification = lazy(() => import("@/components/MilestoneNotification"));
 import ThemeToggle from "@/components/ThemeToggle";
 
 const Navigation = () => {
@@ -80,7 +81,12 @@ const Navigation = () => {
             ))}
 
             {/* Notifications */}
-            <MilestoneNotification />
+            {/* Level alerts read the whole trade history, so only inside Admin */}
+            {location.pathname.startsWith("/admin") && (
+              <Suspense fallback={null}>
+                <MilestoneNotification />
+              </Suspense>
+            )}
             <BirthdayNotification />
 
             {/* Auth Button */}
@@ -130,7 +136,12 @@ const Navigation = () => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-2">
-            <MilestoneNotification />
+            {/* Level alerts read the whole trade history, so only inside Admin */}
+            {location.pathname.startsWith("/admin") && (
+              <Suspense fallback={null}>
+                <MilestoneNotification />
+              </Suspense>
+            )}
             <BirthdayNotification />
             {!loading && user && (
               <DropdownMenu>

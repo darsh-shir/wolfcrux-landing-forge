@@ -38,7 +38,11 @@ interface TraderProgressData {
   profitProgress: number;
   baselineDays: number;
   baselineProfit: number;
+  isTrainee: boolean;
 }
+
+/** Trading days after which a trainee can be promoted to trader. */
+const TRAINEE_PROMOTION_DAYS = 20;
 
 const TraderProgress = () => {
   const { isAdmin } = useAuth();
@@ -165,17 +169,8 @@ const TraderProgress = () => {
 
     const traderProfiles = profiles.filter((p) => qualifiedUserIds.has(p.user_id));
 
-    // Auto-promote trainees to trader role when they hit 20+ days
-    const toPromote = traderProfiles.filter(
-      (p) => p.employee_role !== "trader" && qualifiedUserIds.has(p.user_id)
-    );
-    if (toPromote.length > 0) {
-      await Promise.all(
-        toPromote.map((p) =>
-          supabase.from("profiles").update({ employee_role: "trader" }).eq("user_id", p.user_id)
-        )
-      );
-    }
+    // Trainees are no longer promoted automatically: the admin presses
+    // "Promote to trader" (offered from 20 trading days).
 
     // Trading days, net profit and level from the shared payout engine:
     // partner days split 50/50, share + software costs, baseline, days-OR-profit.
@@ -211,6 +206,7 @@ const TraderProgress = () => {
         nextLevel: next,
         daysProgress: next ? Math.min(100, (tradingDays / next.daysRequired) * 100) : 100,
         profitProgress: next ? Math.min(100, (Math.max(0, totalPnl) / next.profitRequired) * 100) : 100,
+        isTrainee: (p.employee_role || "").toLowerCase() === "trainee",
         baselineDays: baseline?.days || 0,
         baselineProfit: baseline?.profit || 0,
       };
@@ -226,6 +222,19 @@ const TraderProgress = () => {
 
     setData(result);
     setLoading(false);
+  };
+
+  const [promoting, setPromoting] = useState<string | null>(null);
+  const promoteToTrader = async (trader: TraderProgressData) => {
+    setPromoting(trader.userId);
+    const { error } = await supabase.from("profiles").update({ employee_role: "trader" }).eq("user_id", trader.userId);
+    setPromoting(null);
+    if (error) {
+      toast.error(`Couldn't promote ${trader.name}: ${error.message}`);
+      return;
+    }
+    toast.success(`${trader.name} is now a trader.`);
+    await fetchData();
   };
 
   const handleUpgrade = async (trader: TraderProgressData) => {
@@ -575,7 +584,17 @@ const TraderProgress = () => {
                     </TableCell>
                     {isAdmin && (
                       <TableCell className="text-center">
-                        {trader.milestoneLevel > trader.storedLevel ? (
+                        {trader.isTrainee && trader.tradingDays >= TRAINEE_PROMOTION_DAYS ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            disabled={promoting === trader.userId}
+                            onClick={() => void promoteToTrader(trader)}
+                          >
+                            {promoting === trader.userId ? "Promoting..." : "Promote to trader"}
+                          </Button>
+                        ) : trader.milestoneLevel > trader.storedLevel ? (
                           <Button
                             size="sm"
                             className="h-7 text-xs gap-1"
@@ -587,6 +606,10 @@ const TraderProgress = () => {
                               ? "Upgrading..."
                               : `Upgrade → ${MILESTONES[trader.milestoneLevel].label}`}
                           </Button>
+                        ) : trader.isTrainee ? (
+                          <span className="text-xs text-muted-foreground">
+                            Trainee · {trader.tradingDays}/{TRAINEE_PROMOTION_DAYS} days
+                          </span>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}

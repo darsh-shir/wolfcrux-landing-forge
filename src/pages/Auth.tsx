@@ -13,6 +13,7 @@ import Footer from "@/components/Footer";
 
 import logo from "@/assets/wolfcrux-logo.png";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -26,6 +27,30 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [sendingReset, setSendingReset] = useState(false);
+
+  // Email a password-reset link; it opens /reset-password to choose a new one.
+  const sendResetLink = async () => {
+    const parsed = z.string().email().safeParse(email.trim());
+    if (!parsed.success) {
+      setErrors({ email: "Enter your email above first" });
+      return;
+    }
+    setSendingReset(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setSendingReset(false);
+    // Same message whether or not the email has an account, so accounts can't be guessed.
+    if (error && /rate|too many/i.test(error.message)) {
+      toast({ title: "Please wait", description: "Too many reset requests. Try again in a few minutes.", variant: "destructive" });
+      return;
+    }
+    toast({
+      title: "Check your email",
+      description: "If that email has an account, a link to set a new password is on its way.",
+    });
+  };
   
   const { signIn, user, loading } = useAuth();
   const navigate = useNavigate();
@@ -146,6 +171,16 @@ const Auth = () => {
                 {errors.password && (
                   <p className="text-sm text-destructive">{errors.password}</p>
                 )}
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => void sendResetLink()}
+                    disabled={sendingReset}
+                    className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline disabled:opacity-50"
+                  >
+                    {sendingReset ? "Sending link…" : "Forgot password?"}
+                  </button>
+                </div>
               </div>
 
               <Button

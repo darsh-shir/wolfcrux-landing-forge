@@ -13,6 +13,7 @@ import JobApplications from "@/components/admin/JobApplications";
 import { DB_UPDATE_APPLIED } from "@/lib/features";
 import { isExEmployee, isClosedAccount } from "@/lib/employees";
 import PayoutRun, { defaultStoMonth } from "@/components/admin/PayoutRun";
+import TodayBox from "@/components/admin/TodayBox";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { getAllTradeRows, invalidateTradeCache } from "@/lib/tradeCache";
 import BiometricAttendance from "@/components/admin/BiometricAttendance";
@@ -74,7 +75,22 @@ const Admin = () => {
   const [tradingData, setTradingData] = useState<TradingData[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [selectedTrader, setSelectedTrader] = useState("");
-  const [activeTab, setActiveTab] = useState("dashboard");
+  // Reopen the page the admin was on (for this browser tab's session).
+  const [activeTab, setActiveTabRaw] = useState(() => {
+    try {
+      return sessionStorage.getItem("wolfcrux.admin.tab") || "dashboard";
+    } catch {
+      return "dashboard";
+    }
+  });
+  const setActiveTab = (tab: string) => {
+    setActiveTabRaw(tab);
+    try {
+      sessionStorage.setItem("wolfcrux.admin.tab", tab);
+    } catch {
+      /* storage unavailable */
+    }
+  };
   const [payoutInitial, setPayoutInitial] = useState<{ traderId: string; month: number; year: number } | null>(null);
 
   const openPayoutFor = (traderId: string, month: number, year: number) => {
@@ -164,102 +180,11 @@ const Admin = () => {
             );
           })()}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
-              <TabsList className="w-max bg-muted/30 border border-border/50">
-                <TabsTrigger value="dashboard" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <LayoutDashboard className="h-4 w-4" />
-                  Dashboard
-                </TabsTrigger>
-                <TabsTrigger value="users" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <Users className="h-4 w-4" />
-                  Users
-                </TabsTrigger>
-                <TabsTrigger value="trading" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <BarChart3 className="h-4 w-4" />
-                  Trading Data
-                </TabsTrigger>
-                <TabsTrigger value="leaves" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <Calendar className="h-4 w-4" />
-                  Leaves
-                </TabsTrigger>
-                <TabsTrigger value="payout-run" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <CalendarCheck className="h-4 w-4" />
-                  Payout Run
-                </TabsTrigger>
-                <TabsTrigger value="payouts" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <FileText className="h-4 w-4" />
-                  Payout Sheet
-                </TabsTrigger>
-                <TabsTrigger value="payout-tracker" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <DollarSign className="h-4 w-4" />
-                  Payout Tracker
-                </TabsTrigger>
-                <TabsTrigger value="salary-backup" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <Wallet className="h-4 w-4" />
-                  Salary Backup
-                </TabsTrigger>
-                <TabsTrigger value="desk-cost" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <Building2 className="h-4 w-4" />
-                  Desk Cost
-                </TabsTrigger>
-                <TabsTrigger value="trader-config" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <Settings className="h-4 w-4" />
-                  Trader Config
-                </TabsTrigger>
-                <TabsTrigger value="pool" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <Landmark className="h-4 w-4" />
-                  Pool
-                </TabsTrigger>
-                <TabsTrigger value="lto" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <Lock className="h-4 w-4" />
-                  LTO
-                </TabsTrigger>
-                <TabsTrigger value="single-day" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <ClipboardCheck className="h-4 w-4" />
-                  Single Day P&L
-                </TabsTrigger>
-                <TabsTrigger value="monthly-pnl" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <CalendarRange className="h-4 w-4" />
-                  Monthly P&L
-                </TabsTrigger>
-                <TabsTrigger value="progress" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <TrendingUp className="h-4 w-4" />
-                  Trader Progress
-                </TabsTrigger>
-                <TabsTrigger value="milestones" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <TrendingUp className="h-4 w-4" />
-                  Milestones
-                </TabsTrigger>
-                <TabsTrigger value="baseline" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <History className="h-4 w-4" />
-                  Baseline Seeder
-                </TabsTrigger>
-
-                <TabsTrigger value="documents" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <Folder className="h-4 w-4" />
-                  Documents
-                </TabsTrigger>
-                <TabsTrigger value="biometric" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <Fingerprint className="h-4 w-4" />
-                  Biometric
-                </TabsTrigger>
-                {DB_UPDATE_APPLIED && (
-                  <>
-                    <TabsTrigger value="messages" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                      <Inbox className="h-4 w-4" />
-                      Messages
-                    </TabsTrigger>
-                    <TabsTrigger value="applications" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                      <Briefcase className="h-4 w-4" />
-                      Applications
-                    </TabsTrigger>
-                  </>
-                )}
-              </TabsList>
-            </div>
+            <AdminNav activeTab={activeTab} onSelect={setActiveTab} />
 
             {/* DASHBOARD TAB */}
             <TabsContent value="dashboard">
+              <TodayBox users={activeUsers} tradingData={tradingData} onOpen={setActiveTab} />
               <AdminDashboard 
                 users={users} 
                 accounts={accounts} 
@@ -410,6 +335,100 @@ const Admin = () => {
       </div>
       <Footer />
     </>
+  );
+};
+
+
+/** Admin tabs grouped into sections: pick a section, then one of its pages. */
+const ADMIN_SECTIONS: { name: string; tabs: { value: string; label: string; icon: React.ComponentType<{ className?: string }> }[] }[] = [
+  { name: "Home", tabs: [{ value: "dashboard", label: "Dashboard", icon: LayoutDashboard }] },
+  {
+    name: "People",
+    tabs: [
+      { value: "users", label: "Users", icon: Users },
+      { value: "leaves", label: "Leaves", icon: Calendar },
+      { value: "documents", label: "Documents", icon: Folder },
+      { value: "biometric", label: "Biometric", icon: Fingerprint },
+      ...(DB_UPDATE_APPLIED
+        ? [
+            { value: "messages", label: "Messages", icon: Inbox },
+            { value: "applications", label: "Applications", icon: Briefcase },
+          ]
+        : []),
+    ],
+  },
+  {
+    name: "Trading",
+    tabs: [
+      { value: "trading", label: "Trading Data", icon: BarChart3 },
+      { value: "single-day", label: "Single Day P&L", icon: ClipboardCheck },
+      { value: "monthly-pnl", label: "Monthly P&L", icon: CalendarRange },
+    ],
+  },
+  {
+    name: "Payouts",
+    tabs: [
+      { value: "payout-run", label: "Payout Run", icon: CalendarCheck },
+      { value: "payouts", label: "Payout Sheet", icon: FileText },
+      { value: "payout-tracker", label: "Payout Tracker", icon: DollarSign },
+      { value: "salary-backup", label: "Salary Backup", icon: Wallet },
+      { value: "desk-cost", label: "Desk Cost", icon: Building2 },
+      { value: "pool", label: "Pool", icon: Landmark },
+      { value: "lto", label: "LTO", icon: Lock },
+    ],
+  },
+  {
+    name: "Levels & setup",
+    tabs: [
+      { value: "progress", label: "Trader Progress", icon: TrendingUp },
+      { value: "milestones", label: "Milestones", icon: TrendingUp },
+      { value: "trader-config", label: "Trader Config", icon: Settings },
+      { value: "baseline", label: "Baseline Seeder", icon: History },
+    ],
+  },
+];
+
+const AdminNav = ({ activeTab, onSelect }: { activeTab: string; onSelect: (tab: string) => void }) => {
+  const section = ADMIN_SECTIONS.find((sec) => sec.tabs.some((t) => t.value === activeTab)) ?? ADMIN_SECTIONS[0];
+  return (
+    <div className="space-y-2">
+      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
+        <div className="flex w-max gap-1 rounded-lg border border-border/50 bg-muted/30 p-1" role="navigation" aria-label="Admin sections">
+          {ADMIN_SECTIONS.map((sec) => {
+            const active = sec === section;
+            return (
+              <button
+                key={sec.name}
+                type="button"
+                onClick={() => !active && onSelect(sec.tabs[0].value)}
+                aria-current={active ? "true" : undefined}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  active ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {sec.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {section.tabs.length > 1 && (
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
+          <TabsList className="w-max bg-transparent p-0 gap-1">
+            {section.tabs.map((t) => (
+              <TabsTrigger
+                key={t.value}
+                value={t.value}
+                className="gap-2 whitespace-nowrap rounded-md border border-transparent data-[state=active]:border-border data-[state=active]:bg-background"
+              >
+                <t.icon className="h-4 w-4" />
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+      )}
+    </div>
   );
 };
 

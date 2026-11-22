@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useTraderHistory } from "@/hooks/useTraderHistory";
+import ThisMonthCard from "@/components/user/ThisMonthCard";
 import { formatIndian, formatCurrencyINR } from "@/lib/utils";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { useNavigate } from "react-router-dom";
@@ -132,6 +133,11 @@ const MyData = () => {
 
     setDataLoading(false);
   };
+
+  // Account names are only readable for accounts assigned to this trader; if
+  // none of their trades' accounts can be read, hide the column instead of
+  // showing "Unknown" everywhere.
+  const showAccounts = tradingData.some((t) => accounts.some((a) => a.id === t.account_id));
 
   const getAccountName = (accountId: string) => {
     const account = accounts.find((a) => a.id === accountId);
@@ -573,7 +579,7 @@ const MyData = () => {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="whitespace-nowrap">Date</TableHead>
-                            <TableHead className="whitespace-nowrap">Accounts</TableHead>
+                            {showAccounts && <TableHead className="whitespace-nowrap">Accounts</TableHead>}
                             <TableHead className="text-right whitespace-nowrap">Gross P&L</TableHead>
                             <TableHead className="text-right whitespace-nowrap">Shares</TableHead>
                             <TableHead className="text-right whitespace-nowrap">Brokerage</TableHead>
@@ -606,15 +612,17 @@ const MyData = () => {
                                       {format(parseISO(day.date), "MMM d, yyyy")}
                                     </div>
                                   </TableCell>
-                                  <TableCell>
-                                    <div className="flex flex-wrap gap-1">
-                                      {day.entries.map((e) => (
-                                        <Badge key={e.id} variant="outline" className="text-xs whitespace-nowrap">
-                                          {getAccountName(e.account_id)}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </TableCell>
+                                  {showAccounts && (
+                                    <TableCell>
+                                      <div className="flex flex-wrap gap-1">
+                                        {day.entries.map((e) => (
+                                          <Badge key={e.id} variant="outline" className="text-xs whitespace-nowrap">
+                                            {getAccountName(e.account_id)}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </TableCell>
+                                  )}
                                   <TableCell className={`text-right font-semibold whitespace-nowrap ${day.combinedPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                                     {formatCurrencyINR(day.combinedPnl)}
                                   </TableCell>
@@ -634,11 +642,13 @@ const MyData = () => {
                                   return (
                                     <TableRow key={entry.id} className="bg-muted/30">
                                       <TableCell className="pl-10 text-muted-foreground text-sm whitespace-nowrap">↳</TableCell>
-                                      <TableCell>
-                                        <Badge variant="secondary" className="text-xs whitespace-nowrap">
-                                          {getAccountName(entry.account_id)}
-                                        </Badge>
-                                      </TableCell>
+                                      {showAccounts && (
+                                        <TableCell>
+                                          <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                                            {getAccountName(entry.account_id)}
+                                          </Badge>
+                                        </TableCell>
+                                      )}
                                       <TableCell className={`text-right text-sm whitespace-nowrap ${Number(entry.net_pnl) >= 0 ? "text-green-600" : "text-red-600"}`}>
                                         {formatCurrencyINR(Number(entry.net_pnl))}
                                       </TableCell>
@@ -672,6 +682,7 @@ const MyData = () => {
 
             {/* PAYOUT TAB */}
             <TabsContent value="payout" className="tab-anim">
+              <ThisMonthCard history={payoutHistory} />
               <PayoutSummary />
             </TabsContent>
 

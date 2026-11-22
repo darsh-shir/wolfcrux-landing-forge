@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSharedEmployee } from "@/hooks/useSharedEmployee";
+import EmployeePicker from "@/components/admin/EmployeePicker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -33,7 +35,7 @@ const MONTH_NAMES = [
  */
 const MonthlyMilestones = ({ users }: { users: Profile[] }) => {
   const { toast } = useToast();
-  const [userId, setUserId] = useState<string>("");
+  const [userId, setUserId] = useSharedEmployee();
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
@@ -45,7 +47,7 @@ const MonthlyMilestones = ({ users }: { users: Profile[] }) => {
   }, []);
 
   useEffect(() => {
-    if (!userId && users.length > 0) setUserId(users[0].user_id);
+    if ((!userId || !users.some((u) => u.user_id === userId)) && users.length > 0) setUserId(users[0].user_id);
   }, [users, userId]);
 
   useEffect(() => {
@@ -131,16 +133,9 @@ const MonthlyMilestones = ({ users }: { users: Profile[] }) => {
         <div className="flex flex-wrap gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs">Trader</Label>
-            <Select value={userId} onValueChange={setUserId}>
-              <SelectTrigger className="w-56">
-                <SelectValue placeholder="Select trader" />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((u) => (
-                  <SelectItem key={u.user_id} value={u.user_id}>{u.full_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="w-56">
+              <EmployeePicker users={users} value={userId} onValueChange={setUserId} placeholder="Select trader" />
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Year</Label>
