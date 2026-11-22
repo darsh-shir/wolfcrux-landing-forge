@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { loadDefaultSalaries, saveDefaultSalary, TRAINEE_STIPEND_INR, type SalaryInfo } from "@/lib/salary";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,18 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const { toast } = useToast();
   const EMPLOYEE_ID_PREFIX = "WGM";
   const [roles, setRoles] = useState<UserRole[]>([]);
+  // Default monthly salaries (stored as this year's base salary in Salary Backup)
+  const [salaries, setSalaries] = useState<Map<string, SalaryInfo>>(new Map());
+  const loadSalaries = async () => {
+    try {
+      setSalaries(await loadDefaultSalaries(new Date().getFullYear()));
+    } catch {
+      /* column shows blank */
+    }
+  };
+  useEffect(() => {
+    void loadSalaries();
+  }, []);
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newEmail, setNewEmail] = useState("");
@@ -381,6 +394,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                   <TableHead>Birthday</TableHead>
                   <TableHead>Employee Role</TableHead>
                   <TableHead>Joining Date</TableHead>
+                  <TableHead>Salary (₹/month)</TableHead>
                   <TableHead>System Role</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -402,6 +416,14 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                       </Badge>
                     </TableCell>
                     <TableCell>{user.joining_date || "—"}</TableCell>
+                    <TableCell>
+                      <SalaryCell
+                        userId={user.user_id}
+                        current={salaries.get(user.user_id)?.salary ?? null}
+                        isTrainee={user.employee_role !== "trader"}
+                        onSaved={() => void loadSalaries()}
+                      />
+                    </TableCell>
                     <TableCell>
                       <Badge variant={getUserRole(user.user_id) === "admin" ? "default" : "outline"}>
                         {getUserRole(user.user_id) === "admin" ? "Admin" : "User"}
@@ -613,6 +635,48 @@ const AccountDialog = ({ accounts, onRefresh }: { accounts: TradingAccount[]; on
         </form>
       </DialogContent>
     </Dialog>
+  );
+};
+
+/** Inline editor for an employee's default monthly salary (₹). */
+const SalaryCell = ({ userId, current, isTrainee, onSaved }: { userId: string; current: number | null; isTrainee: boolean; onSaved: () => void }) => {
+  const { toast } = useToast();
+  const [value, setValue] = useState<string>(current != null ? String(current) : "");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => setValue(current != null ? String(current) : ""), [current]);
+  const changed = value !== (current != null ? String(current) : "");
+  const save = async () => {
+    const amount = Number(value);
+    if (!changed || !(amount >= 0) || value.trim() === "") return;
+    setSaving(true);
+    try {
+      await saveDefaultSalary(userId, new Date().getFullYear(), amount);
+      toast({ title: "Salary saved", description: `₹${amount.toLocaleString("en-IN")} per month from now on` });
+      onSaved();
+    } catch (e) {
+      toast({ title: "Couldn't save salary", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <div className="flex items-center gap-1">
+      <Input
+        type="number"
+        min="0"
+        className="h-8 w-28 text-right"
+        value={value}
+        placeholder={isTrainee ? String(TRAINEE_STIPEND_INR) : "0"}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && void save()}
+        aria-label="Default monthly salary"
+      />
+      {changed && (
+        <Button size="sm" variant="outline" className="h-8" onClick={() => void save()} disabled={saving}>
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+        </Button>
+      )}
+    </div>
   );
 };
 

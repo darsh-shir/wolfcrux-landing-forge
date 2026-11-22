@@ -27,8 +27,6 @@ export const defaultStoMonth = (today = new Date()) => {
   return { year: d.getFullYear(), month: d.getMonth() + 1 };
 };
 
-type Method = "bank" | "cash";
-
 interface Props {
   /** Open a trader's month in the Payout Sheet. */
   onOpenSheet?: (traderId: string, month: number, year: number) => void;
@@ -49,7 +47,8 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [methods, setMethods] = useState<Record<string, Method>>({});
+  // Money typed per employee before marking paid (₹)
+  const [money, setMoney] = useState<Record<string, { salary: string; online: string; cash: string }>>({});
   const [paidOn, setPaidOn] = useState<Record<string, string>>({});
 
   const payable = new Date(year, month - 1 + 3, 1);
@@ -74,14 +73,60 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
   useEffect(() => {
     void load();
   }, [load]);
+  // Typed amounts belong to one month; start fresh when the month changes.
+  useEffect(() => {
+    setMoney({});
+    setPaidOn({});
+  }, [year, month]);
 
-  const needsSave = rows.filter((r) => !r.saved || (r.changedSinceSave && !r.saved?.is_paid));
+  const needsSave = rows.filter((r) => !r.isTrainee && (!r.saved || (r.changedSinceSave && !r.saved?.is_paid)));
+
+  const isPaid = (r: PayoutRunRow) =>
+    r.saved ? !!r.saved.is_paid : !!(r.payoutRecord && (r.payoutRecord.paid_cash || r.payoutRecord.paid_online));
+  const finalStoUsd = (r: PayoutRunRow) =>
+    r.isTrainee || !r.result ? 0 : r.saved ? Number(r.saved.final_sto_amount) : r.result.finalSto;
+  const stoInr = (r: PayoutRunRow) => Math.round(finalStoUsd(r) * rate);
+
+  /** Amounts for a row: what was typed, else what's saved, else the default salary. */
+  const amounts = (r: PayoutRunRow) => {
+    const typed = money[r.userId];
+    const rec = r.payoutRecord;
+    const salary = Number(typed?.salary ?? (rec ? rec.salary : r.defaultSalary)) || 0;
+    const online = Number(typed?.online ?? (rec ? rec.bank_transfer : 0)) || 0;
+    const cash = Number(typed?.cash ?? (rec ? rec.advance_cash : 0)) || 0;
+    const balance = stoInr(r) - salary - online - cash;
+    return { salary, online, cash, balance };
+  };
+  const setAmount = (r: PayoutRunRow, field: "salary" | "online" | "cash", value: string) => {
+    const a = amounts(r);
+    setMoney((m) => ({
+      ...m,
+      [r.userId]: { salary: String(a.salary), online: String(a.online), cash: String(a.cash), ...m[r.userId], [field]: value },
+    }));
+  };
+  const restTo = (r: PayoutRunRow, field: "online" | "cash") => {
+    const a = amounts(r);
+    const other = field === "online" ? a.cash : a.online;
+    setAmount(r, field, String(Math.max(0, stoInr(r) - a.salary - other)));
+  };
+
   const totals = useMemo(() => {
-    const finalUsd = rows.reduce((s, r) => s + (r.saved ? Number(r.saved.final_sto_amount) : r.result.finalSto), 0);
-    const paid = rows.filter((r) => r.saved?.is_paid);
-    const paidUsd = paid.reduce((s, r) => s + Number(r.saved.final_sto_amount), 0);
-    return { finalUsd, paidCount: paid.length, unpaidUsd: finalUsd - paidUsd };
-  }, [rows]);
+    let sto = 0, salary = 0, online = 0, cash = 0, fromBackup = 0, fromPool = 0, left = 0, paidCount = 0;
+    for (const r of rows) {
+      const a = amounts(r);
+      sto += stoInr(r);
+      salary += a.salary;
+      online += a.online;
+      cash += a.cash;
+      if (r.isTrainee) fromPool += a.salary + a.online + a.cash;
+      else if (a.balance < 0) fromBackup += -a.balance;
+      if (isPaid(r)) paidCount++;
+      else if (!r.isTrainee && a.balance > 0) left += a.balance + a.salary + a.online + a.cash;
+      else if (!isPaid(r)) left += a.salary + a.online + a.cash;
+    }
+    return { sto, salary, online, cash, fromBackup, fromPool, left, paidCount };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, money, rate]);
 
   const saveRate = async () => {
     setBusy("rate");
@@ -102,7 +147,7 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
     try {
       await saveExchangeRate(year, month, rate);
       for (const r of targets) {
-        await saveTraderMonth({ userId: r.userId, year, month, result: r.result, seatCost: r.seatCost });
+        if (r.result) await saveTraderMonth({ userId: r.userId, year, month, result: r.result, seatCost: r.seatCost });
         saved++;
       }
       toast({ title: `Saved ${saved} month${saved === 1 ? "" : "s"}` });
@@ -119,32 +164,40 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
   };
 
   const setPaid = async (r: PayoutRunRow, paid: boolean) => {
-    if (!r.saved) return;
     setBusy(r.userId);
     try {
-      const method = methods[r.userId] ?? "bank";
       const date = paidOn[r.userId] ?? localDateKey(new Date());
-      const inr = Math.round(Number(r.saved.final_sto_amount) * rate * 100) / 100;
-      must(
-        await supabase
-          .from("sto_ledger")
-          .update({ is_paid: paid, paid_at: paid ? `${date}T12:00:00+05:30` : null })
-          .eq("id", r.saved.id)
-      );
+      const a = amounts(r);
+      if (r.saved) {
+        must(
+          await supabase
+            .from("sto_ledger")
+            .update({ is_paid: paid, paid_at: paid ? `${date}T12:00:00+05:30` : null })
+            .eq("id", r.saved.id)
+        );
+      }
       const record: TablesInsert<"payout_records"> = {
         user_id: r.userId,
         month,
         year,
-        paid_cash: paid && method === "cash",
-        paid_online: paid && method === "bank",
-        cash_component: inr,
+        salary: a.salary,
+        bank_transfer: a.online,
+        advance_cash: a.cash,
+        advance_bank: 0,
+        cash_component: stoInr(r),
+        // Salary is paid by bank; a payment with no amounts still counts as settled.
+        paid_online: paid && (a.online > 0 || a.salary > 0 || a.cash === 0),
+        paid_cash: paid && a.cash > 0,
       };
-      // Only fill the paid amount when there's no record yet (keeps any amounts typed on the Payout Sheet).
-      if (!r.payoutRecord && paid) {
-        if (method === "cash") record.advance_cash = inr;
-        else record.bank_transfer = inr;
-      }
+      // Trainees have no STO record, so keep the payment date in the note.
+      if (!r.saved && paid && !r.payoutRecord?.notes) record.notes = `Paid on ${date}`;
       must(await supabase.from("payout_records").upsert(record, { onConflict: "user_id,month,year" }));
+      // This row's amounts are now saved; keep what was typed on other rows.
+      setMoney((m) => {
+        const next = { ...m };
+        delete next[r.userId];
+        return next;
+      });
       await load();
     } catch (e) {
       toast({ title: "Couldn't update payment", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
@@ -153,6 +206,7 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
     }
   };
 
+  const inr = (v: number) => `₹${formatIndian(Math.round(v), 0)}`;
   const fmt = (v: number) => `${v < 0 ? "-" : ""}${formatCurrencyINR(Math.abs(v), "$")}`;
 
   return (
@@ -210,20 +264,24 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
               : rateSaved !== rate && ` Unsaved rate — the saved rate is ${rateSaved}.`}
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Total final STO</p>
-              <p className="text-lg font-bold">{fmt(totals.finalUsd)}</p>
-              <p className="text-xs text-muted-foreground">₹{formatIndian(totals.finalUsd * rate, 0)}</p>
+              <p className="text-xs text-muted-foreground">Total STO</p>
+              <p className="text-lg font-bold">{inr(totals.sto)}</p>
+              <p className="text-xs text-muted-foreground">at ₹{rate} per $</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Salary · Online · Cash</p>
+              <p className="text-lg font-bold">{inr(totals.salary + totals.online + totals.cash)}</p>
+              <p className="text-xs text-muted-foreground">{inr(totals.salary)} · {inr(totals.online)} · {inr(totals.cash)}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">From salary backup · trainee pool</p>
+              <p className="text-lg font-bold">{inr(totals.fromBackup)} · {inr(totals.fromPool)}</p>
             </div>
             <div className="rounded-lg border p-3">
               <p className="text-xs text-muted-foreground">Paid</p>
               <p className="text-lg font-bold">{totals.paidCount} of {rows.length}</p>
-            </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Still to pay</p>
-              <p className="text-lg font-bold text-amber-600">₹{formatIndian(totals.unpaidUsd * rate, 0)}</p>
-              <p className="text-xs text-muted-foreground">{fmt(totals.unpaidUsd)}</p>
             </div>
           </div>
 
@@ -247,75 +305,92 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
           ) : error ? (
             <p className="py-8 text-center text-sm text-red-600">Couldn't load payouts: {error}</p>
           ) : rows.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">No trading activity in {MONTHS[month - 1]} {year}.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No employees to pay for {MONTHS[month - 1]} {year}.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[880px] text-sm">
+              <table className="w-full min-w-[1080px] text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="py-2 pr-3">Employee</th>
-                    <th className="py-2 pr-3 text-right">Net profit</th>
                     <th className="py-2 pr-3 text-right">Final STO</th>
-                    <th className="py-2 pr-3 text-right">INR</th>
-                    <th className="py-2 pr-3">Status</th>
-                    <th className="py-2 pr-3">Paid by</th>
+                    <th className="py-2 pr-3 text-right">STO in ₹</th>
+                    <th className="py-2 pr-2 text-right">Salary ₹</th>
+                    <th className="py-2 pr-2 text-right">Online ₹</th>
+                    <th className="py-2 pr-2 text-right">Cash ₹</th>
+                    <th className="py-2 pr-3 text-right">Balance</th>
                     <th className="py-2 pr-3">Paid on</th>
                     <th className="py-2 text-center">Paid</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r) => {
-                    const finalUsd = r.saved ? Number(r.saved.final_sto_amount) : r.result.finalSto;
-                    const isPaid = !!r.saved?.is_paid;
-                    const canPay = !!r.saved && !r.changedSinceSave;
-                    const paidDate = r.saved?.paid_at ? String(r.saved.paid_at).slice(0, 10) : null;
-                    const method: Method =
-                      methods[r.userId] ?? (r.payoutRecord?.paid_cash && !r.payoutRecord?.paid_online ? "cash" : "bank");
+                    const paid = isPaid(r);
+                    const canPay = r.isTrainee || (!!r.saved && !r.changedSinceSave);
+                    const a = amounts(r);
+                    const paidDate = r.saved?.paid_at
+                      ? String(r.saved.paid_at).slice(0, 10)
+                      : (r.payoutRecord?.notes || "").match(/Paid on (\d{4}-\d{2}-\d{2})/)?.[1] ?? null;
+                    const moneyInput = (field: "salary" | "online" | "cash", value: number) => (
+                      <Input
+                        type="number"
+                        min="0"
+                        className="h-8 w-24 text-right"
+                        value={money[r.userId]?.[field] ?? String(value)}
+                        onChange={(e) => setAmount(r, field, e.target.value)}
+                        disabled={paid}
+                        aria-label={`${field} for ${r.name}`}
+                      />
+                    );
                     return (
                       <tr key={r.userId} className="border-b last:border-0 align-middle">
                         <td className="py-2 pr-3">
-                          <button
-                            type="button"
-                            className="font-medium hover:underline text-left"
-                            onClick={() => onOpenSheet?.(r.userId, month, year)}
-                            title="Open in Payout Sheet"
-                          >
-                            {r.name}
-                          </button>
-                          <span className="block text-xs text-muted-foreground">
-                            L{r.result.level.level} · STO {r.result.stoPercent}%{r.result.partnered ? " · partner" : ""}
-                          </span>
-                        </td>
-                        <td className={`py-2 pr-3 text-right tabular-nums ${r.result.netProfit < 0 ? "text-red-600" : ""}`}>{fmt(r.result.netProfit)}</td>
-                        <td className="py-2 pr-3 text-right font-semibold tabular-nums">{fmt(finalUsd)}</td>
-                        <td className="py-2 pr-3 text-right tabular-nums">₹{formatIndian(finalUsd * rate, 0)}</td>
-                        <td className="py-2 pr-3">
-                          {!r.saved ? (
-                            <Badge variant="outline" className="border-amber-500/50 text-amber-700">Not saved</Badge>
-                          ) : r.changedSinceSave ? (
-                            <Badge variant="outline" className="border-amber-500/50 text-amber-700" title={`Now ${fmt(r.result.finalSto)}`}>
-                              Changed since save
-                            </Badge>
+                          {r.isTrainee ? (
+                            <span className="font-medium">{r.name}</span>
                           ) : (
-                            <Badge variant="secondary">Saved</Badge>
+                            <button type="button" className="font-medium hover:underline text-left" onClick={() => onOpenSheet?.(r.userId, month, year)} title="Open in Payout Sheet">
+                              {r.name}
+                            </button>
+                          )}
+                          <span className="block text-xs text-muted-foreground">
+                            {r.isTrainee
+                              ? "Trainee · stipend from pool"
+                              : `L${r.result?.level.level} · STO ${r.result?.stoPercent}%${r.result?.partnered ? " · partner" : ""}`}
+                          </span>
+                          {!r.isTrainee && (!r.saved || r.changedSinceSave) && (
+                            <Badge variant="outline" className="mt-1 border-amber-500/50 text-amber-700">
+                              {!r.saved ? "Not saved" : "Changed since save"}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-2 pr-3 text-right tabular-nums">{r.isTrainee ? "—" : fmt(finalStoUsd(r))}</td>
+                        <td className="py-2 pr-3 text-right font-semibold tabular-nums">{r.isTrainee ? "—" : inr(stoInr(r))}</td>
+                        <td className="py-2 pr-2">{moneyInput("salary", a.salary)}</td>
+                        <td className="py-2 pr-2">
+                          {moneyInput("online", a.online)}
+                          {!paid && !r.isTrainee && a.balance > 0 && (
+                            <button type="button" className="mt-0.5 block text-[11px] text-primary underline" onClick={() => restTo(r, "online")}>rest online</button>
+                          )}
+                        </td>
+                        <td className="py-2 pr-2">
+                          {moneyInput("cash", a.cash)}
+                          {!paid && !r.isTrainee && a.balance > 0 && (
+                            <button type="button" className="mt-0.5 block text-[11px] text-primary underline" onClick={() => restTo(r, "cash")}>rest cash</button>
+                          )}
+                        </td>
+                        <td className="py-2 pr-3 text-right text-xs tabular-nums">
+                          {r.isTrainee ? (
+                            <span className="text-muted-foreground">from trainee pool</span>
+                          ) : a.balance > 0.5 ? (
+                            <span className="font-medium text-amber-600">{inr(a.balance)} left</span>
+                          ) : a.balance < -0.5 ? (
+                            <span className="font-medium text-red-600">{inr(-a.balance)} from salary backup</span>
+                          ) : (
+                            <span className="text-emerald-600">settled</span>
                           )}
                         </td>
                         <td className="py-2 pr-3">
-                          <Select
-                            value={method}
-                            onValueChange={(v) => setMethods((m) => ({ ...m, [r.userId]: v as Method }))}
-                            disabled={isPaid}
-                          >
-                            <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="bank">Bank</SelectItem>
-                              <SelectItem value="cash">Cash</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="py-2 pr-3">
-                          {isPaid ? (
-                            <span className="tabular-nums">{paidDate}</span>
+                          {paid ? (
+                            <span className="tabular-nums">{paidDate ?? "—"}</span>
                           ) : (
                             <Input
                               type="date"
@@ -331,11 +406,11 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
                             <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                           ) : (
                             <Checkbox
-                              checked={isPaid}
-                              disabled={busy !== null || (!isPaid && !canPay)}
+                              checked={paid}
+                              disabled={busy !== null || (!paid && !canPay)}
                               onCheckedChange={(v) => void setPaid(r, !!v)}
                               aria-label={`Mark ${r.name} paid`}
-                              title={!canPay && !isPaid ? "Save this month first" : undefined}
+                              title={!canPay && !paid ? "Save this month first" : undefined}
                             />
                           )}
                         </td>

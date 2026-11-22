@@ -5,13 +5,17 @@ import { computeHistory, DEFAULT_SEAT_COST, type HistoryMonth } from "@/lib/payo
 import { getLeaveBalanceSummary } from "@/lib/payoutCalculations";
 import { mergeAttendance } from "@/lib/attendance";
 import { loadTransfers, transfersNetByMonth } from "@/lib/pnlTransfers";
+import { loadDefaultSalaries, TRAINEE_STIPEND_INR } from "@/lib/salary";
 
 export interface PayoutRunRow {
   userId: string;
   name: string;
   traderNumber: string;
-  /** Engine result for the month (with the saved or suggested leave %). */
-  result: HistoryMonth;
+  /** Engine result for the month (null for trainees, who are paid a stipend from the pool). */
+  result: HistoryMonth | null;
+  isTrainee: boolean;
+  /** Default monthly salary in ₹ (Users tab / Salary Backup), or the trainee stipend. */
+  defaultSalary: number;
   seatCost: number;
   /** Saved STO ledger row for the month, if any. */
   saved: any | null;
@@ -51,7 +55,7 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
       ),
       fetchAllRows<any>((f, t) => supabase.from("trader_config").select("*").order("id").range(f, t)),
       loadTransfers(),
-      supabase.from("profiles").select("user_id, full_name, trader_number, joining_date"),
+      supabase.from("profiles").select("user_id, full_name, trader_number, joining_date, employee_role"),
       supabase.from("trader_baselines").select("user_id, as_of_date, baseline_days, baseline_net_profit"),
       supabase.from("leave_carry_forward").select("user_id, carry_forward_days").eq("year", year),
       supabase.from("sto_ledger").select("*").eq("month", month).eq("year", year),
@@ -59,6 +63,10 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
       supabase.from("monthly_exchange_rates").select("usd_to_inr").eq("month", month).eq("year", year).maybeSingle(),
     ]);
   [profilesRes, baselinesRes, carryRes, stoRes, recordsRes, rateRes].forEach(must);
+  const [adminRolesRes, salaries] = await Promise.all([
+    supabase.from("user_roles").select("user_id").eq("role", "admin"),
+    loadDefaultSalaries(year),
+  ]);
   if (transfers.error) throw new Error(transfers.error);
 
   const rows = allRows.filter((r: any) => r.trade_date <= monthEnd);
@@ -69,6 +77,12 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
 
   // Who is in this month's run
   const ids = new Set<string>(savedByUser.keys());
+  // Everyone on the payroll gets a row (salary is paid in loss months too),
+  // except admin accounts that don't trade.
+  const adminIds = new Set((adminRolesRes.data ?? []).map((r: any) => r.user_id));
+  profiles.forEach((p: any) => {
+    if (["trader", "trainee"].includes((p.employee_role || "").toLowerCase()) && !adminIds.has(p.user_id)) ids.add(p.user_id);
+  });
   rows.forEach((r) => {
     if (!r.trade_date.startsWith(monthKey)) return;
     ids.add(r.user_id);
@@ -87,6 +101,23 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
   for (const userId of ids) {
     const profile = profiles.find((p: any) => p.user_id === userId);
     if (!profile) continue;
+    const salaryInfo = salaries.get(userId);
+    const hasActivity = (byPerson.get(userId) ?? []).some((r: any) => r.trade_date.startsWith(monthKey));
+    if ((profile.employee_role || "").toLowerCase() === "trainee" && !hasActivity && !savedByUser.has(userId)) {
+      result.push({
+        userId,
+        name: profile.full_name,
+        traderNumber: profile.trader_number || "",
+        result: null,
+        isTrainee: true,
+        defaultSalary: salaryInfo?.salary || TRAINEE_STIPEND_INR,
+        seatCost: 0,
+        saved: null,
+        changedSinceSave: false,
+        payoutRecord: recordByUser.get(userId) ?? null,
+      });
+      continue;
+    }
     const mine = byPerson.get(userId) ?? [];
     const myConfigs = new Map(configs.filter((c) => c.user_id === userId).map((c) => [key(c.year, c.month), c]));
     const transferNet = transfersNetByMonth(userId, transfers.rows);
@@ -131,6 +162,8 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
       name: profile.full_name,
       traderNumber: profile.trader_number || "",
       result: m,
+      isTrainee: false,
+      defaultSalary: salaryInfo?.salary ?? 0,
       seatCost: seatCfg?.software_cost != null ? Number(seatCfg.software_cost) : DEFAULT_SEAT_COST,
       saved,
       changedSinceSave:
@@ -139,7 +172,7 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
     });
   }
 
-  result.sort((a, b) => (a.traderNumber || "zzz").localeCompare(b.traderNumber || "zzz") || a.name.localeCompare(b.name));
+  result.sort((a, b) => Number(a.isTrainee) - Number(b.isTrainee) || (a.traderNumber || "zzz").localeCompare(b.traderNumber || "zzz") || a.name.localeCompare(b.name));
   return {
     rows: result,
     usdToInr: rateRes.data?.usd_to_inr != null ? Number(rateRes.data.usd_to_inr) : null,
