@@ -97,7 +97,6 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
   // Adjustments
   const [transfers, setTransfers] = useState<PnlTransfer[]>([]);
   const [transfersAvailable, setTransfersAvailable] = useState(true);
-  const [adjDirection, setAdjDirection] = useState<"receive" | "give">("receive");
   const [adjOther, setAdjOther] = useState("");
   const [adjAmount, setAdjAmount] = useState("");
   const [adjNote, setAdjNote] = useState("");
@@ -241,6 +240,7 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
       (t.from_user_id === selectedTrader || t.to_user_id === selectedTrader)
   );
   const nameOf = (uid: string) => users.find((u) => u.user_id === uid)?.full_name || "Unknown";
+  const selectedTraderName = nameOf(selectedTrader);
 
   const month = history?.byMonth.get(selectedKey) ?? null;
 
@@ -298,17 +298,25 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
   };
 
   // ---------- Adjustments (P&L moved between traders) ----------
+  // "+500" = this trader gets $500 from the chosen trader; "-500" = this trader gives $500 to them.
+  const adjValue = (() => {
+    const t = adjAmount.replace(/[\s,$]/g, "").replace("\u2212", "-");
+    if (!/^[+-]?\d+(\.\d+)?$/.test(t)) return 0;
+    return Math.round(Number(t) * 100) / 100;
+  })();
+  const adjReady = adjValue !== 0 && !!adjOther;
+
   const addAdjustment = async () => {
-    const amount = Number(adjAmount);
-    if (!adjOther || !(amount > 0)) return;
+    if (!adjReady || saving !== null) return;
+    const amount = Math.abs(adjValue);
     setSaving("adjustment");
-    const give = adjDirection === "give";
+    const give = adjValue < 0;
     const { error } = await supabase.from("pnl_transfers").insert({
       month: selectedMonth,
       year: selectedYear,
       from_user_id: give ? selectedTrader : adjOther,
       to_user_id: give ? adjOther : selectedTrader,
-      amount: Math.round(amount * 100) / 100,
+      amount,
       note: adjNote.trim() || null,
     });
     setSaving(null);
@@ -560,56 +568,66 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                           Adding or subtracting profit with another trader needs the database update (SQL file 2) to be applied first.
                         </p>
                       ) : (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Select value={adjDirection} onValueChange={(v) => setAdjDirection(v as "receive" | "give")}>
-                            <SelectTrigger className="h-8 w-[170px]" aria-label="Add or subtract"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="receive">+ Add from trader</SelectItem>
-                              <SelectItem value="give">− Subtract, give to</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Select value={adjOther} onValueChange={setAdjOther}>
-                            <SelectTrigger className="h-8 w-[170px]" aria-label="Other trader"><SelectValue placeholder="Select trader" /></SelectTrigger>
-                            <SelectContent>
-                              {users.filter((u) => u.user_id !== selectedTrader).map((u) => (
-                                <SelectItem key={u.user_id} value={u.user_id}>{u.full_name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            className="h-8 w-28 text-right"
-                            placeholder="$ net"
-                            aria-label="Amount in dollars (net)"
-                            value={adjAmount}
-                            onChange={(e) => setAdjAmount(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                void addAdjustment();
-                              }
-                            }}
-                          />
-                          <Input
-                            className="h-8 min-w-[120px] flex-1"
-                            maxLength={500}
-                            placeholder="Note (optional)"
-                            aria-label="Adjustment note"
-                            value={adjNote}
-                            onChange={(e) => setAdjNote(e.target.value)}
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8"
-                            onClick={() => void addAdjustment()}
-                            disabled={saving !== null || !adjOther || !(Number(adjAmount) > 0)}
-                          >
-                            {saving === "adjustment" ? <Loader2 className="h-3 w-3 animate-spin" /> : adjDirection === "receive" ? "+ Add" : "− Subtract"}
-                          </Button>
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              inputMode="decimal"
+                              className="h-8 w-40 text-right"
+                              placeholder="+ or − amount ($)"
+                              aria-label="Adjustment amount, + or −"
+                              value={adjAmount}
+                              onChange={(e) => setAdjAmount(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  void addAdjustment();
+                                }
+                              }}
+                            />
+                            {adjValue !== 0 && (
+                              <>
+                                <span className="text-sm text-muted-foreground">{adjValue > 0 ? "from" : "to"}</span>
+                                <Select value={adjOther} onValueChange={setAdjOther}>
+                                  <SelectTrigger className="h-8 w-[180px]" aria-label="Other trader"><SelectValue placeholder="Select trader" /></SelectTrigger>
+                                  <SelectContent>
+                                    {users.filter((u) => u.user_id !== selectedTrader).map((u) => (
+                                      <SelectItem key={u.user_id} value={u.user_id}>{u.full_name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  className="h-8 min-w-[120px] flex-1"
+                                  maxLength={500}
+                                  placeholder="Note (optional)"
+                                  aria-label="Adjustment note"
+                                  value={adjNote}
+                                  onChange={(e) => setAdjNote(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      void addAdjustment();
+                                    }
+                                  }}
+                                />
+                                <Button type="button" size="sm" variant="outline" className="h-8" onClick={() => void addAdjustment()} disabled={saving !== null || !adjReady}>
+                                  {saving === "adjustment" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add"}
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                          {adjValue === 0 ? (
+                            <p className="text-xs text-muted-foreground">
+                              Type +500 to add $500 from another trader, or −500 to move $500 to another trader.
+                            </p>
+                          ) : adjOther ? (
+                            <p className="text-xs text-muted-foreground">
+                              {adjValue > 0
+                                ? `${selectedTraderName} +${formatCurrencyINR(Math.abs(adjValue), "$")} · ${nameOf(adjOther)} −${formatCurrencyINR(Math.abs(adjValue), "$")} (shows on their sheet as "To ${selectedTraderName}")`
+                                : `${selectedTraderName} −${formatCurrencyINR(Math.abs(adjValue), "$")} · ${nameOf(adjOther)} +${formatCurrencyINR(Math.abs(adjValue), "$")} (shows on their sheet as "From ${selectedTraderName}")`}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Choose the trader {adjValue > 0 ? "it comes from" : "it goes to"}.</p>
+                          )}
                         </div>
                       )}
                     </div>
