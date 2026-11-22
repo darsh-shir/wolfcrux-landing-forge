@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ const DeskCost = ({ users }: DeskCostProps) => {
   const [records, setRecords] = useState<DeskCostRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingRow, setEditingRow] = useState<Record<string, DeskCostRecord>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRecords();
@@ -74,30 +75,51 @@ const DeskCost = ({ users }: DeskCostProps) => {
     return editingRow[userId] || initEditRow(userId);
   };
 
-  const saveRecord = async (userId: string) => {
-    const row = getRowData(userId);
-    const existing = records.find(r => r.user_id === userId);
+  /** True when the row has edits that differ from what is saved. */
+  const isChanged = (userId: string) => {
+    const edit = editingRow[userId];
+    if (!edit) return false;
+    const saved = initEditRow(userId);
+    return Number(edit.total_desk_cost) !== Number(saved.total_desk_cost) || Number(edit.total_paid) !== Number(saved.total_paid) || (edit.notes || "") !== (saved.notes || "");
+  };
 
-    if (existing?.id) {
-      const { error } = await supabase.from("desk_costs").update({
-        total_desk_cost: row.total_desk_cost,
-        total_paid: row.total_paid,
-        notes: row.notes,
-      }).eq("id", existing.id);
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    } else {
-      const { error } = await supabase.from("desk_costs").insert({
-        user_id: userId,
-        year: selectedYear,
-        total_desk_cost: row.total_desk_cost,
-        total_paid: row.total_paid,
-        notes: row.notes,
-      });
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+  const saveOnEnter = (userId: string) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && isChanged(userId)) {
+      e.preventDefault();
+      void saveRecord(userId);
     }
-    toast({ title: "Saved", description: "Desk cost updated" });
-    setEditingRow(prev => { const n = { ...prev }; delete n[userId]; return n; });
-    fetchRecords();
+  };
+
+  const saveRecord = async (userId: string) => {
+    if (savingId) return;
+    setSavingId(userId);
+    try {
+      const row = getRowData(userId);
+      const existing = records.find(r => r.user_id === userId);
+
+      if (existing?.id) {
+        const { error } = await supabase.from("desk_costs").update({
+          total_desk_cost: row.total_desk_cost,
+          total_paid: row.total_paid,
+          notes: row.notes,
+        }).eq("id", existing.id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      } else {
+        const { error } = await supabase.from("desk_costs").insert({
+          user_id: userId,
+          year: selectedYear,
+          total_desk_cost: row.total_desk_cost,
+          total_paid: row.total_paid,
+          notes: row.notes,
+        });
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      }
+      toast({ title: "Saved", description: "Desk cost updated" });
+      setEditingRow(prev => { const n = { ...prev }; delete n[userId]; return n; });
+      await fetchRecords();
+    } finally {
+      setSavingId(null);
+    }
   };
 
   const getPending = (row: DeskCostRecord) => Number(row.total_desk_cost) - Number(row.total_paid);
@@ -133,7 +155,6 @@ const DeskCost = ({ users }: DeskCostProps) => {
                   <TableHead>Total Paid</TableHead>
                   <TableHead>Pending</TableHead>
                   <TableHead>Notes</TableHead>
-                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -145,21 +166,26 @@ const DeskCost = ({ users }: DeskCostProps) => {
                       <TableCell className="font-medium">{user.full_name}</TableCell>
                       <TableCell>
                         <Input type="number" className="w-28" value={row.total_desk_cost || ""}
-                          onChange={e => handleFieldChange(user.user_id, "total_desk_cost", Number(e.target.value))} />
+                          onChange={e => handleFieldChange(user.user_id, "total_desk_cost", Number(e.target.value))}
+                          onKeyDown={saveOnEnter(user.user_id)} />
                       </TableCell>
                       <TableCell>
                         <Input type="number" className="w-28" value={row.total_paid || ""}
-                          onChange={e => handleFieldChange(user.user_id, "total_paid", Number(e.target.value))} />
+                          onChange={e => handleFieldChange(user.user_id, "total_paid", Number(e.target.value))}
+                          onKeyDown={saveOnEnter(user.user_id)} />
                       </TableCell>
                       <TableCell className={`font-semibold ${pending > 0 ? "text-destructive" : "text-primary"}`}>
                         ₹{formatIndian(pending)}
                       </TableCell>
                       <TableCell>
-                        <Input className="w-28" value={row.notes || ""}
-                          onChange={e => handleFieldChange(user.user_id, "notes", e.target.value)} placeholder="Notes" />
-                      </TableCell>
-                      <TableCell>
-                        <SaveButton onClick={() => saveRecord(user.user_id)} />
+                        <div className="flex items-center gap-2">
+                          <Input className="w-40" value={row.notes || ""}
+                            onChange={e => handleFieldChange(user.user_id, "notes", e.target.value)}
+                            onKeyDown={saveOnEnter(user.user_id)} placeholder="Notes" />
+                          {isChanged(user.user_id) && (
+                            <SaveButton onClick={() => void saveRecord(user.user_id)} saving={savingId === user.user_id} />
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -180,7 +206,6 @@ const DeskCost = ({ users }: DeskCostProps) => {
                       <TableCell className={totalPending > 0 ? "text-destructive" : "text-primary"}>
                         ₹{formatIndian(totalPending)}
                       </TableCell>
-                      <TableCell></TableCell>
                       <TableCell></TableCell>
                     </TableRow>
                   );

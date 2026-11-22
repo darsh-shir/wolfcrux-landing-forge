@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { formatIndian } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +39,7 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
   const [records, setRecords] = useState<SalaryBackupRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingRow, setEditingRow] = useState<Record<string, SalaryBackupRecord>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRecords();
@@ -82,31 +83,52 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
     return editingRow[userId] || initEditRow(userId);
   };
 
-  const saveRecord = async (userId: string) => {
-    const row = getRowData(userId);
-    const existing = records.find(r => r.user_id === userId);
+  /** True when the row has edits that differ from what is saved. */
+  const isChanged = (userId: string) => {
+    const edit = editingRow[userId];
+    if (!edit) return false;
+    const saved = initEditRow(userId);
+    return Number(edit.base_salary) !== Number(saved.base_salary) || Number(edit.backup_amount) !== Number(saved.backup_amount) || (edit.notes || "") !== (saved.notes || "");
+  };
 
-    if (existing?.id) {
-      const { error } = await supabase.from("salary_backups").update({
-        base_salary: row.base_salary,
-        backup_amount: row.backup_amount,
-        notes: row.notes,
-      }).eq("id", existing.id);
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    } else {
-      const { error } = await supabase.from("salary_backups").insert({
-        user_id: userId,
-        month: 0,
-        year: selectedYear,
-        base_salary: row.base_salary,
-        backup_amount: row.backup_amount,
-        notes: row.notes,
-      });
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+  const saveOnEnter = (userId: string) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && isChanged(userId)) {
+      e.preventDefault();
+      void saveRecord(userId);
     }
-    toast({ title: "Saved", description: `Salary backup saved for ${selectedYear}` });
-    setEditingRow(prev => { const n = { ...prev }; delete n[userId]; return n; });
-    fetchRecords();
+  };
+
+  const saveRecord = async (userId: string) => {
+    if (savingId) return;
+    setSavingId(userId);
+    try {
+      const row = getRowData(userId);
+      const existing = records.find(r => r.user_id === userId);
+
+      if (existing?.id) {
+        const { error } = await supabase.from("salary_backups").update({
+          base_salary: row.base_salary,
+          backup_amount: row.backup_amount,
+          notes: row.notes,
+        }).eq("id", existing.id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      } else {
+        const { error } = await supabase.from("salary_backups").insert({
+          user_id: userId,
+          month: 0,
+          year: selectedYear,
+          base_salary: row.base_salary,
+          backup_amount: row.backup_amount,
+          notes: row.notes,
+        });
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      }
+      toast({ title: "Saved", description: `Salary backup saved for ${selectedYear}` });
+      setEditingRow(prev => { const n = { ...prev }; delete n[userId]; return n; });
+      await fetchRecords();
+    } finally {
+      setSavingId(null);
+    }
   };
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
@@ -141,7 +163,6 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
                   <TableHead>Base Salary</TableHead>
                   <TableHead>Total Backup</TableHead>
                   <TableHead>Notes</TableHead>
-                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -152,18 +173,23 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
                       <TableCell className="font-medium">{user.full_name}</TableCell>
                       <TableCell>
                         <Input type="number" className="w-28" value={row.base_salary || ""}
-                          onChange={e => handleFieldChange(user.user_id, "base_salary", Number(e.target.value))} />
+                          onChange={e => handleFieldChange(user.user_id, "base_salary", Number(e.target.value))}
+                          onKeyDown={saveOnEnter(user.user_id)} />
                       </TableCell>
                       <TableCell>
                         <Input type="number" className="w-28" value={row.backup_amount || ""}
-                          onChange={e => handleFieldChange(user.user_id, "backup_amount", Number(e.target.value))} />
+                          onChange={e => handleFieldChange(user.user_id, "backup_amount", Number(e.target.value))}
+                          onKeyDown={saveOnEnter(user.user_id)} />
                       </TableCell>
                       <TableCell>
-                        <Input className="w-28" value={row.notes || ""}
-                          onChange={e => handleFieldChange(user.user_id, "notes", e.target.value)} placeholder="Notes" />
-                      </TableCell>
-                      <TableCell>
-                        <SaveButton onClick={() => saveRecord(user.user_id)} />
+                        <div className="flex items-center gap-2">
+                          <Input className="w-40" value={row.notes || ""}
+                            onChange={e => handleFieldChange(user.user_id, "notes", e.target.value)}
+                            onKeyDown={saveOnEnter(user.user_id)} placeholder="Notes" />
+                          {isChanged(user.user_id) && (
+                            <SaveButton onClick={() => void saveRecord(user.user_id)} saving={savingId === user.user_id} />
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -180,7 +206,6 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
                       <TableCell>Total</TableCell>
                       <TableCell>₹{formatIndian(totals.salary)}</TableCell>
                       <TableCell>₹{formatIndian(totals.backup)}</TableCell>
-                      <TableCell></TableCell>
                       <TableCell></TableCell>
                     </TableRow>
                   );
