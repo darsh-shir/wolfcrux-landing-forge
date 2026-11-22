@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,13 +29,17 @@ const Auth = () => {
   
   const { signIn, user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  // Return to the page that sent the visitor here (e.g. the Terminal).
+  const from = (location.state as { from?: string } | null)?.from;
+  const redirectTo = from && from.startsWith("/") && !from.startsWith("/auth") ? from : "/my-data";
 
   useEffect(() => {
     if (!loading && user) {
-      navigate("/my-data");
+      navigate(redirectTo, { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +79,7 @@ const Auth = () => {
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
-      navigate("/my-data");
+      navigate(redirectTo, { replace: true });
     }
 
     setIsLoading(false);

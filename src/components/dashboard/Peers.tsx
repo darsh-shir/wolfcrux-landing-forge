@@ -29,8 +29,8 @@ const PEER_PAIRS: { theme: string; pairs: [string, string][] }[] = [
   {
     theme: "Insurance",
     pairs: [
-      ["AJG", "MMC"], ["AON", "MMC"], ["AJG", "BRO"], ["MET", "PRU"],
-      ["BRO", "MMC"], ["AJG", "AON"], ["AON", "BRO"], ["HIG", "L"],
+      ["AJG", "MRSH"], ["AON", "MRSH"], ["AJG", "BRO"], ["MET", "PRU"],
+      ["BRO", "MRSH"], ["AJG", "AON"], ["AON", "BRO"], ["HIG", "L"],
       ["CB", "WRB"], ["WRB", "L"], ["L", "AIZ"], ["L", "ORI"],
       ["TRV", "WRB"], ["L", "AFG"], ["GL", "AFL"], ["HIG", "WRB"],
       ["CB", "TRV"], ["WRB", "THG"], ["CB", "L"], ["CB", "HIG"],

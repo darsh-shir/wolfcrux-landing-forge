@@ -1,24 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { nyDateKey, addDaysKey, nextWeekdayKey } from "@/lib/marketDate";
+import type { EconomicEvent } from "@/lib/economic";
 import { CalendarClock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import DataAge from "@/components/dashboard/DataAge";
 
-interface EconomicEvent {
-  id: number;
-  event: string;
-  country: string;
-  category: string;
-  impact: number;
-  time: string;
-  actual: string | null;
-  prev: string;
-  forecast: number | null;
-  unit: string;
-  currency: string;
-}
 
 interface EconomicOverviewProps {
   data: EconomicEvent[];
   loading: boolean;
+  updatedAt?: Date | null;
 }
 
 const impactLabel = (impact: number) => {
@@ -54,13 +45,27 @@ const formatTime = (iso: string) => {
   }
 };
 
-const EconomicOverview = ({ data, loading }: EconomicOverviewProps) => {
-  const today = new Date().toISOString().slice(0, 10);
-  const todayEvents = data.filter(
-    (e) =>
-      e.time?.slice(0, 10) === today &&
-      e.country?.toLowerCase() === "us"
-  );
+const EconomicOverview = ({ data, loading, updatedAt }: EconomicOverviewProps) => {
+  const today = nyDateKey();
+  const us = data.filter((e) => e.country?.toLowerCase() === "us");
+  // On days without events (weekends, holidays) show the next day that has some.
+  const showDay =
+    us.some((e) => e.time?.slice(0, 10) === today)
+      ? today
+      : us.map((e) => e.time?.slice(0, 10) || "").filter((d) => d > today).sort()[0] || today;
+  const isToday = showDay === today;
+  const dayLabel = isToday
+    ? "Today"
+    : new Date(`${showDay}T12:00:00Z`).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      });
+  const todayEvents = us
+    .filter((e) => e.time?.slice(0, 10) === showDay)
+    // most important first, then by time
+    .sort((a, b) => b.impact - a.impact || a.time.localeCompare(b.time));
 
   if (loading && data.length === 0) {
     return (
@@ -90,17 +95,20 @@ const EconomicOverview = ({ data, loading }: EconomicOverviewProps) => {
       <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
           <CalendarClock className="w-3.5 h-3.5" />
-          // Economic Events Today
+          // Economic Events {isToday ? "Today" : `· Next: ${dayLabel}`}
         </CardTitle>
-        <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
-          {todayEvents.length} EVT
-        </span>
+        <div className="flex items-center gap-3">
+          <DataAge at={updatedAt} staleAfterMinutes={120} />
+          <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
+            {todayEvents.length} EVT
+          </span>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
           {todayEvents.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              No economic events scheduled for today
+              No upcoming economic events found
             </p>
           ) : (
             todayEvents.slice(0, 6).map((item, i) => {

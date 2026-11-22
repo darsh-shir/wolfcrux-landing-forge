@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { nyDateKey, addDaysKey, nextWeekdayKey } from "@/lib/marketDate";
 import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,7 +91,7 @@ const Followers = () => {
   useEffect(() => {
     (async () => {
       try {
-        const today = new Date().toISOString().split("T")[0];
+        const today = nyDateKey();
         const { fetchPerplexityEarnings } = await import("@/lib/earnings");
         const rows = await fetchPerplexityEarnings(today);
         const mapped = rows

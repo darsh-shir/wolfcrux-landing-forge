@@ -1,15 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTerminal } from "@/components/dashboard/TerminalContext";
+import { fetchFinvizNews, type FinvizItem } from "@/lib/finviz";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ExternalLink, Radio, Rss, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-interface FinvizItem {
-  date: string;
-  headline: string;
-  url: string;
-  source: string;
-}
 
 interface Props {
   onSymbolSubmit?: (symbol: string) => void;
@@ -32,32 +28,9 @@ const pickRandom = (arr: string[], n: number) => {
   return a.slice(0, n);
 };
 
-const parseFinvizHtml = (html: string): FinvizItem[] => {
-  try {
-    const doc = new DOMParser().parseFromString(`<table>${html}</table>`, "text/html");
-    const rows = Array.from(doc.querySelectorAll("tr"));
-    return rows
-      .map((tr): FinvizItem | null => {
-        const tds = tr.querySelectorAll("td");
-        if (tds.length < 2) return null;
-        const date = (tds[0].textContent || "").trim().replace(/\s+/g, " ");
-        const a = tr.querySelector("a.tab-link-news") as HTMLAnchorElement | null;
-        if (!a) return null;
-        const headline = (a.textContent || "").trim();
-        let url = a.getAttribute("href") || "#";
-        if (url.startsWith("/")) url = `https://finviz.com${url}`;
-        const sourceEl = tr.querySelector(".news-link-right span");
-        const source = (sourceEl?.textContent || "").trim().replace(/^\(|\)$/g, "");
-        if (!headline) return null;
-        return { date, headline, url, source };
-      })
-      .filter((x): x is FinvizItem => !!x);
-  } catch {
-    return [];
-  }
-};
 
 const FinvizNews = ({ onSymbolSubmit }: Props) => {
+  const { watchlist } = useTerminal();
   const [symbol, setSymbol] = useState("");
   const [input, setInput] = useState("");
   const [items, setItems] = useState<FinvizItem[]>([]);
@@ -70,10 +43,7 @@ const FinvizNews = ({ onSymbolSubmit }: Props) => {
     inflight.current = true;
     setLoading(true);
     try {
-      const target = `https://finviz.com/api/news/quote/${encodeURIComponent(sym)}`;
-      const res = await fetch(`${PROXY}${encodeURIComponent(target)}`);
-      const json = await res.json();
-      setItems(parseFinvizHtml(json?.html || ""));
+      setItems(await fetchFinvizNews(sym));
     } catch {
       setItems([]);
     } finally {
@@ -174,6 +144,16 @@ const FinvizNews = ({ onSymbolSubmit }: Props) => {
               <Sparkles className="w-3 h-3" />
               Suggested
             </span>
+            {watchlist.slice(0, 8).map((s) => (
+              <button
+                key={`w-${s}`}
+                onClick={() => submit(s)}
+                title="From your watchlist"
+                className="font-mono text-[11px] px-2 py-0.5 rounded-sm border border-amber-500/40 bg-amber-500/10 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+              >
+                ★ {s}
+              </button>
+            ))}
             {suggestions.map((s) => (
               <button
                 key={s}

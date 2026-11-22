@@ -3,25 +3,39 @@
  *
  * https://marketsv3.tipranks.com/api/quotes/GetQuotes?app_name=tr&v=2&tickers=JNJ%2CAAPL
  *
- * When the regular session is closed (`isMarketOpen === false`) and the payload
- * carries a `prePostMarket` block, we display the pre/post-market price and
- * measure the move against the previous regular-session close (`lastClose`,
- * falling back to `price`). TipRanks' own `prePostMarket.changePercent` is
- * measured against the regular close *tick*, which understates the session move,
- * so we recompute it.
+ * `price` / `change` / `changesPercentage` are ALWAYS the regular session
+ * (the live session while the market is open, otherwise the last close), so a
+ * day's real move is never replaced by a thin after-hours print.
+ *
+ * When the market is closed and TipRanks has a pre/post-market print, it is
+ * returned separately in `extended`, measured against that regular close.
+ * (TipRanks' own `prePostMarket.changePercent` uses the close *tick*, which can
+ * differ slightly, so we recompute it.)
  */
+export interface ExtendedHoursQuote {
+  session: "pre" | "post";
+  price: number;
+  change: number;
+  changesPercentage: number;
+}
+
 export interface NormalizedQuote {
   symbol: string;
   name?: string;
   price: number;
   change: number;
   changesPercentage: number;
-  /** True when the displayed numbers come from the pre/post-market session. */
-  isExtended: boolean;
-  session: "regular" | "pre" | "post" | "closed";
+  /** Pre-market or after-hours move, when the regular session is closed. */
+  extended: ExtendedHoursQuote | null;
+  session: "regular" | "closed";
+  volume?: number;
+  marketCap?: number;
+  dayLow?: number;
+  dayHigh?: number;
 }
 
 const num = (v: unknown): number | null => {
+  if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 };
@@ -29,43 +43,36 @@ const num = (v: unknown): number | null => {
 export const normalizeTipranksQuote = (q: any): NormalizedQuote | null => {
   if (!q?.ticker) return null;
 
-  const regularPrice = num(q.price) ?? 0;
-  const regularChange = num(q.changeAmount) ?? 0;
-  const regularPct = num(q.changePercent) ?? 0;
+  const price = num(q.price) ?? 0;
+  if (price <= 0) return null;
 
   const closed = q.isMarketOpen === false;
-  const pp = q.prePostMarket;
-  const ppPrice = pp ? num(pp.price) : null;
+  const ppPrice = num(q.prePostMarket?.price);
 
-  if (closed && ppPrice && ppPrice > 0) {
-    // Baseline = last regular-session close price (`price`), which is what
-    // TipRanks measures prePostMarket against. `lastClose` is the close BEFORE
-    // that session, so using it double-counts the previous day's move.
-    const base = regularPrice > 0 ? regularPrice : num(q.lastClose) ?? 0;
-    const change = base > 0 ? ppPrice - base : num(pp.changeAmount) ?? 0;
-    const pct = base > 0 ? (change / base) * 100 : num(pp.changePercent) ?? 0;
-
-    return {
-      symbol: q.ticker,
-      name: q.companyName,
+  let extended: ExtendedHoursQuote | null = null;
+  // Ignore sub-cent differences (they would show as a meaningless "AH +0.00%").
+  if (closed && ppPrice && ppPrice > 0 && Math.abs(ppPrice - price) >= 0.005) {
+    const change = ppPrice - price;
+    extended = {
+      session: q.isPremarket ? "pre" : "post",
       price: ppPrice,
       change,
-      changesPercentage: pct,
-      isExtended: true,
-      session: q.isPremarket ? "pre" : "post",
+      changesPercentage: (change / price) * 100,
     };
   }
-
-  if (regularPrice <= 0) return null;
 
   return {
     symbol: q.ticker,
     name: q.companyName,
-    price: regularPrice,
-    change: regularChange,
-    changesPercentage: regularPct,
-    isExtended: false,
+    price,
+    change: num(q.changeAmount) ?? 0,
+    changesPercentage: num(q.changePercent) ?? 0,
+    extended,
     session: closed ? "closed" : "regular",
+    volume: num(q.volume) ?? undefined,
+    marketCap: num(q.marketCap) ?? undefined,
+    dayLow: num(q.low) ?? undefined,
+    dayHigh: num(q.high) ?? undefined,
   };
 };
 
@@ -73,3 +80,7 @@ export const normalizeTipranksQuotes = (data: any): NormalizedQuote[] =>
   (Array.isArray(data?.quotes) ? data.quotes : [])
     .map(normalizeTipranksQuote)
     .filter((q: NormalizedQuote | null): q is NormalizedQuote => !!q);
+
+/** Short label for an extended-hours session, e.g. "AH" / "PM". */
+export const extendedLabel = (e: ExtendedHoursQuote | null | undefined) =>
+  e ? (e.session === "pre" ? "PM" : "AH") : "";

@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 import AnimatedNumber from "@/components/AnimatedNumber";
+import ExtendedHoursBadge from "@/components/dashboard/ExtendedHoursBadge";
+import type { ExtendedHoursQuote } from "@/lib/tipranksQuote";
 
 interface IndexData {
   symbol: string;
@@ -11,6 +13,10 @@ interface IndexData {
   change: number;
   changesPercentage: number;
   history?: number[];
+  /** Pre-market / after-hours move while the regular session is closed. */
+  extended?: ExtendedHoursQuote | null;
+  /** "closed" = the numbers are the last regular-session close. */
+  session?: "regular" | "closed";
 }
 
 interface IndexCardsProps {
@@ -204,7 +210,12 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
                 </div>
 
                 {/* Change */}
-                <div className="flex justify-end mb-1">
+                <div className="flex justify-end items-center gap-1.5 mb-1">
+                  {index.session === "closed" && (
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">
+                      Close
+                    </span>
+                  )}
                   <span
                     className={`text-xs sm:text-sm font-mono tabular-nums ${
                       isPositive ? "text-emerald-600" : "text-red-600"
@@ -235,6 +246,7 @@ const IndexCards = ({ data, loading, lastUpdated, onRefresh }: IndexCardsProps) 
                     duration={900}
                   />
                 </p>
+                <ExtendedHoursBadge extended={index.extended} showPrice className="mt-1.5" />
               </CardContent>
             </Card>
           );

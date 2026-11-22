@@ -1,10 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock, LineChart, Activity } from "lucide-react";
-import { normalizeTipranksQuote } from "@/lib/tipranksQuote";
+import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock, LineChart, Activity, Search } from "lucide-react";
+import { normalizeTipranksQuote, type ExtendedHoursQuote } from "@/lib/tipranksQuote";
+import { fetchEconomicEvents, type EconomicEvent } from "@/lib/economic";
+import { useVisibleInterval } from "@/hooks/useVisibleInterval";
+import DataAge from "@/components/dashboard/DataAge";
+import { TerminalContext, type TerminalContextValue } from "@/components/dashboard/TerminalContext";
+import TickerPanel from "@/components/dashboard/TickerPanel";
+import TickerSearch, { useTickerSearchHotkeys } from "@/components/dashboard/TickerSearch";
+import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
+import PremarketMovers from "@/components/dashboard/PremarketMovers";
+import { usePriceAlerts } from "@/hooks/usePriceAlerts";
 
 
 // Dashboard components
@@ -40,12 +49,15 @@ interface IndexData {
   change: number;
   changesPercentage: number;
   history?: number[];
+  extended?: ExtendedHoursQuote | null;
+  session?: "regular" | "closed";
 }
 
 interface SectorData {
   name: string;
   changesPercentage: number;
   ticker?: string;
+  extended?: ExtendedHoursQuote | null;
 }
 
 interface MoverData {
@@ -53,7 +65,11 @@ interface MoverData {
   name: string;
   price: number;
   changesPercentage: number;
+  volume?: number;
 }
+
+/** How long Market Movers stay cached before refetching. */
+const MOVERS_TTL_MS = 5 * 60_000;
 
 interface SentimentData {
   sentiment: string;
@@ -81,6 +97,7 @@ const Dashboard = () => {
   const [loadingIndices, setLoadingIndices] = useState(true);
   const [loadingSectors, setLoadingSectors] = useState(true);
   const [loadingMovers, setLoadingMovers] = useState(true);
+  const [moversUpdated, setMoversUpdated] = useState<Date | null>(null);
   const [loadingNews, setLoadingNews] = useState(true);
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -88,18 +105,14 @@ const Dashboard = () => {
   const [newsSymbol, setNewsSymbol] = useState<string>("");
 
 
-  const [economicEvents, setEconomicEvents] = useState<any[]>([]);
+  const [economicEvents, setEconomicEvents] = useState<EconomicEvent[]>([]);
   const [economicLoading, setEconomicLoading] = useState(true);
+  const [economicUpdated, setEconomicUpdated] = useState<Date | null>(null);
   const fetchEconomicCalendar = async () => {
     try {
       setEconomicLoading(true);
-      const url = encodeURIComponent(
-        "https://tr-cdn.tipranks.com/calendars/prod/calendars/economic/payload.json"
-      );
-      const response = await fetch(`${PROXY_URL}${url}`);
-      const data = await response.json();
-      const events = data?.EconomicCalenderViewModel?.data?.economicCalenderData?.events || [];
-      setEconomicEvents(events);
+      setEconomicEvents(await fetchEconomicEvents());
+      setEconomicUpdated(new Date());
     } catch (e) {
       console.error("Economic calendar fetch failed", e);
     } finally {
@@ -159,6 +172,8 @@ const Dashboard = () => {
           price: n.price,
           change: n.change,
           changesPercentage: n.changesPercentage,
+          extended: n.extended,
+          session: n.session,
           history: [],
         };
       });
@@ -200,13 +215,14 @@ const Dashboard = () => {
       const quotes: any[] = data?.quotes || [];
 
       if (Array.isArray(quotes) && quotes.length > 0) {
-        // Uses pre/post-market price vs prior close when the regular session is shut
+        // Regular-session move; any pre/after-hours move is kept separately in `extended`
         const mapped = quotes.map((q) => {
           const n = normalizeTipranksQuote(q);
           return {
             name: SECTOR_MAP[q.ticker] || q.ticker,
             ticker: q.ticker,
             changesPercentage: n?.changesPercentage ?? 0,
+            extended: n?.extended ?? null,
           };
         });
 
@@ -241,6 +257,7 @@ const Dashboard = () => {
         price: parseFloat(r.price ?? 0),
         changesPercentage:
           (parseFloat(r?.change?.percent ?? r?.lastChange?.percent ?? 0)) * 100,
+        volume: Number(r?.volume) || 0,
       });
 
       const extract = (data: any): any[] => {
@@ -261,11 +278,15 @@ const Dashboard = () => {
 
       const g = extract(results[0]).map(mapRow).sort((a, b) => b.changesPercentage - a.changesPercentage);
       const l = extract(results[1]).map(mapRow).sort((a, b) => a.changesPercentage - b.changesPercentage);
-      const a = extract(results[2]).map(mapRow).sort((x, y) => Math.abs(y.changesPercentage) - Math.abs(x.changesPercentage));
+      // "Most active" = highest trading volume, not the biggest % move.
+      const a = extract(results[2]).map(mapRow).sort((x, y) => (y.volume ?? 0) - (x.volume ?? 0));
+      if (g.length + l.length + a.length === 0) throw new Error("Movers feed returned no rows");
       setGainers(g);
       setLosers(l);
       setActives(a);
-      try { localStorage.setItem("wolfcrux-movers-cache", JSON.stringify({ date: new Date().toDateString(), g, l, a })); } catch {}
+      const at = Date.now();
+      setMoversUpdated(new Date(at));
+      try { localStorage.setItem("wolfcrux-movers-cache", JSON.stringify({ at, g, l, a })); } catch { /* storage unavailable */ }
     } catch (e) {
       console.error("Mover fetch failed", e);
     } finally {
@@ -302,47 +323,48 @@ const Dashboard = () => {
   };
 
   /* ===================== FETCH ALL ===================== */
+  // Fast-moving data: quotes and headlines.
   const fetchAll = useCallback(async () => {
-    await Promise.all([
-      fetchSentiment(),
-      fetchIndices(),
-      fetchSectors(),
-      fetchNews(),
-      fetchEconomicCalendar(),
-    ]);
+    await Promise.all([fetchIndices(), fetchSectors(), fetchNews()]);
     setLastUpdated(new Date());
   }, []);
 
-  /* ===================== AUTO REFRESH ===================== */
+  /* ===================== AUTO REFRESH =====================
+   * Every refresh goes through the Cloudflare Worker (daily request limit), so
+   * timers pause while the tab is hidden and slow data refreshes less often. */
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 30000);
-    return () => clearInterval(interval);
-  }, [fetchAll]);
+    fetchSentiment();
+    fetchEconomicCalendar();
+  }, [fetchAll, fetchSentiment]);
+  useVisibleInterval(fetchAll, 30_000);
+  useVisibleInterval(fetchSentiment, 60_000);
+  useVisibleInterval(() => fetchEconomicCalendar(), 30 * 60_000);
 
-  /* ===================== MOVERS — ONCE PER DAY ===================== */
+  /* ===================== MOVERS — EVERY 5 MINUTES =====================
+   * Previously fetched once per day, which froze the first snapshot of the day
+   * (often pre-market) for the whole session. A short cache avoids refetching
+   * when switching pages. */
   useEffect(() => {
     try {
       const cached = localStorage.getItem("wolfcrux-movers-cache");
       if (cached) {
-        const { date, g, l, a } = JSON.parse(cached);
-        if (date === new Date().toDateString()) {
+        const { at, g, l, a } = JSON.parse(cached);
+        if (typeof at === "number" && Date.now() - at < MOVERS_TTL_MS) {
           setGainers(g);
           setLosers(l);
           setActives(a);
+          setMoversUpdated(new Date(at));
           setLoadingMovers(false);
           return;
         }
       }
-    } catch {}
+    } catch {
+      /* storage unavailable or old cache format */
+    }
     fetchMovers();
   }, []);
-
-  /* ===================== SENTIMENT 10s REFRESH ===================== */
-  useEffect(() => {
-    const sentimentInterval = setInterval(fetchSentiment, 10000);
-    return () => clearInterval(sentimentInterval);
-  }, [fetchSentiment]);
+  useVisibleInterval(() => fetchMovers(), MOVERS_TTL_MS);
 
   /* ===================== TICKER WATCHLIST ===================== */
   const {
@@ -353,8 +375,40 @@ const Dashboard = () => {
     removeSymbol,
   } = useTickerWatchlist();
 
+  /* ===================== TICKER PANEL, SEARCH, ALERTS ===================== */
+  const [panelSymbol, setPanelSymbol] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const { alerts, addAlert, removeAlert } = usePriceAlerts();
+  const openSearch = useCallback(() => setSearchOpen(true), []);
+  useTickerSearchHotkeys(openSearch);
+
+  const terminal = useMemo<TerminalContextValue>(
+    () => ({
+      openTicker: (s: string) => setPanelSymbol(s.trim().toUpperCase()),
+      openSearch,
+      watchlist: userSymbols,
+      addToWatchlist: addSymbol,
+      removeFromWatchlist: removeSymbol,
+      alerts,
+      addAlert,
+      removeAlert,
+    }),
+    [openSearch, userSymbols, addSymbol, removeSymbol, alerts, addAlert, removeAlert]
+  );
+
+  // Any element marked data-ticker="XYZ" opens the ticker panel. Captured here
+  // so a ticker inside a clickable row opens the panel instead of the row.
+  const onTickerClickCapture = (e: React.MouseEvent) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>("[data-ticker]");
+    const sym = el?.dataset.ticker;
+    if (!sym) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setPanelSymbol(sym.toUpperCase());
+  };
+
   return (
-    <>
+    <TerminalContext.Provider value={terminal}>
       <Helmet>
         <title>Trading Terminal | Wolfcrux</title>
         <meta
@@ -363,7 +417,7 @@ const Dashboard = () => {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-background flex flex-col relative">
+      <div className="min-h-screen bg-background flex flex-col relative" onClickCapture={onTickerClickCapture}>
         {/* Subtle terminal grid backdrop */}
         <div
           aria-hidden
@@ -399,7 +453,19 @@ const Dashboard = () => {
               <Activity className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
               Wolfcrux Terminal
             </div>
-            <MarketClock />
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={openSearch}
+                className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-card px-3 py-1.5 font-mono text-[11px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                aria-label="Search tickers"
+              >
+                <Search className="h-3.5 w-3.5" />
+                Ticker lookup
+                <kbd className="hidden sm:inline rounded border border-border px-1 text-[10px]">/</kbd>
+              </button>
+              <MarketClock />
+            </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -452,6 +518,13 @@ const Dashboard = () => {
               />
 
               <MarketPulse sectors={sectors} loading={loadingSectors} />
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
+                <WatchlistPanel quotes={tickerItems} loading={loadingTicker} />
+                <PremarketMovers
+                  extraSymbols={[...gainers.slice(0, 20), ...losers.slice(0, 20), ...actives.slice(0, 20)].map((m) => m.symbol)}
+                />
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
                 <SectorPerformance
                   data={sectors}
@@ -467,10 +540,11 @@ const Dashboard = () => {
                   losers={losers}
                   actives={actives}
                   loading={loadingMovers}
+                  updatedAt={moversUpdated}
                 />
               </div>
 
-              <EconomicOverview data={economicEvents} loading={economicLoading} />
+              <EconomicOverview data={economicEvents} loading={economicLoading} updatedAt={economicUpdated} />
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 <NewsOverview data={newsPosts} loading={loadingNews} />
@@ -506,7 +580,7 @@ const Dashboard = () => {
 
             {/* ================= ECONOMIC CALENDAR TAB ================= */}
             <TabsContent value="economic" className="mt-6 tab-anim">
-              <EconomicCalendar data={economicEvents} loading={economicLoading} />
+              <EconomicCalendar data={economicEvents} loading={economicLoading} updatedAt={economicUpdated} />
             </TabsContent>
 
             {/* ================= COMPARE STOCKS TAB ================= */}
@@ -523,7 +597,14 @@ const Dashboard = () => {
         sectorName={selectedSector?.name ?? null}
         changePct={selectedSector?.changesPercentage}
       />
-    </>
+      <TickerPanel symbol={panelSymbol} onClose={() => setPanelSymbol(null)} />
+      <TickerSearch
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        onPick={(sym) => setPanelSymbol(sym)}
+        watchlist={userSymbols}
+      />
+    </TerminalContext.Provider>
   );
 };
 

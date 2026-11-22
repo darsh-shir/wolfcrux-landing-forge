@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Plus, X, Loader2 } from "lucide-react";
 import { INDUSTRY_LEADERS } from "@/hooks/useTickerWatchlist";
 import { toast } from "@/hooks/use-toast";
+import type { ExtendedHoursQuote } from "@/lib/tipranksQuote";
 
 /**
  * Bloomberg/Reuters-style horizontal scrolling ticker tape.
@@ -14,6 +15,7 @@ export interface TickerItem {
   price: number;
   change: number;
   changesPercentage: number;
+  extended?: ExtendedHoursQuote | null;
 }
 
 const formatPrice = (n: number) =>
@@ -93,7 +95,10 @@ const TickerTape = ({ items, loading, onAdd, onRemove, userSymbols = [] }: Ticke
             key={`${key}-${it.symbol}-${i}`}
             className="group flex items-center gap-2 text-xs font-mono whitespace-nowrap"
           >
-            <span className="font-semibold text-foreground tracking-wider">
+            <span
+              data-ticker={it.symbol}
+              className="font-semibold text-foreground tracking-wider cursor-pointer hover:underline"
+            >
               {it.symbol}
             </span>
             <span className="text-foreground tabular-nums">
@@ -106,6 +111,18 @@ const TickerTape = ({ items, loading, onAdd, onRemove, userSymbols = [] }: Ticke
             >
               {up ? "▲" : "▼"} {Math.abs(it.changesPercentage).toFixed(2)}%
             </span>
+            {it.extended && (
+              <span
+                className="tabular-nums text-muted-foreground"
+                title={`${it.extended.session === "pre" ? "Pre-market" : "After-hours"} $${it.extended.price.toFixed(2)}`}
+              >
+                {it.extended.session === "pre" ? "PM" : "AH"}{" "}
+                <span className={it.extended.changesPercentage >= 0 ? "text-emerald-600" : "text-red-600"}>
+                  {it.extended.changesPercentage >= 0 ? "+" : ""}
+                  {it.extended.changesPercentage.toFixed(2)}%
+                </span>
+              </span>
+            )}
             {isUserAdded && onRemove && (
               <button
                 type="button"

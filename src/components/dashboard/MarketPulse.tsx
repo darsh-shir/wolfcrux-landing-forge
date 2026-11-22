@@ -13,9 +13,9 @@ interface MarketPulseProps {
 }
 
 /**
- * Compact terminal "vitals" strip — derives advancers / decliners / breadth
- * directly from the sector feed so it always animates in sync with the rest
- * of the overview without any new fetches.
+ * Compact terminal "vitals" strip for the 11 SPDR sector funds: how many are
+ * up / down / flat, their average move, and sector breadth. Labelled as
+ * sector counts so they are not mistaken for stock advancers/decliners.
  */
 const MarketPulse = ({ sectors, loading }: MarketPulseProps) => {
   const advancers = sectors.filter((s) => s.changesPercentage > 0).length;
@@ -34,28 +34,28 @@ const MarketPulse = ({ sectors, loading }: MarketPulseProps) => {
     tone: string;
   }[] = [
     {
-      label: "Advancers",
+      label: "Sectors up",
       value: advancers,
       fmt: (n) => Math.round(n).toString(),
       icon: <ArrowUpRight className="w-3.5 h-3.5" />,
       tone: "text-emerald-600",
     },
     {
-      label: "Decliners",
+      label: "Sectors down",
       value: decliners,
       fmt: (n) => Math.round(n).toString(),
       icon: <ArrowDownRight className="w-3.5 h-3.5" />,
       tone: "text-red-600",
     },
     {
-      label: "Unchanged",
+      label: "Sectors flat",
       value: unchanged,
       fmt: (n) => Math.round(n).toString(),
       icon: <Minus className="w-3.5 h-3.5" />,
       tone: "text-muted-foreground",
     },
     {
-      label: "Avg Δ %",
+      label: "Avg Δ",
       value: avg,
       fmt: (n) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`,
       icon: <Activity className="w-3.5 h-3.5" />,
@@ -86,7 +86,7 @@ const MarketPulse = ({ sectors, loading }: MarketPulseProps) => {
                   {c.label}
                 </span>
               </div>
-              <span className={`font-mono font-bold tabular-nums text-sm ${c.tone}`}>
+              <span className={`font-mono font-bold tabular-nums text-sm whitespace-nowrap ${c.tone}`}>
                 {loading ? (
                   <span className="inline-block w-10 h-3 bg-muted rounded skeleton-shimmer" />
                 ) : (

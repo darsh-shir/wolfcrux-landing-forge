@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { nyDateKey, addDaysKey, nextWeekdayKey } from "@/lib/marketDate";
 import { formatIndian } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,6 +41,16 @@ const formatMC = (mc: number) => {
 const EarningsOverview = () => {
   const [stocks, setStocks] = useState<EarningStock[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dayKey, setDayKey] = useState(() => nyDateKey());
+  const isToday = dayKey === nyDateKey();
+  const dayTitle = isToday
+    ? "Today's Pre-Market Earnings"
+    : `Pre-Market Earnings · ${new Date(`${dayKey}T12:00:00Z`).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      })}`;
   const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
   const [peersCache, setPeersCache] = useState<Record<string, { loading: boolean; data: any[] }>>({});
 
@@ -58,9 +69,11 @@ const EarningsOverview = () => {
   useEffect(() => {
     const fetchToday = async () => {
       try {
-        const today = new Date().toISOString().split("T")[0];
+        // Weekends: show the next trading day instead of an empty box.
+        const day = nextWeekdayKey(nyDateKey());
+        setDayKey(day);
         const { fetchPerplexityEarnings } = await import("@/lib/earnings");
-        const rows = await fetchPerplexityEarnings(today);
+        const rows = await fetchPerplexityEarnings(day);
         // Overview shows PreMarket only, sorted by market cap.
         const preOnly = rows
           .filter((r) => r.earning?.reportOnTimeOfDay === "PreMarket")
@@ -81,7 +94,7 @@ const EarningsOverview = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5" />
-            // Today's Pre-Market Earnings
+            // {dayTitle}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -101,11 +114,11 @@ const EarningsOverview = () => {
         <CardHeader className="pb-3">
         <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
           <Calendar className="w-3.5 h-3.5" />
-          // Today's Pre-Market Earnings
+          // {dayTitle}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">No pre-market earnings today.</p>
+          <p className="text-sm text-muted-foreground">No pre-market earnings {isToday ? "today" : "scheduled"}.</p>
         </CardContent>
       </Card>
     );
@@ -116,7 +129,7 @@ const EarningsOverview = () => {
       <CardHeader className="pb-3">
         <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
           <Calendar className="w-3.5 h-3.5" />
-          // Today's Pre-Market Earnings
+          // {dayTitle}
           <span className="ml-auto text-[10px] font-mono text-muted-foreground tabular-nums">
             {stocks.length} TOTAL
           </span>
@@ -149,7 +162,9 @@ const EarningsOverview = () => {
                       )}
                       <div>
                         <p className="text-sm font-medium flex items-center gap-1.5">
-                          {s.ticker}
+                          <span data-ticker={s.ticker} className="cursor-pointer hover:underline">
+                            {s.ticker}
+                          </span>
                           <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                             s.earning?.reportOnTimeOfDay === "PreMarket"
                               ? "bg-blue-100 text-blue-700"

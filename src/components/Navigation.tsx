@@ -23,7 +23,8 @@ const Navigation = () => {
   const { user, isAdmin, signOut, loading } = useAuth();
 
   const navLinks = [
-    { name: "Terminal", path: "/terminal" },
+    // The Terminal is for signed-in team members only.
+    ...(user ? [{ name: "Terminal", path: "/terminal" }] : []),
     { name: "About", path: "/about" },
     { name: "Technology", path: "/technology" },
     { name: "Testimonials", path: "/testimonials" },

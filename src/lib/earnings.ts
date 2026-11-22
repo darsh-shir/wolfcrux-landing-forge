@@ -11,7 +11,7 @@
 //
 // Rows are returned in the same shape the Earnings UI already expects.
 
-import { normalizeTipranksQuotes } from "@/lib/tipranksQuote";
+import { normalizeTipranksQuotes, type ExtendedHoursQuote } from "@/lib/tipranksQuote";
 
 const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
 const TR_API = "https://www.tipranks.com/api";
@@ -24,6 +24,8 @@ export interface NormalizedEarning {
   marketCap: number;
   price: number;
   change: { percent: number; amount: number };
+  /** Pre-market / after-hours move (e.g. the reaction to the report). */
+  extended?: ExtendedHoursQuote | null;
   earning: {
     isConfirm: boolean;
     reportOnTimeOfDay: string; // PreMarket | AfterHours | Other
@@ -144,6 +146,7 @@ const addQuotes = async (rows: NormalizedEarning[]) => {
     row.price = q.price;
     // The UI expects a fraction (0.012 = 1.2%); quotes come in percent.
     row.change = { percent: q.changesPercentage / 100, amount: q.change };
+    row.extended = q.extended;
   }
   return rows;
 };
@@ -156,6 +159,16 @@ export const fetchPerplexityEarnings = async (date: string): Promise<NormalizedE
     return await addQuotes(rows);
   } catch (e) {
     console.error("TipRanks earnings fetch failed", e);
+    return [];
+  }
+};
+
+/** Just the tickers reporting on `date` (one request, no quotes). */
+export const fetchEarningsTickers = async (date: string): Promise<string[]> => {
+  try {
+    const json = await viaProxy(`${TR_API}/earnings/getByDate/?name=${date}&country=us`);
+    return (Array.isArray(json) ? json : []).map((r: any) => String(r?.ticker || "")).filter(Boolean);
+  } catch {
     return [];
   }
 };

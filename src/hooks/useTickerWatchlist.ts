@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { normalizeTipranksQuotes } from "@/lib/tipranksQuote";
+import { useVisibleInterval } from "@/hooks/useVisibleInterval";
+import { normalizeTipranksQuotes, type ExtendedHoursQuote } from "@/lib/tipranksQuote";
 
 
 /**
@@ -27,6 +28,7 @@ export interface TickerQuote {
   price: number;
   change: number;
   changesPercentage: number;
+  extended?: ExtendedHoursQuote | null;
 }
 
 // Single browser-wide key. Watchlist persists across logins, logouts,
@@ -51,6 +53,7 @@ const fetchQuotes = async (symbols: string[]): Promise<TickerQuote[]> => {
       price: q.price,
       change: q.change,
       changesPercentage: q.changesPercentage,
+      extended: q.extended,
     }));
   } catch {
     return [];
@@ -138,16 +141,16 @@ export const useTickerWatchlist = () => {
   useEffect(() => {
     setLoading(true);
     refresh();
-    const id = setInterval(refresh, 20000);
-    return () => clearInterval(id);
   }, [refresh]);
+  // Pauses while the tab is hidden (saves Worker requests).
+  useVisibleInterval(refresh, 20_000);
 
   const addSymbol = useCallback(
     async (raw: string): Promise<{ ok: boolean; error?: string }> => {
       const sym = sanitize(raw);
       if (!sym) return { ok: false, error: "Enter a valid ticker" };
-      if (INDUSTRY_LEADERS.includes(sym))
-        return { ok: false, error: `${sym} is already in the default leaders` };
+      // Default leaders can be added too: the personal list drives the
+      // Terminal's "My watchlist" filters, not just the ticker tape.
       if (userSymbols.includes(sym))
         return { ok: false, error: `${sym} is already in your list` };
 
@@ -170,11 +173,12 @@ export const useTickerWatchlist = () => {
   const removeSymbol = useCallback(
     (sym: string) => {
       const upper = sanitize(sym);
-      if (INDUSTRY_LEADERS.includes(upper)) return; // can't remove defaults
+      if (!userSymbols.includes(upper)) return;
       const next = userSymbols.filter((s) => s !== upper);
       setUserSymbols(next);
       persist(next);
-      setQuotes((prev) => prev.filter((p) => p.symbol !== upper));
+      // Default leaders stay on the ticker tape.
+      if (!INDUSTRY_LEADERS.includes(upper)) setQuotes((prev) => prev.filter((p) => p.symbol !== upper));
     },
     [userSymbols, persist]
   );

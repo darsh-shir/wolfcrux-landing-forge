@@ -44,14 +44,14 @@ const MAX_SYMBOLS = 6;
 const ROLLING_PAIRS: [string, string][] = [
   ["AEE", "CMS"], ["RSG", "WM"], ["WEC", "CMS"], ["WEC", "AEE"],
   ["SO", "DUK"], ["ED", "WEC"], ["DTE", "AEE"], ["EQR", "AVB"],
-  ["DTE", "CMS"], ["AJG", "MMC"], ["MAA", "CPT"], ["ED", "AEE"],
+  ["DTE", "CMS"], ["AJG", "MRSH"], ["MAA", "CPT"], ["ED", "AEE"],
   ["UDR", "AVB"], ["DUK", "CMS"], ["ED", "CMS"], ["DUK", "WEC"],
   ["SO", "WEC"], ["DUK", "AEE"], ["SO", "CMS"], ["MAA", "UDR"],
   ["SO", "AEE"], ["DUK", "ED"], ["EQR", "UDR"], ["RY", "BNS"],
-  ["AON", "MMC"], ["TD", "BNS"], ["CPT", "UDR"], ["MAA", "AVB"],
+  ["AON", "MRSH"], ["TD", "BNS"], ["CPT", "UDR"], ["MAA", "AVB"],
   ["DUK", "FE"], ["DTE", "PPL"], ["CPT", "AVB"], ["WEC", "DTE"],
   ["RY", "TD"], ["AJG", "BRO"], ["ETR", "PPL"], ["MET", "PRU"],
-  ["BRO", "MMC"], ["BMO", "BNS"], ["PEG", "DTE"], ["DUK", "DTE"],
+  ["BRO", "MRSH"], ["BMO", "BNS"], ["PEG", "DTE"], ["DUK", "DTE"],
   ["SO", "DTE"], ["DUK", "PNW"], ["ED", "DTE"], ["DUK", "ETR"],
   ["DUK", "PPL"], ["D", "CMS"], ["SO", "ED"], ["NI", "ATO"],
   ["AEE", "FE"], ["ES", "CMS"], ["AJG", "AON"], ["D", "WEC"],
@@ -648,21 +648,30 @@ const CompareStocks = () => {
                     <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
                   )}
                   {s.error && (
-                    <span className="text-xs font-mono text-destructive">{s.error}</span>
+                    <span
+                      className="text-xs font-mono text-amber-600"
+                      title={`TipRanks returned ${s.error}. The ticker may have changed or have no price history.`}
+                    >
+                      No price history
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm shrink-0 font-mono">
-                  <span className="tabular-nums hidden sm:inline text-muted-foreground">
-                    ${s.latestPrice.toFixed(2)}
-                  </span>
-                  <span
-                    className={`tabular-nums font-semibold ${
-                      s.changePct >= 0 ? "text-emerald-600" : "text-red-500"
-                    }`}
-                  >
-                    {s.changePct >= 0 ? "+" : ""}
-                    {s.changePct.toFixed(2)}%
-                  </span>
+                  {!s.error && (
+                    <>
+                      <span className="tabular-nums hidden sm:inline text-muted-foreground">
+                        ${s.latestPrice.toFixed(2)}
+                      </span>
+                      <span
+                        className={`tabular-nums font-semibold ${
+                          s.changePct >= 0 ? "text-emerald-600" : "text-red-500"
+                        }`}
+                      >
+                        {s.changePct >= 0 ? "+" : ""}
+                        {s.changePct.toFixed(2)}%
+                      </span>
+                    </>
+                  )}
                   <button
                     onClick={() => removeSymbol(s.symbol)}
                     className="text-muted-foreground hover:text-destructive transition-colors"

@@ -2,11 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Layers } from "lucide-react";
 import { useEffect, useState } from "react";
 import AnimatedNumber from "@/components/AnimatedNumber";
+import ExtendedHoursBadge from "@/components/dashboard/ExtendedHoursBadge";
+import type { ExtendedHoursQuote } from "@/lib/tipranksQuote";
 
 interface SectorData {
   name: string;
   changesPercentage: number;
   ticker?: string;
+  extended?: ExtendedHoursQuote | null;
 }
 
 interface SectorPerformanceProps {
@@ -16,23 +19,8 @@ interface SectorPerformanceProps {
 }
 
 const SectorPerformance = ({ data, loading, onSelect }: SectorPerformanceProps) => {
-  const sectors = (
-    data.length > 0
-      ? data
-      : [
-          { name: "Technology", changesPercentage: 1.24 },
-          { name: "Healthcare", changesPercentage: 0.87 },
-          { name: "Financials", changesPercentage: 0.52 },
-          { name: "Consumer Discretionary", changesPercentage: -0.34 },
-          { name: "Communication Services", changesPercentage: 0.91 },
-          { name: "Industrials", changesPercentage: -0.18 },
-          { name: "Consumer Staples", changesPercentage: 0.23 },
-          { name: "Energy", changesPercentage: -1.45 },
-          { name: "Utilities", changesPercentage: 0.15 },
-          { name: "Real Estate", changesPercentage: -0.67 },
-          { name: "Materials", changesPercentage: -0.28 },
-        ]
-  ).sort((a, b) => b.changesPercentage - a.changesPercentage);
+  // Never show placeholder numbers: an empty feed renders an explicit message.
+  const sectors = [...data].sort((a, b) => b.changesPercentage - a.changesPercentage);
 
   const maxAbs = Math.max(...sectors.map((s) => Math.abs(s.changesPercentage)), 0.01);
 
@@ -77,6 +65,11 @@ const SectorPerformance = ({ data, loading, onSelect }: SectorPerformanceProps) 
       </CardHeader>
 
       <CardContent>
+        {sectors.length === 0 && (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Sector data is unavailable right now.
+          </p>
+        )}
         <div className="space-y-1">
           {sectors.map((sector, i) => {
             const isPositive = sector.changesPercentage >= 0;
@@ -133,6 +126,9 @@ const SectorPerformance = ({ data, loading, onSelect }: SectorPerformanceProps) 
                     duration={900}
                   />
                 </span>
+                {sector.extended && (
+                  <ExtendedHoursBadge extended={sector.extended} className="hidden sm:inline-flex shrink-0" />
+                )}
               </button>
             );
           })}

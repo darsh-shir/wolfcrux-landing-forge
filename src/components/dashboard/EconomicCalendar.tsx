@@ -1,27 +1,17 @@
 import { useState, useMemo } from "react";
+import { nyDateKey, addDaysKey, nextWeekdayKey } from "@/lib/marketDate";
+import DataAge from "@/components/dashboard/DataAge";
+import type { EconomicEvent } from "@/lib/economic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarClock, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface EconomicEvent {
-  id: number;
-  event: string;
-  country: string;
-  category: string;
-  impact: number;
-  time: string;
-  actual: string | null;
-  prev: string;
-  forecast: number | null;
-  unit: string;
-  currency: string;
-  description: string;
-}
 
 interface EconomicCalendarProps {
   data: EconomicEvent[];
   loading: boolean;
+  updatedAt?: Date | null;
 }
 
 const impactLabel = (impact: number) => {
@@ -66,33 +56,31 @@ const formatDate = (iso: string) => {
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 const todayKey = () => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString().slice(0, 10);
+  return nyDateKey();
 };
 
 // Returns weekdays (Mon–Fri) from today through Friday of the current week.
 // Past days are skipped — the API has no historical events to show.
+// YYYY-MM-DD of a local calendar date. (toISOString() would convert local
+// midnight to UTC, which is the previous day in India.)
+const localKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 const getWeekDates = () => {
   const now = new Date();
   const day = now.getDay();
   const monday = new Date(now);
-  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
   monday.setHours(0, 0, 0, 0);
+  // Mon–Fri: this week. Sat/Sun: the coming week.
+  monday.setDate(now.getDate() + (day === 0 ? 1 : day === 6 ? 2 : 1 - day));
 
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = nyDateKey(now);
 
   return DAY_NAMES.map((name, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    return {
-      name,
-      dateKey: d.toISOString().slice(0, 10),
-      date: d,
-      isToday: d.toISOString().slice(0, 10) === todayStr,
-    };
+    const dateKey = localKey(d);
+    return { name, dateKey, date: d, isToday: dateKey === todayStr };
   }).filter((d) => d.dateKey >= todayStr);
 };
 
@@ -195,7 +183,7 @@ const WeeklyStance = ({ events }: { events: EconomicEvent[] }) => {
   );
 };
 
-const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
+const EconomicCalendar = ({ data, loading, updatedAt }: EconomicCalendarProps) => {
   const [impactFilter, setImpactFilter] = useState<string>("med-high");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -265,6 +253,7 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
               // Economic Calendar
             </CardTitle>
             <div className="flex items-center gap-2 flex-wrap">
+              <DataAge at={updatedAt} staleAfterMinutes={120} className="mr-2" />
               <Filter className="w-3.5 h-3.5 text-muted-foreground" />
               <Select value={impactFilter} onValueChange={setImpactFilter}>
                 <SelectTrigger className="w-[170px] h-8 text-xs font-mono uppercase tracking-wider">
@@ -289,8 +278,7 @@ const EconomicCalendar = ({ data, loading }: EconomicCalendarProps) => {
           ) : (
             <div className="space-y-5">
               {grouped.map(([dateKey, events]) => {
-                const today = new Date().toISOString().slice(0, 10);
-                const isToday = dateKey === today;
+                const isToday = dateKey === nyDateKey();
                 return (
                   <div key={dateKey}>
                     <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-border/50">

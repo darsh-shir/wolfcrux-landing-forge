@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import { RouteTransition } from "@/components/RouteTransition";
+import RequireAuth from "@/components/RequireAuth";
 
 /**
  * Like React.lazy, but if a page's code file can't be fetched (usually because a
@@ -63,8 +64,8 @@ const App = () => (
             <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true" />}>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/terminal" element={<Dashboard />} />
+              <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+              <Route path="/terminal" element={<RequireAuth><Dashboard /></RequireAuth>} />
               <Route path="/about" element={<About />} />
               <Route path="/technology" element={<Technology />} />
               <Route path="/testimonials" element={<Testimonials />} />

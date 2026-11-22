@@ -1,9 +1,14 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { nyDateKey, addDaysKey, nextWeekdayKey } from "@/lib/marketDate";
 import { formatIndian } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 import { fetchPerplexityEarnings, fetchTipranksCalendar } from "@/lib/earnings";
 import { fetchTipranksSimilar } from "@/lib/tipranksPeers";
+import type { ExtendedHoursQuote } from "@/lib/tipranksQuote";
+import { useTerminal } from "@/components/dashboard/TerminalContext";
+import ExtendedHoursBadge from "@/components/dashboard/ExtendedHoursBadge";
+import { Input } from "@/components/ui/input";
 
 interface TipRanksStock {
   ticker: string;
@@ -12,6 +17,7 @@ interface TipRanksStock {
   marketCap: number;
   price: number;
   change: { percent: number; amount: number };
+  extended?: ExtendedHoursQuote | null;
   earning: {
     isConfirm: boolean;
     reportOnTimeOfDay: string; // "PreMarket" | "AfterHours"
@@ -88,7 +94,7 @@ const formatSalesEstimate = (s: number) => {
 const getSessionLabel = (timeOfDay: string) => {
   if (timeOfDay === "PreMarket") return "PRE";
   if (timeOfDay === "AfterHours") return "POST";
-  return "N/A";
+  return "TBD";
 };
 
 const getConsensusColor = (id: string) => {
@@ -110,7 +116,30 @@ const getConsensusLabel = (id: string) => {
   return map[id] || id;
 };
 
+/** Reported vs. estimated EPS, once a company has reported. */
+const epsSurprise = (estimate: number, reported: number | null | undefined) => {
+  if (reported === null || reported === undefined || !Number.isFinite(Number(reported))) return null;
+  const rep = Number(reported);
+  const diff = rep - estimate;
+  const pct = estimate ? (diff / Math.abs(estimate)) * 100 : null;
+  const verdict = Math.abs(diff) < 0.005 ? "inline" : diff > 0 ? "beat" : "miss";
+  return { rep, pct, verdict } as const;
+};
+
+type SessionFilter = "all" | "PreMarket" | "AfterHours" | "Other";
+const CAP_FILTERS: { label: string; min: number }[] = [
+  { label: "All caps", min: 0 },
+  { label: "> $1B", min: 1e9 },
+  { label: "> $10B", min: 1e10 },
+  { label: "> $100B", min: 1e11 },
+];
+
 const Earnings = () => {
+  const { watchlist } = useTerminal();
+  const [sessionFilter, setSessionFilter] = useState<SessionFilter>("all");
+  const [minCap, setMinCap] = useState(0);
+  const [mineOnly, setMineOnly] = useState(false);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -137,13 +166,10 @@ const Earnings = () => {
   const fetchCalendar = async () => {
     try {
       setLoading(true);
-      const today = new Date();
-      const todayStr = today.toISOString().split("T")[0];
+      const todayStr = nyDateKey();
       const days: CalendarDay[] = [];
       for (let i = -3; i <= 17; i++) {
-        const d = new Date(today);
-        d.setDate(d.getDate() + i);
-        days.push({ date: d.toISOString().split("T")[0], count: 0, topFollowedTickers: [] });
+        days.push({ date: addDaysKey(todayStr, i), count: 0, topFollowedTickers: [] });
       }
       setCalendarDays(days);
       setSelectedDate(todayStr);
@@ -200,7 +226,7 @@ const Earnings = () => {
 
   // Get nearby dates (2 weeks around today) for the date selector
   const visibleDates = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = nyDateKey();
     return calendarDays.filter((d) => {
       const diff = Math.abs(
         (new Date(d.date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24)
@@ -209,7 +235,7 @@ const Earnings = () => {
     });
   }, [calendarDays]);
 
-  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const todayStr = useMemo(() => nyDateKey(), []);
   const dateScrollRef = useRef<HTMLDivElement>(null);
   const todayBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -237,6 +263,19 @@ const Earnings = () => {
     });
   }, [dayData]);
 
+  const filteredStocks = useMemo(() => {
+    const q = query.trim().toUpperCase();
+    return sortedStocks.filter((s) => {
+      const session = s.earning?.reportOnTimeOfDay || "Other";
+      const sessionKey = session === "PreMarket" || session === "AfterHours" ? session : "Other";
+      if (sessionFilter !== "all" && sessionKey !== sessionFilter) return false;
+      if (minCap && (s.marketCap || 0) < minCap) return false;
+      if (mineOnly && !watchlist.includes(s.ticker)) return false;
+      if (q && !s.ticker.includes(q) && !(s.name || "").toUpperCase().includes(q)) return false;
+      return true;
+    });
+  }, [sortedStocks, sessionFilter, minCap, mineOnly, watchlist, query]);
+
   // Group by session
   const grouped = useMemo(() => {
     const base: Record<string, TipRanksStock[]> = {
@@ -244,13 +283,13 @@ const Earnings = () => {
       AfterHours: [],
       Other: [],
     };
-    sortedStocks.forEach((s) => {
+    filteredStocks.forEach((s) => {
       const session = s.earning?.reportOnTimeOfDay || "Other";
       if (base[session]) base[session].push(s);
       else base.Other.push(s);
     });
     return base;
-  }, [sortedStocks]);
+  }, [filteredStocks]);
 
   const renderStock = (s: TipRanksStock, idx: number, keyPrefix = "") => {
     const key = `${keyPrefix}${s.ticker}-${idx}`;
@@ -282,7 +321,9 @@ const Earnings = () => {
             </span>
             <div className="min-w-0">
               <p className="font-mono font-semibold text-sm flex items-center gap-2">
-                {s.ticker}
+                <span data-ticker={s.ticker} className="cursor-pointer hover:underline" title="Open ticker panel">
+                  {s.ticker}
+                </span>
                 <span className="px-1.5 py-0.5 rounded bg-muted text-[9px] font-mono uppercase tracking-wider">
                   {getSessionLabel(earning?.reportOnTimeOfDay)}
                 </span>
@@ -291,6 +332,25 @@ const Earnings = () => {
                     Conf
                   </span>
                 )}
+                {(() => {
+                  const sp = epsSurprise(earning?.value ?? 0, earning?.reportedEPS);
+                  if (!sp) return null;
+                  const tone =
+                    sp.verdict === "beat"
+                      ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                      : sp.verdict === "miss"
+                      ? "bg-red-500/15 text-red-600 border-red-500/30"
+                      : "bg-muted text-muted-foreground border-border";
+                  return (
+                    <span
+                      className={`px-1.5 py-0.5 rounded border text-[9px] font-mono uppercase tracking-wider ${tone}`}
+                      title={`Reported EPS $${sp.rep.toFixed(2)} vs. estimate $${(earning?.value ?? 0).toFixed(2)}`}
+                    >
+                      {sp.verdict}
+                      {sp.pct !== null && sp.verdict !== "inline" && ` ${sp.pct > 0 ? "+" : ""}${sp.pct.toFixed(0)}%`}
+                    </span>
+                  );
+                })()}
               </p>
               <p className="text-xs text-muted-foreground truncate">{s.name}</p>
             </div>
@@ -308,6 +368,7 @@ const Earnings = () => {
                     {isPositive ? "+" : ""}
                     {(s.change?.percent * 100).toFixed(2)}%
                   </span>
+                  <ExtendedHoursBadge extended={s.extended} />
                 </div>
               )}
             </div>
@@ -446,8 +507,65 @@ const Earnings = () => {
             // {formatHeaderDate(selectedDate)} · {sortedStocks.length} Earnings
           </span>
           <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            {sortedStocks.length} / {dayData.length}
+            {filteredStocks.length} / {dayData.length}
           </span>
+        </div>
+
+        {/* FILTERS */}
+        <div className="flex flex-wrap items-center gap-2">
+          {(
+            [
+              ["all", "All"],
+              ["PreMarket", "Pre"],
+              ["AfterHours", "Post"],
+              ["Other", "Unconfirmed"],
+            ] as [SessionFilter, string][]
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setSessionFilter(value)}
+              className={`px-2.5 py-1 rounded border text-[10px] font-mono uppercase tracking-wider ${
+                sessionFilter === value
+                  ? "bg-foreground text-background border-foreground"
+                  : "border-border/60 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <select
+            value={minCap}
+            onChange={(e) => setMinCap(Number(e.target.value))}
+            className="h-7 rounded border border-border/60 bg-card px-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground"
+            aria-label="Minimum market cap"
+          >
+            {CAP_FILTERS.map((c) => (
+              <option key={c.min} value={c.min}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setMineOnly((v) => !v)}
+            disabled={watchlist.length === 0}
+            title={watchlist.length === 0 ? "Add tickers to your watchlist first" : "Only my watchlist"}
+            className={`px-2.5 py-1 rounded border text-[10px] font-mono uppercase tracking-wider disabled:opacity-40 ${
+              mineOnly
+                ? "bg-foreground text-background border-foreground"
+                : "border-border/60 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            ★ My watchlist
+          </button>
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Find ticker…"
+            className="h-7 w-32 font-mono text-[11px]"
+            aria-label="Find ticker in earnings"
+          />
         </div>
 
         <div className="border-b border-border/50" />
@@ -458,14 +576,19 @@ const Earnings = () => {
           </div>
         ) : (
           <>
-            {(["PreMarket", "AfterHours"] as const).map((session) => (
+            {(["PreMarket", "AfterHours", "Other"] as const).map((session) => (
               <div key={session}>
                 {grouped[session].length > 0 && (
                   <>
                     <div className="relative flex items-center py-3">
                       <div className="flex-grow border-t border-border/50" />
                       <span className="mx-3 text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
-                        // {session === "PreMarket" ? "Pre-Market" : "After-Hours"}
+                        //{" "}
+                        {session === "PreMarket"
+                          ? "Pre-Market"
+                          : session === "AfterHours"
+                          ? "After-Hours"
+                          : "Time not confirmed"}
                       </span>
                       <div className="flex-grow border-t border-border/50" />
                     </div>
@@ -477,9 +600,9 @@ const Earnings = () => {
               </div>
             ))}
 
-            {sortedStocks.length === 0 && (
+            {filteredStocks.length === 0 && (
               <p className="text-center font-mono text-xs uppercase tracking-wider text-muted-foreground py-8">
-                // No earnings scheduled
+                {sortedStocks.length === 0 ? "// No earnings scheduled" : "// No earnings match these filters"}
               </p>
             )}
           </>

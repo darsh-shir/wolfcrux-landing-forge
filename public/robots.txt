@@ -5,5 +5,7 @@ Disallow: /followers
 Disallow: /admin
 Disallow: /my-data
 Disallow: /auth
+Disallow: /terminal
+Disallow: /dashboard
 
 Sitemap: https://www.wolfcrux.com/sitemap.xml

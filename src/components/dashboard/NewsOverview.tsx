@@ -1,4 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTerminal } from "@/components/dashboard/TerminalContext";
+import { useState } from "react";
 import { Newspaper, Radio, ExternalLink, Clock } from "lucide-react";
 
 interface NewsOverviewProps {
@@ -7,6 +9,8 @@ interface NewsOverviewProps {
 }
 
 const NewsOverview = ({ data, loading }: NewsOverviewProps) => {
+  const { watchlist } = useTerminal();
+  const [mineOnly, setMineOnly] = useState(false);
   if (loading && (!data || data.length === 0)) {
     return (
       <Card className="bg-card border border-border/50 shadow-sm h-full">
@@ -30,7 +34,10 @@ const NewsOverview = ({ data, loading }: NewsOverviewProps) => {
     );
   }
 
-  const posts = data || [];
+  const all = data || [];
+  const posts = mineOnly
+    ? all.filter((p: any) => (p.tickers || []).some((t: string) => watchlist.includes(t)))
+    : all;
 
   return (
     <Card className="bg-card border border-border/50 shadow-sm h-full">
@@ -39,14 +46,30 @@ const NewsOverview = ({ data, loading }: NewsOverviewProps) => {
           <Newspaper className="w-3.5 h-3.5" />
           // Market Highlights
         </CardTitle>
-        <span className="flex items-center gap-1.5 text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-sm">
-          <Radio className="w-3 h-3 animate-pulse" />
-          LIVE
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMineOnly((v) => !v)}
+            disabled={watchlist.length === 0}
+            title={watchlist.length === 0 ? "Add tickers to your watchlist first" : "Only news about my watchlist"}
+            className={`px-2 py-0.5 rounded-sm border text-[10px] font-mono uppercase tracking-wider disabled:opacity-40 ${
+              mineOnly ? "bg-foreground text-background border-foreground" : "border-border/60 text-muted-foreground"
+            }`}
+          >
+            ★ Mine
+          </button>
+          <span className="flex items-center gap-1.5 text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-sm">
+            <Radio className="w-3 h-3 animate-pulse" />
+            LIVE
+          </span>
+        </div>
       </CardHeader>
 
       <CardContent>
         <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+          {mineOnly && posts.length === 0 && (
+            <p className="text-sm text-muted-foreground py-4 text-center">No current headlines mention your watchlist.</p>
+          )}
           {posts.slice(0, 8).map((item: any, i: number) => {
             const title = item.title || item.headline;
             const desc = item.description || item.text;
@@ -86,7 +109,9 @@ const NewsOverview = ({ data, loading }: NewsOverviewProps) => {
                   {tickers.slice(0, 5).map((t) => (
                     <span
                       key={t}
-                      className="text-[10px] font-mono font-semibold text-foreground/80 bg-muted/60 border border-border/50 px-1.5 py-0.5 rounded-sm"
+                      // US tickers only (news tags also include private companies like "PC:QUERA")
+                      data-ticker={/^[A-Z][A-Z.-]{0,5}$/.test(t) ? t : undefined}
+                      className="text-[10px] font-mono font-semibold text-foreground/80 bg-muted/60 border border-border/50 px-1.5 py-0.5 rounded-sm hover:border-foreground/40"
                     >
                       {t}
                     </span>

@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTerminal } from "@/components/dashboard/TerminalContext";
 import { TrendingUp, TrendingDown, Activity, Flame } from "lucide-react";
+import DataAge from "@/components/dashboard/DataAge";
 
 interface MoverData {
   symbol: string;
@@ -13,6 +15,7 @@ interface MarketMoversProps {
   losers: MoverData[];
   actives: MoverData[];
   loading: boolean;
+  updatedAt?: Date | null;
 }
 
 const MoverRow = ({
@@ -23,6 +26,7 @@ const MoverRow = ({
   type: "gainer" | "loser" | "active";
 }) => {
   const isPositive = item.changesPercentage >= 0;
+  const watched = useTerminal().watchlist.includes(item.symbol);
 
   const tint =
     type === "active"
@@ -41,8 +45,12 @@ const MoverRow = ({
   return (
     <div className={`relative px-2.5 py-2 rounded-md border ${tint} flex items-center gap-2`}>
       <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-sm font-mono font-bold text-foreground truncate">
+        <span
+          data-ticker={item.symbol}
+          className="text-sm font-mono font-bold text-foreground truncate cursor-pointer hover:underline"
+        >
           {item.symbol}
+          {watched && <span className="ml-1 text-amber-500" title="On your watchlist">★</span>}
         </span>
         {item.name && (
           <span className="text-[10px] text-muted-foreground truncate">
@@ -69,6 +77,7 @@ const MarketMovers = ({
   losers,
   actives,
   loading,
+  updatedAt,
 }: MarketMoversProps) => {
   const Column = ({
     title,
@@ -111,11 +120,12 @@ const MarketMovers = ({
 
   return (
     <Card className="bg-card border border-border/50 shadow-sm">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0 gap-2">
         <CardTitle className="text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
           <Flame className="w-3.5 h-3.5" />
           // Market Movers
         </CardTitle>
+        <DataAge at={updatedAt} staleAfterMinutes={30} />
       </CardHeader>
 
       <CardContent>
