@@ -1,4 +1,5 @@
 import Navigation from "@/components/Navigation";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import Footer from "@/components/Footer";
 
 import { Cpu, Database, Network, Gauge, Lock, Code } from "lucide-react";
@@ -13,6 +14,7 @@ import AnimatedCounter from "@/components/landing/AnimatedCounter";
 
 const Technology = () => {
   useReveal();
+  usePageMeta({ title: "Technology | Wolfcrux Global Markets", description: "How Wolfcrux's technology stack is built for speed, reliability and precision in US equity trading.", path: "/technology" });
   return (
     <div className="min-h-screen bg-background relative">
       <ScrollProgress />

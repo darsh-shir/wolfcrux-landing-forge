@@ -1,24 +1,9 @@
-User-agent: Googlebot
-Allow: /
-Disallow: /newscheck
-Disallow: /followers
-
-User-agent: Bingbot
-Allow: /
-Disallow: /newscheck
-Disallow: /followers
-
-User-agent: Twitterbot
-Allow: /
-Disallow: /newscheck
-Disallow: /followers
-
-User-agent: facebookexternalhit
-Allow: /
-Disallow: /newscheck
-Disallow: /followers
-
 User-agent: *
 Allow: /
 Disallow: /newscheck
 Disallow: /followers
+Disallow: /admin
+Disallow: /my-data
+Disallow: /auth
+
+Sitemap: https://www.wolfcrux.com/sitemap.xml

@@ -1,4 +1,5 @@
 import Navigation from "@/components/Navigation";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import Footer from "@/components/Footer";
 import FloatingShapes from "@/components/FloatingShapes";
 import { Building2, Users, Target, Globe } from "lucide-react";
@@ -14,6 +15,7 @@ import ScrollProgress from "@/components/landing/ScrollProgress";
 
 const About = () => {
   useReveal();
+  usePageMeta({ title: "About Us | Wolfcrux Global Markets", description: "Wolfcrux Global Markets LLP is a high-frequency trading firm in Mumbai, India, founded in February 2025 and focused on US equity markets.", path: "/about" });
   return (
     <div className="min-h-screen bg-background">
       <ScrollProgress />

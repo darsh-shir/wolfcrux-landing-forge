@@ -1,7 +1,9 @@
 import { useLocation } from "react-router-dom";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { useEffect } from "react";
 
 const NotFound = () => {
+  usePageMeta({ title: "Page Not Found | Wolfcrux Global Markets", noindex: true });
   const location = useLocation();
 
   useEffect(() => {

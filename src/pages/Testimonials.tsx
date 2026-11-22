@@ -1,4 +1,5 @@
 import Navigation from "@/components/Navigation";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Quote } from "lucide-react";
@@ -17,6 +18,7 @@ import jinalPhoto from "@/assets/jinal-photo.jpeg";
 
 const Testimonials = () => {
   useReveal();
+  usePageMeta({ title: "Trader Testimonials | Wolfcrux Global Markets", description: "Hear from the traders on the Wolfcrux desk about what it's like to work and grow at Wolfcrux Global Markets in Mumbai.", path: "/testimonials" });
   const testimonials = [
     { quote: "What sets Wolfcrux apart is how the seniors break down complex ideas into simple, actionable steps. I’ve never felt this confident placing trades backed by real logic and risk control.", author: "Purvi", position: "Equity Trader", image: purviPhoto },
     { quote: "The trust here is real — from day one I felt like I was part of something bigger. Knowing the team has your back during tough market days makes all the difference.", author: "Labdhi", position: "Equity Trader", image: labdhiPhoto },
@@ -35,7 +37,7 @@ const Testimonials = () => {
         <div className="max-w-7xl mx-auto relative">
           <div className="text-center mb-16 animate-fade-in">
             <h1 className="font-['Space_Grotesk'] text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6">
-              Traders
+              Traders{" "}
               <span className="text-gradient-accent">Testimonials</span>
             </h1>
             <p className="font-['Inter'] text-xl text-muted-foreground max-w-3xl mx-auto">

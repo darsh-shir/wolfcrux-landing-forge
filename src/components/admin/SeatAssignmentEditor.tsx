@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Loader2, Filter } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -160,7 +161,7 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
     if (!edit) return;
 
     setSaving(dayGroup.key);
-    const updateData: Record<string, unknown> = {};
+    const updateData: TablesUpdate<"trading_data"> = {};
     if (edit.trader2_id !== undefined) updateData.trader2_id = edit.trader2_id;
     if (edit.trader2_role !== undefined) updateData.trader2_role = edit.trader2_role;
 
@@ -206,7 +207,7 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
       const dg = dayGroupMap.get(dayKey);
       if (!dg) continue;
 
-      const updateData: Record<string, unknown> = {};
+      const updateData: TablesUpdate<"trading_data"> = {};
       if (edit.trader2_id !== undefined) updateData.trader2_id = edit.trader2_id;
       if (edit.trader2_role !== undefined) updateData.trader2_role = edit.trader2_role;
 

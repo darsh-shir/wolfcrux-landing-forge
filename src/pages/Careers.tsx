@@ -1,4 +1,5 @@
 import Navigation from "@/components/Navigation";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import Footer from "@/components/Footer";
 import FloatingShapes from "@/components/FloatingShapes";
 import { Button } from "@/components/ui/button";
@@ -14,40 +15,48 @@ import AnimatedCounter from "@/components/landing/AnimatedCounter";
 
 const Careers = () => {
   useReveal();
+  usePageMeta({ title: "Careers — US Equity Trader Jobs in Mumbai | Wolfcrux", description: "Join Wolfcrux Global Markets in Mumbai. We're hiring US Equity Traders — see open roles, salary, timings and how to apply.", path: "/careers" });
   const positions = [
     {
       title: "US Equity Trader",
       department: "Trading",
       location: "Mumbai",
       icon: LineChart,
-      description: `
-        This is a full-time, on-site role for a US Equity Trader based in Mumbai. 
-        The Equity Trader will be responsible for analyzing market trends, providing liquidity, 
-        and executing high-precision trading strategies during US market hours. You will participate in 
-        fast-paced trading sessions, apply technical analysis, and make informed decisions under pressure.
-
-        Your role includes interpreting real-time data, maintaining discipline, and contributing to the team’s 
-        overall trading performance. You will collaborate with senior traders, refine trading strategies, and adapt 
-        quickly to changing market conditions. A strong passion for financial markets, high focus, and a willingness 
-        to continuously improve are essential.
-
-        **Qualifications**
-        • Strong understanding of stock market concepts and live market behavior  
-        • Technical Analysis knowledge & ability to build or follow strategies  
-        • Excellent analytical thinking and fast decision-making ability  
-        • Strong discipline and emotional control  
-        • Bachelor's degree in Finance / Economics preferred  
-        • Prior trading experience is an advantage, not mandatory  
-
-        **Salary**
-        • Monthly Salary: ₹20,000 – ₹25,000  
-        • Additional Monthly Incentives paid can go upto ₹12 Lakhs 
-
-        **Timings**
-        • Monday to Friday — 1:30 PM to 7:00 PM
-      `,
+      summary: [
+        "This is a full-time, on-site role for a US Equity Trader based in Mumbai. The Equity Trader will be responsible for analyzing market trends, providing liquidity, and executing high-precision trading strategies during US market hours. You will participate in fast-paced trading sessions, apply technical analysis, and make informed decisions under pressure.",
+        "Your role includes interpreting real-time data, maintaining discipline, and contributing to the team’s overall trading performance. You will collaborate with senior traders, refine trading strategies, and adapt quickly to changing market conditions. A strong passion for financial markets, high focus, and a willingness to continuously improve are essential.",
+      ],
+      sections: [
+        {
+          heading: "Qualifications",
+          items: [
+            "Strong understanding of stock market concepts and live market behavior",
+            "Technical Analysis knowledge & ability to build or follow strategies",
+            "Excellent analytical thinking and fast decision-making ability",
+            "Strong discipline and emotional control",
+            "Bachelor's degree in Finance / Economics preferred",
+            "Prior trading experience is an advantage, not mandatory",
+          ],
+        },
+        {
+          heading: "Salary",
+          items: [
+            "Monthly Salary: ₹20,000 – ₹25,000",
+            "Additional monthly incentives can go up to ₹12 Lakhs",
+          ],
+        },
+        {
+          heading: "Timings",
+          items: ["Monday to Friday — 1:30 PM to 7:00 PM"],
+        },
+      ],
     },
   ];
+
+  const applyHref = (title: string) =>
+    `mailto:info@wolfcrux.com?subject=${encodeURIComponent(`Application: ${title}`)}&body=${encodeURIComponent(
+      `Hi Wolfcrux team,\n\nI'd like to apply for the ${title} role.\n\nName:\nPhone:\nLinkedIn (optional):\n\nPlease find my resume attached.\n`
+    )}`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,7 +71,7 @@ const Careers = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl animate-fade-in">
             <h1 className="font-['Space_Grotesk'] text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6">
-              Join Our
+              Join Our{" "}
               <span className="text-gradient-accent">Team</span>
             </h1>
             <p className="font-['Inter'] text-xl text-muted-foreground leading-relaxed">
@@ -139,10 +148,7 @@ const Careers = () => {
                 style={{ transitionDelay: `${index * 100}ms` }}
               >
                 <SpotlightTiltCard className="gradient-border" tilt={false}>
-                  <Card
-                    className="border-0 bg-transparent group cursor-pointer"
-                    onClick={() => (window.location.href = "mailto:info@wolfcrux.com")}
-                  >
+                  <Card className="border-0 bg-transparent group">
                     <CardContent className="p-6 sm:p-8">
                       <div className="flex items-start justify-between gap-4 sm:gap-6">
                         <div className="flex items-start gap-4 sm:gap-6 flex-1">
@@ -164,20 +170,39 @@ const Careers = () => {
                               </span>
                             </div>
 
-                            <p className="font-['Inter'] text-sm sm:text-base text-muted-foreground whitespace-pre-line leading-relaxed">
-                              {position.description}
+                            <div className="font-['Inter'] text-sm sm:text-base text-muted-foreground leading-relaxed space-y-4">
+                              {position.summary.map((paragraph, i) => (
+                                <p key={i}>{paragraph}</p>
+                              ))}
+
+                              {position.sections.map((section) => (
+                                <div key={section.heading}>
+                                  <h4 className="font-['Space_Grotesk'] font-semibold text-foreground mb-2">
+                                    {section.heading}
+                                  </h4>
+                                  <ul className="list-disc pl-5 space-y-1 marker:text-accent">
+                                    {section.items.map((item) => (
+                                      <li key={item}>{item}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+
+                            <Button asChild className="mt-6 group/apply">
+                              <a href={applyHref(position.title)}>
+                                Apply Now
+                                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/apply:translate-x-1" />
+                              </a>
+                            </Button>
+                            <p className="mt-2 text-xs text-muted-foreground font-['Inter']">
+                              Opens your email app — or email your resume to{" "}
+                              <a href="mailto:info@wolfcrux.com" className="text-accent underline-offset-2 hover:underline">
+                                info@wolfcrux.com
+                              </a>
                             </p>
                           </div>
                         </div>
-
-                        <ArrowRight
-                          className="text-accent group-hover:translate-x-2 transition-transform flex-shrink-0 hidden sm:block cursor-pointer"
-                          size={24}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = "mailto:info@wolfcrux.com";
-                          }}
-                        />
                       </div>
                     </CardContent>
                   </Card>

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { ArrowRight, TrendingUp, Zap, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import jinalPhoto from "@/assets/jinal-photo.jpeg";
 
 const Index = () => {
   useReveal();
+  usePageMeta({ title: "Wolfcrux Global Markets — Proprietary Trading, Mumbai", description: "Wolfcrux Global Markets LLP is a Mumbai-based proprietary trading firm specializing in US equities and high-frequency strategies. Est. 2025.", path: "/" });
 
   const testimonials = [
     {
@@ -67,7 +69,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center space-y-8 animate-fade-in">
             <h1 className="font-['Space_Grotesk'] text-4xl sm:text-5xl md:text-7xl font-bold text-foreground leading-tight">
-              Precision Trading at
+              Precision Trading at{" "}
               <br />
               <span className="text-gradient-accent">Microsecond Speed</span>
             </h1>

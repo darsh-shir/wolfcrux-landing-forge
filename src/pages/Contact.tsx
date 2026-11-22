@@ -1,4 +1,5 @@
 import Navigation from "@/components/Navigation";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import Footer from "@/components/Footer";
 import FloatingShapes from "@/components/FloatingShapes";
 import { MapPin, Mail, Building2 } from "lucide-react";
@@ -17,13 +18,23 @@ import PulseGlobe from "@/components/landing/PulseGlobe";
 
 const Contact = () => {
   useReveal();
+  usePageMeta({ title: "Contact Us | Wolfcrux Global Markets", description: "Get in touch with Wolfcrux Global Markets LLP, Mumbai, India. Email info@wolfcrux.com.", path: "/contact" });
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // There is no server-side inbox for this form, so instead of pretending the
+  // message was sent, open the visitor's email app with everything pre-filled.
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    const get = (key: string) => String(data.get(key) ?? "").trim();
+    const name = `${get("firstName")} ${get("lastName")}`.trim();
+    const body = `${get("message")}\n\n—\n${name}\n${get("email")}`;
+    window.location.href = `mailto:info@wolfcrux.com?subject=${encodeURIComponent(
+      get("subject")
+    )}&body=${encodeURIComponent(body)}`;
     toast({
-      title: "Message Sent",
-      description: "Thank you for reaching out. We'll get back to you soon.",
+      title: "Opening your email app",
+      description: "Your message is ready to send. If nothing opened, email us at info@wolfcrux.com.",
     });
   };
 
@@ -41,7 +52,7 @@ const Contact = () => {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-10">
             <div className="max-w-3xl animate-fade-in">
               <h1 className="font-['Space_Grotesk'] text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6">
-                Get in
+                Get in{" "}
                 <span className="text-gradient-accent">Touch</span>
               </h1>
               <p className="font-['Inter'] text-xl text-muted-foreground leading-relaxed">
@@ -129,10 +140,13 @@ const Contact = () => {
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block font-['Inter'] text-sm font-medium text-foreground mb-2">
+                        <label htmlFor="contact-firstName" className="block font-['Inter'] text-sm font-medium text-foreground mb-2">
                           First Name
                         </label>
                         <Input
+                          id="contact-firstName"
+                          name="firstName"
+                          autoComplete="given-name"
                           type="text"
                           required
                           className="font-['Inter'] transition-all focus:ring-2 focus:ring-accent/30"
@@ -140,10 +154,13 @@ const Contact = () => {
                         />
                       </div>
                       <div>
-                        <label className="block font-['Inter'] text-sm font-medium text-foreground mb-2">
+                        <label htmlFor="contact-lastName" className="block font-['Inter'] text-sm font-medium text-foreground mb-2">
                           Last Name
                         </label>
                         <Input
+                          id="contact-lastName"
+                          name="lastName"
+                          autoComplete="family-name"
                           type="text"
                           required
                           className="font-['Inter'] transition-all focus:ring-2 focus:ring-accent/30"
@@ -153,10 +170,13 @@ const Contact = () => {
                     </div>
 
                     <div>
-                      <label className="block font-['Inter'] text-sm font-medium text-foreground mb-2">
+                      <label htmlFor="contact-email" className="block font-['Inter'] text-sm font-medium text-foreground mb-2">
                         Email
                       </label>
                       <Input
+                        id="contact-email"
+                        name="email"
+                        autoComplete="email"
                         type="email"
                         required
                         className="font-['Inter'] transition-all focus:ring-2 focus:ring-accent/30"
@@ -165,10 +185,12 @@ const Contact = () => {
                     </div>
 
                     <div>
-                      <label className="block font-['Inter'] text-sm font-medium text-foreground mb-2">
+                      <label htmlFor="contact-subject" className="block font-['Inter'] text-sm font-medium text-foreground mb-2">
                         Subject
                       </label>
                       <Input
+                        id="contact-subject"
+                        name="subject"
                         type="text"
                         required
                         className="font-['Inter'] transition-all focus:ring-2 focus:ring-accent/30"
@@ -177,10 +199,12 @@ const Contact = () => {
                     </div>
 
                     <div>
-                      <label className="block font-['Inter'] text-sm font-medium text-foreground mb-2">
+                      <label htmlFor="contact-message" className="block font-['Inter'] text-sm font-medium text-foreground mb-2">
                         Message
                       </label>
                       <Textarea
+                        id="contact-message"
+                        name="message"
                         required
                         className="min-h-[150px] font-['Inter'] transition-all focus:ring-2 focus:ring-accent/30"
                         placeholder="Your message..."

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,7 +133,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           await new Promise((r) => setTimeout(r, 300));
         }
 
-        const profilePayload: Record<string, any> = {
+        const profilePayload: TablesUpdate<"profiles"> = {
           trader_number: formatEmployeeId(newTraderNumber) || null,
           joining_date: newJoiningDate || null,
           birthdate: newBirthdate || null,

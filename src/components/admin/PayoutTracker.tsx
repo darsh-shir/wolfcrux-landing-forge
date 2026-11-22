@@ -101,7 +101,7 @@ const PayoutTracker = ({ users }: PayoutTrackerProps) => {
   };
 
   const togglePaid = async (recordId: string, field: "paid_cash" | "paid_online", value: boolean) => {
-    const { error } = await supabase.from("payout_records").update({ [field]: value }).eq("id", recordId);
+    const { error } = await supabase.from("payout_records").update(field === "paid_cash" ? { paid_cash: value } : { paid_online: value }).eq("id", recordId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
