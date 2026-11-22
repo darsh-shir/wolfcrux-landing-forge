@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
@@ -43,11 +43,16 @@ interface SingleDayPnLProps {
   accounts: TradingAccount[];
   tradingData: TradingData[];
   onRefresh: () => void;
+  /** Open on this day (YYYY-MM-DD), e.g. from the Dashboard's latest-day box. */
+  initialDate?: string | null;
 }
 
-const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLProps) => {
+const SingleDayPnL = ({ users, accounts, tradingData, onRefresh, initialDate }: SingleDayPnLProps) => {
   const { toast } = useToast();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => (initialDate ? new Date(`${initialDate}T12:00:00`) : new Date()));
+  useEffect(() => {
+    if (initialDate) setSelectedDate(new Date(`${initialDate}T12:00:00`));
+  }, [initialDate]);
   const [editingRows, setEditingRows] = useState<Record<string, { net_pnl: string; shares_traded: string }>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [expandedTraders, setExpandedTraders] = useState<Set<string>>(new Set());

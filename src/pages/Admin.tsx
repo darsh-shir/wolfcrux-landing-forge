@@ -76,6 +76,8 @@ const Admin = () => {
   const [dataLoading, setDataLoading] = useState(true);
   const [selectedTrader, setSelectedTrader] = useState("");
   // Reopen the page the admin was on (for this browser tab's session).
+  // Day to open in Single Day P&L when coming from the Dashboard.
+  const [singleDayDate, setSingleDayDate] = useState<string | null>(null);
   const [activeTab, setActiveTabRaw] = useState(() => {
     try {
       return sessionStorage.getItem("wolfcrux.admin.tab") || "dashboard";
@@ -85,6 +87,8 @@ const Admin = () => {
   });
   const setActiveTab = (tab: string) => {
     setActiveTabRaw(tab);
+    // Opening Single Day P&L any other way starts on today.
+    if (tab !== "single-day") setSingleDayDate(null);
     try {
       sessionStorage.setItem("wolfcrux.admin.tab", tab);
     } catch {
@@ -184,7 +188,15 @@ const Admin = () => {
 
             {/* DASHBOARD TAB */}
             <TabsContent value="dashboard">
-              <TodayBox users={activeUsers} tradingData={tradingData} onOpen={setActiveTab} />
+              <TodayBox
+                users={activeUsers}
+                tradingData={tradingData}
+                onOpen={setActiveTab}
+                onOpenDay={(date) => {
+                  setSingleDayDate(date);
+                  setActiveTab("single-day");
+                }}
+              />
               <AdminDashboard 
                 users={users} 
                 accounts={accounts} 
@@ -277,6 +289,7 @@ const Admin = () => {
             {/* SINGLE DAY P&L TAB */}
             <TabsContent value="single-day">
               <SingleDayPnL
+                initialDate={singleDayDate}
                 users={users}
                 accounts={accounts}
                 tradingData={tradingData}

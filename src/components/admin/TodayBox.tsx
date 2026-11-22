@@ -34,7 +34,18 @@ const prettyDate = (key: string) =>
  * At-a-glance box for the Admin dashboard: the latest trading day's result,
  * who has no entry for today, and how many of this month's payouts are unpaid.
  */
-const TodayBox = ({ users, tradingData, onOpen }: { users: Person[]; tradingData: Trade[]; onOpen: (tab: string) => void }) => {
+const TodayBox = ({
+  users,
+  tradingData,
+  onOpen,
+  onOpenDay,
+}: {
+  users: Person[];
+  tradingData: Trade[];
+  onOpen: (tab: string) => void;
+  /** Open Single Day P&L on this date. */
+  onOpenDay: (date: string) => void;
+}) => {
   const today = lastWeekday(nyDateKey());
   const traders = users.filter((u) => ["trader", "trainee"].includes((u.employee_role || "").toLowerCase()));
   const name = (id: string) => users.find((u) => u.user_id === id)?.full_name || "Unknown";
@@ -80,9 +91,15 @@ const TodayBox = ({ users, tradingData, onOpen }: { users: Person[]; tradingData
   return (
     <Card className="mb-6">
       <CardContent className="grid gap-4 p-4 sm:grid-cols-3">
-        <div className="space-y-1">
+        <button
+          type="button"
+          disabled={!latestDate}
+          onClick={() => latestDate && onOpenDay(latestDate)}
+          title={latestDate ? "Open this day in Single Day P&L" : undefined}
+          className="space-y-1 rounded-md text-left transition-colors enabled:hover:bg-muted/50 enabled:cursor-pointer -m-2 p-2"
+        >
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            {latestDate ? `Latest day · ${prettyDate(latestDate)}` : "Latest day"}
+            {latestDate ? `Latest day · ${prettyDate(latestDate)} →` : "Latest day"}
           </p>
           {latestDate ? (
             <>
@@ -105,7 +122,7 @@ const TodayBox = ({ users, tradingData, onOpen }: { users: Person[]; tradingData
           ) : (
             <p className="text-sm text-muted-foreground">No trades yet.</p>
           )}
-        </div>
+        </button>
 
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Entries for {prettyDate(today)}</p>
