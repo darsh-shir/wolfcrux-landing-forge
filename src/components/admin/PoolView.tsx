@@ -9,7 +9,12 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { PieChart, Pie, Cell } from "recharts";
 import { Landmark, Users } from "lucide-react";
 import { formatIndian } from "@/lib/utils";
-import { MILESTONES } from "@/lib/payoutCalculations";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import { loadAllTraderHistories } from "@/hooks/useTraderHistory";
+import type { HistoryMonth } from "@/lib/payoutEngine";
+
+/** STO records saved from this date use the new payout engine. */
+const NEW_PAYOUT_RULES_FROM = "2026-11-23";
 
 interface Profile {
   id: string;
@@ -35,138 +40,97 @@ const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 const PoolView = ({ users }: PoolViewProps) => {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [tradingData, setTradingData] = useState<any[]>([]);
-  const [traderConfigs, setTraderConfigs] = useState<any[]>([]);
-  const [milestones, setMilestones] = useState<any[]>([]);
+  // Per-trader results for the selected month from the shared payout engine.
+  const [monthResults, setMonthResults] = useState<
+    { userId: string; result: HistoryMonth; savedPool: number | null }[]
+  >([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
   }, [selectedMonth, selectedYear]);
 
-  // Realtime: re-fetch whenever trading_data or trader_config changes
+  // Realtime: re-fetch whenever trading_data, trader_config or the STO ledger changes
   useEffect(() => {
     const channel = supabase
       .channel('pool-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trading_data' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trader_config' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sto_ledger' }, () => fetchData())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [selectedMonth, selectedYear]);
 
+  const monthKey = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
+
   const fetchData = async () => {
     setLoading(true);
-
-    const startDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
-    const endMonth = selectedMonth === 12 ? 1 : selectedMonth + 1;
-    const endYear = selectedMonth === 12 ? selectedYear + 1 : selectedYear;
-    const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
-
-    const [tdRes, configRes, milestoneRes] = await Promise.all([
-      supabase.from("trading_data").select("*")
-        .gte("trade_date", startDate)
-        .lt("trade_date", endDate),
-      supabase.from("trader_config").select("*")
-        .eq("month", selectedMonth).eq("year", selectedYear),
-      supabase.from("trader_milestones").select("user_id,current_level"),
-    ]);
-
-    if (tdRes.data) setTradingData(tdRes.data);
-    if (milestoneRes.data) setMilestones(milestoneRes.data);
-    
-    // If no config for selected month, fallback to most recent config
-    if (configRes.data && configRes.data.length > 0) {
-      setTraderConfigs(configRes.data);
-    } else {
-      const { data: fallback } = await supabase.from("trader_config").select("*")
-        .order("year", { ascending: false })
-        .order("month", { ascending: false })
-        .limit(100);
-      // Group by user_id, take latest per user
-      const latestPerUser = new Map<string, any>();
-      (fallback || []).forEach(c => {
-        if (!latestPerUser.has(c.user_id)) latestPerUser.set(c.user_id, c);
+    setLoadError(null);
+    try {
+      const startDate = `${monthKey}-01`;
+      const endDate = `${monthKey}-${String(new Date(selectedYear, selectedMonth, 0).getDate()).padStart(2, "0")}`;
+      const [monthRows, ledgerRes] = await Promise.all([
+        fetchAllRows<any>((f, t) =>
+          supabase.from("trading_data").select("id, user_id, trader2_id, trader2_role")
+            .gte("trade_date", startDate).lte("trade_date", endDate).order("id").range(f, t)),
+        supabase.from("sto_ledger").select("user_id, trainee_pool_contribution, updated_at")
+          .eq("month", selectedMonth).eq("year", selectedYear),
+      ]);
+      if (ledgerRes.error) throw ledgerRes.error;
+      const ids = new Set<string>();
+      monthRows.forEach((r: any) => {
+        ids.add(r.user_id);
+        if ((r.trader2_role || "").toLowerCase() === "partner" && r.trader2_id) ids.add(r.trader2_id);
       });
-      setTraderConfigs([...latestPerUser.values()]);
+      const histories = await loadAllTraderHistories([...ids]);
+      const saved = new Map(
+        (ledgerRes.data ?? [])
+          // Only records saved with the new payout engine carry the new 25% rule.
+          .filter((l: any) => String(l.updated_at) >= NEW_PAYOUT_RULES_FROM)
+          .map((l: any) => [l.user_id, Number(l.trainee_pool_contribution) || 0])
+      );
+      setMonthResults(
+        [...ids]
+          .map((userId) => ({
+            userId,
+            result: histories.get(userId)?.byMonth.get(monthKey) as HistoryMonth,
+            savedPool: saved.has(userId) ? (saved.get(userId) as number) : null,
+          }))
+          .filter((x) => !!x.result)
+      );
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : String(e));
+      setMonthResults([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const trainees = users.filter(u => u.employee_role === "trainee");
 
   const poolData = useMemo(() => {
-    // Step 1: Find all partner pairs (exempt from pool)
-    const partnerExemptSet = new Set<string>();
-    tradingData.forEach(td => {
-      if (td.trader2_role?.toLowerCase() === "partner") {
-        partnerExemptSet.add(td.user_id);
-        if (td.trader2_id) partnerExemptSet.add(td.trader2_id);
-      }
-    });
-
-    // Step 2: Aggregate per trader (non-partner traders only)
-    const traderMap = new Map<string, { totalPnl: number; totalShares: number }>();
-    
-    tradingData.forEach(td => {
-      if (partnerExemptSet.has(td.user_id)) return;
-      
-      const existing = traderMap.get(td.user_id) || { totalPnl: 0, totalShares: 0 };
-      existing.totalPnl += Number(td.net_pnl) || 0;
-      existing.totalShares += Number(td.shares_traded) || 0;
-      traderMap.set(td.user_id, existing);
-    });
-
-    // Step 3: Calculate net profit, then STO using payout%, then 25% pool
-    const contributions: Array<{
-      userId: string;
-      traderName: string;
-      traderNumber: string;
-      grossPnl: number;
-      shareCost: number;
-      softwareCost: number;
-      netProfit: number;
-      payoutPercent: number;
-      stoAmount: number;
-      poolContribution: number;
-    }> = [];
-
-    traderMap.forEach((data, userId) => {
-      const profile = users.find(u => u.user_id === userId);
-      if (!profile) return;
-
-      const config = traderConfigs.find(c => c.user_id === userId);
-      const softwareCost = config ? Number(config.software_cost) : 0;
-      // Pool is calculated from STO% ONLY (LTO is excluded from the trainee pool).
-      let payoutPercent = config ? Number(config.sto_percentage) : 0;
-      // For milestone-mode traders, if stored STO% is 0, fall back to milestone-level STO%
-      if ((!payoutPercent || payoutPercent === 0) && (!config || config.config_mode !== "manual")) {
-        const lvl = milestones.find(m => m.user_id === userId)?.current_level ?? 0;
-        const m = MILESTONES.find(x => x.level === lvl) || MILESTONES[0];
-        payoutPercent = m.stoPercent;
-      }
-      const shareCost = (data.totalShares / 1000) * 14;
-      const netProfit = data.totalPnl - shareCost - softwareCost;
-
-      // Include every non-partner trader with positive net profit.
-      // If payout% is 0/missing, contribution will be 0 (visible to admin).
-      if (netProfit > 0) {
-        const stoAmount = netProfit * (payoutPercent / 100);
-        contributions.push({
+    const contributions = monthResults
+      .map(({ userId, result: m, savedPool }) => {
+        const profile = users.find(u => u.user_id === userId);
+        return {
           userId,
-          traderName: profile.full_name,
-          traderNumber: profile.trader_number || "",
-          grossPnl: data.totalPnl,
-          shareCost,
-          softwareCost,
-          netProfit,
-          payoutPercent,
-          stoAmount,
-          poolContribution: stoAmount * 0.25,
-        });
-      }
-    });
+          traderName: profile?.full_name || "Unknown",
+          traderNumber: profile?.trader_number || "",
+          grossPnl: m.grossPnl,
+          shareCost: m.shareCost,
+          softwareCost: m.softwareCost,
+          netProfit: m.netProfit,
+          payoutPercent: m.stoPercent,
+          stoAmount: m.sto,
+          // Saved month = exactly what the Payout Sheet deducted; otherwise an estimate before leave.
+          poolContribution: savedPool ?? m.secondPcShare,
+          estimated: savedPool === null,
+          partnered: m.partnered,
+        };
+      })
+      .filter(c => c.poolContribution > 0);
 
-    // Sort by trader number
     contributions.sort((a, b) => {
       const numA = parseInt(a.traderNumber.replace(/\D/g, "")) || 999;
       const numB = parseInt(b.traderNumber.replace(/\D/g, "")) || 999;
@@ -174,19 +138,19 @@ const PoolView = ({ users }: PoolViewProps) => {
     });
 
     const totalPool = contributions.reduce((sum, c) => sum + c.poolContribution, 0);
-
-    const exemptTraders = [...partnerExemptSet].map(uid => {
-      const p = users.find(u => u.user_id === uid);
-      return p?.full_name || "Unknown";
-    });
+    // Partners pay the 25% on their solo days only.
+    const exemptTraders = monthResults
+      .filter(({ result }) => result.partnered)
+      .map(({ userId }) => users.find(u => u.user_id === userId)?.full_name || "Unknown");
 
     return { contributions, totalPool, exemptTraders };
-  }, [tradingData, traderConfigs, users, milestones]);
+  }, [monthResults, users]);
 
   // Auto-save pool ledger to DB whenever it recalculates
   const lastSavedRef = useRef("");
   useEffect(() => {
-    if (loading) return;
+    // Never overwrite the saved pool total with figures from a failed load.
+    if (loading || loadError) return;
     const key = `${selectedMonth}-${selectedYear}-${poolData.totalPool.toFixed(4)}-${poolData.contributions.length}`;
     if (key === lastSavedRef.current) return;
     lastSavedRef.current = key;
@@ -198,21 +162,23 @@ const PoolView = ({ users }: PoolViewProps) => {
 
       if (existing?.id) {
         // Preserve admin-managed num_trainees / per_trainee_amount
-        await supabase.from("trainee_pool_ledger")
+        const { error } = await supabase.from("trainee_pool_ledger")
           .update({ total_pool_amount: poolData.totalPool })
           .eq("id", existing.id);
+        if (error) console.error("Pool total not saved:", error.message);
       } else {
-        await supabase.from("trainee_pool_ledger").insert({
+        const { error } = await supabase.from("trainee_pool_ledger").insert({
           month: selectedMonth,
           year: selectedYear,
           total_pool_amount: poolData.totalPool,
           num_trainees: 0,
           per_trainee_amount: 0,
         });
+        if (error) console.error("Pool total not saved:", error.message);
       }
     };
     savePool();
-  }, [poolData, selectedMonth, selectedYear, loading]);
+  }, [poolData, selectedMonth, selectedYear, loading, loadError]);
 
   const chartData = poolData.contributions
     .filter(c => c.poolContribution > 0)
@@ -276,7 +242,7 @@ const PoolView = ({ users }: PoolViewProps) => {
       {poolData.exemptTraders.length > 0 && (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm font-medium text-muted-foreground mb-2">Partner Pairs — Exempt from Pool</p>
+            <p className="text-sm font-medium text-muted-foreground mb-2">Sat with a partner this month — 25% applies to their solo days only</p>
             <div className="flex flex-wrap gap-2">
               {poolData.exemptTraders.map((name, i) => (
                 <Badge key={i} variant="secondary">{name}</Badge>
@@ -299,6 +265,8 @@ const PoolView = ({ users }: PoolViewProps) => {
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
               </div>
+            ) : loadError ? (
+              <p className="text-sm text-red-600 text-center py-8">Couldn't load this month's data: {loadError}</p>
             ) : poolData.contributions.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">
                 No pool contributions for this month.
@@ -324,6 +292,11 @@ const PoolView = ({ users }: PoolViewProps) => {
                         <TableCell className="text-right">${formatIndian(c.stoAmount, 2)}</TableCell>
                         <TableCell className="text-right font-semibold text-primary">
                           ${formatIndian(c.poolContribution, 2)}
+                          {c.estimated && (
+                            <span className="block text-[10px] font-normal text-amber-600" title="Month not saved in the Payout Sheet yet; estimate before any leave deduction">
+                              estimate
+                            </span>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import { mergeAttendance } from "@/lib/attendance";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,47 +112,31 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [holidaysRes, attendanceRes, summariesRes, tradingRes] = await Promise.all([
+    let attendance: any[] = [];
+    let trades: any[] = [];
+    const [holidaysRes, summariesRes] = await Promise.all([
       supabase.from("holidays").select("*").order("holiday_date"),
-      supabase.from("attendance_records").select("*").order("record_date", { ascending: false }),
       supabase.from("monthly_leave_summary").select("*"),
-      supabase.from("trading_data").select("id,user_id,trader2_id,trade_date,trader1_attendance,trader2_attendance,late_remarks").order("trade_date", { ascending: false }),
     ]);
+    try {
+      // Load every row (Supabase returns at most 1,000 per request).
+      [attendance, trades] = await Promise.all([
+        fetchAllRows<any>((f, t) =>
+          supabase.from("attendance_records").select("*").order("record_date", { ascending: false }).order("id").range(f, t)),
+        fetchAllRows<any>((f, t) =>
+          supabase.from("trading_data")
+            .select("id,user_id,trader2_id,trader2_role,trade_date,trader1_attendance,trader2_attendance,late_remarks")
+            .order("trade_date", { ascending: false }).order("id").range(f, t)),
+      ]);
+    } catch (e) {
+      toast({ title: "Couldn't load attendance", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+    }
 
     if (holidaysRes.data) setHolidays(holidaysRes.data);
     if (summariesRes.data) setMonthlySummaries(summariesRes.data as MonthlySummary[]);
 
-    // Merge manual attendance with auto-derived attendance from trading_data
-    const stored: AttendanceRecord[] = (attendanceRes.data || []).map((r: any) => ({
-      ...r,
-      source: r.source === "biometric" ? "biometric" : "manual",
-    }));
-    const derived: AttendanceRecord[] = [];
-    const seen = new Set(stored.map((r) => `${r.user_id}|${r.record_date}`));
-
-    (tradingRes.data || []).forEach((row: any) => {
-      const addEntry = (uid: string | null, status: string, isLate: boolean) => {
-        if (!uid) return;
-        const norm = status === "absent" ? "absent" : status === "half_day" ? "half_day" : isLate ? "late" : null;
-        if (!norm) return;
-        const key = `${uid}|${row.trade_date}`;
-        if (seen.has(key)) return;
-        seen.add(key);
-        derived.push({
-          id: `td-${row.id}-${uid}`,
-          user_id: uid,
-          record_date: row.trade_date,
-          status: norm as any,
-          is_deductible: norm !== "late",
-          notes: isLate ? (row.late_remarks || "Late (from trading entry)") : `Auto-marked from trading entry`,
-          source: "trading",
-        });
-      };
-      addEntry(row.user_id, row.trader1_attendance, !!row.late_remarks && row.trader1_attendance === "present");
-      addEntry(row.trader2_id, row.trader2_attendance, false);
-    });
-
-    setAttendanceRecords([...stored, ...derived]);
+    // Manual/biometric attendance merged with attendance chosen on trade entries
+    setAttendanceRecords(mergeAttendance(attendance, trades) as AttendanceRecord[]);
     setLoading(false);
   };
 

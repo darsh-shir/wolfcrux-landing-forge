@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TrendingUp, Calendar, DollarSign, Users, ArrowUpCircle } from "lucide-react";
 import { formatIndian } from "@/lib/utils";
 import { MILESTONES, getMilestoneLevel, getNextMilestone } from "@/lib/payoutCalculations";
+import { loadAllTraderHistories } from "@/hooks/useTraderHistory";
+import { must } from "@/lib/fetchAllRows";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -186,14 +188,23 @@ const TraderProgress = () => {
       );
     }
 
+    // Trading days, net profit and level from the shared payout engine:
+    // partner days split 50/50, share + software costs, baseline, days-OR-profit.
+    let histories: Awaited<ReturnType<typeof loadAllTraderHistories>>;
+    try {
+      histories = await loadAllTraderHistories(traderProfiles.map((p) => p.user_id));
+    } catch (e) {
+      toast.error(`Couldn't load trading history: ${e instanceof Error ? e.message : String(e)}`);
+      setLoading(false);
+      return;
+    }
+
     const result: TraderProgressData[] = traderProfiles.map((p) => {
       const baseline = baselineMap.get(p.user_id);
-      const actualDays = tradingDaysMap[p.user_id]?.size || 0;
-      const tradingDays = actualDays + (baseline?.days || 0);
+      const h = histories.get(p.user_id);
+      const tradingDays = h?.totalDays ?? baseline?.days ?? 0;
       const ms = milestones.find((m) => m.user_id === p.user_id);
-      const actualPnl = totalPnlMap[p.user_id] || 0;
-      const totalPnl = actualPnl + (baseline?.profit || 0);
-      // Use baseline+actual for level eligibility
+      const totalPnl = h?.totalProfit ?? baseline?.profit ?? 0;
       const milestone = getMilestoneLevel(tradingDays, totalPnl);
       const next = getNextMilestone(milestone.level);
 
@@ -236,21 +247,21 @@ const TraderProgress = () => {
     try {
       // 1. Upsert milestone record
       if (trader.milestoneId) {
-        await supabase
+        must(await supabase
           .from("trader_milestones")
           .update({
             current_level: targetLevel,
             cumulative_net_profit: trader.totalPnl,
             last_evaluated_at: new Date().toISOString(),
           })
-          .eq("id", trader.milestoneId);
+          .eq("id", trader.milestoneId));
       } else {
-        await supabase.from("trader_milestones").insert({
+        must(await supabase.from("trader_milestones").insert({
           user_id: trader.userId,
           account_start_date: trader.firstTradeDate || new Date().toISOString().slice(0, 10),
           current_level: targetLevel,
           cumulative_net_profit: trader.totalPnl,
-        });
+        }));
       }
 
       // 2. Apply new STO/LTO % from NEXT month onward
@@ -275,7 +286,7 @@ const TraderProgress = () => {
         .maybeSingle();
 
       if (nextConfig?.id) {
-        await supabase.from("trader_config").update(newPayload).eq("id", nextConfig.id);
+        must(await supabase.from("trader_config").update(newPayload).eq("id", nextConfig.id));
       } else {
         const { data: latestCfg } = await supabase
           .from("trader_config")
@@ -286,14 +297,14 @@ const TraderProgress = () => {
           .limit(1)
           .maybeSingle();
 
-        await supabase.from("trader_config").insert({
+        must(await supabase.from("trader_config").insert({
           user_id: trader.userId,
           month: nextMonth,
           year: nextYear,
           software_cost: latestCfg?.software_cost ?? 0,
           seat_type: latestCfg?.seat_type ?? "Alone",
           ...newPayload,
-        });
+        }));
       }
 
       // 3. Cascade to any future milestone-mode configs already created
@@ -305,11 +316,11 @@ const TraderProgress = () => {
         .or(`year.gt.${nextYear},and(year.eq.${nextYear},month.gt.${nextMonth})`);
 
       if (futureConfigs && futureConfigs.length > 0) {
-        await Promise.all(
+        (await Promise.all(
           futureConfigs.map((fc) =>
             supabase.from("trader_config").update(newPayload).eq("id", fc.id)
           )
-        );
+        )).forEach(must);
       }
 
       toast.success(

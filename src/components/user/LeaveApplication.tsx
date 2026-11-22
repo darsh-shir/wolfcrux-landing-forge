@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import { mergeAttendance } from "@/lib/attendance";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +56,20 @@ const LeaveApplication = () => {
       supabase.from("profiles").select("joining_date").eq("user_id", user.id).maybeSingle(),
     ]);
 
-    if (attendanceRes.data) setAttendanceRecords(attendanceRes.data as AttendanceRecord[]);
+    // Include absences / half days / lates chosen on trade entries, exactly as admins see them.
+    let tradeRows: any[] = [];
+    try {
+      const cols = "id, user_id, trader2_id, trader2_role, trade_date, trader1_attendance, trader2_attendance, late_remarks";
+      const [own, partner] = await Promise.all([
+        fetchAllRows<any>((f, t) => supabase.from("trading_data").select(cols).eq("user_id", user.id).order("trade_date").order("id").range(f, t)),
+        fetchAllRows<any>((f, t) => supabase.from("trading_data").select(cols).eq("trader2_id", user.id).order("trade_date").order("id").range(f, t)),
+      ]);
+      tradeRows = [...own, ...partner];
+    } catch {
+      /* show stored attendance only */
+    }
+    const merged = mergeAttendance(attendanceRes.data || [], tradeRows).filter((r) => r.user_id === user.id);
+    setAttendanceRecords(merged as AttendanceRecord[]);
     if (holidaysRes.data) setHolidays(holidaysRes.data);
     if (carryRes.data) setCarryForwards(carryRes.data as CarryForward[]);
     if (profileRes.data) setJoiningDate(profileRes.data.joining_date ?? null);

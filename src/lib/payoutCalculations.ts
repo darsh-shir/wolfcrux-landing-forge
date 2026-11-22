@@ -1,23 +1,14 @@
 // ==========================================
-// Core Payout Calculation Engine for Wolfcrux
+// Payout helpers for Wolfcrux.
+// Levels and payout maths live in src/lib/payoutEngine.ts (single source of
+// truth); this file keeps the leave helpers and re-exports level data in the
+// shape older screens expect.
 // ==========================================
+import { DEFAULT_LEVELS, levelFor, type LevelDef } from "@/lib/payoutEngine";
 
-export interface MilestoneLevel {
-  level: number;
-  label: string;
-  stoPercent: number;
-  ltoPercent: number;
-  daysRequired: number;        // trading days as primary trader
-  profitRequired: number;      // cumulative net profit threshold
-}
+export type MilestoneLevel = LevelDef;
 
-export const MILESTONES: MilestoneLevel[] = [
-  { level: 0, label: "Junior Equity Analyst",  stoPercent: 20, ltoPercent: 0,  daysRequired: 0,   profitRequired: 0 },
-  { level: 1, label: "Equity Analyst",         stoPercent: 25, ltoPercent: 10, daysRequired: 125, profitRequired: 50000 },
-  { level: 2, label: "Senior Equity Analyst",  stoPercent: 35, ltoPercent: 15, daysRequired: 275, profitRequired: 150000 },
-  { level: 3, label: "Lead Equity Analyst",    stoPercent: 45, ltoPercent: 20, daysRequired: 400, profitRequired: 300000 },
-  { level: 4, label: "Chief Equity Analyst",   stoPercent: 55, ltoPercent: 25, daysRequired: 600, profitRequired: 500000 },
-];
+export const MILESTONES: MilestoneLevel[] = DEFAULT_LEVELS;
 
 export interface LeaveBalanceSummary {
   fullDaysUsed: number;
@@ -43,15 +34,8 @@ export function getMilestoneLevel(
   tradingDays: number,
   cumulativeNetProfit: number
 ): MilestoneLevel {
-  let currentLevel = MILESTONES[0];
-  for (let i = MILESTONES.length - 1; i >= 1; i--) {
-    const m = MILESTONES[i];
-    if (tradingDays >= m.daysRequired || cumulativeNetProfit >= m.profitRequired) {
-      currentLevel = m;
-      break;
-    }
-  }
-  return currentLevel;
+  // Days OR profit, whichever comes first.
+  return levelFor(tradingDays, cumulativeNetProfit);
 }
 
 /**
@@ -411,15 +395,11 @@ export function monthsBetween(startDate: Date, endDate: Date): number {
 // LTO Release Threshold Rules
 // ==========================================
 // Minimum cumulative LTO pool required before any LTO can be released,
-// based on the trader's CURRENT milestone level. As level increases the
-// minimum requirement increases. Level 4 is TBD — using 50000 as a placeholder.
-export const LTO_RELEASE_THRESHOLDS: Record<number, number> = {
-  0: 0,
-  1: 10000,
-  2: 25000,
-  3: 50000,
-  4: 50000, // TBD — to be decided
-};
+// based on the trader's CURRENT milestone level (L1 $10k, L2 $20k, L3 $35k,
+// L4 $60k — set in the level table in payoutEngine.ts).
+export const LTO_RELEASE_THRESHOLDS: Record<number, number> = Object.fromEntries(
+  DEFAULT_LEVELS.map((l) => [l.level, l.ltoReleaseMin])
+);
 
 export function getLtoReleaseThreshold(currentLevel: number): number {
   return LTO_RELEASE_THRESHOLDS[currentLevel] ?? 0;

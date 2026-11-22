@@ -6,16 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, Calendar, DollarSign, Trophy, Target } from "lucide-react";
 import { formatIndian } from "@/lib/utils";
-import { MILESTONES, getMilestoneLevel, getNextMilestone } from "@/lib/payoutCalculations";
+import { MILESTONES, getNextMilestone } from "@/lib/payoutCalculations";
+import { useTraderHistory } from "@/hooks/useTraderHistory";
 
 /**
- * Trader-facing progress view.
- * Mirrors EXACTLY the row that admin sees for this trader in /admin → Trader Progress.
- * Same baseline + as-of-date filtering, same brokerage ($14/1k shares),
- * same per-month software cost (default $1000), same own + partner aggregation.
+ * Trader-facing progress view, calculated with the shared payout engine
+ * (src/lib/payoutEngine.ts) so it always matches the admin screens.
  */
-
-const DEFAULT_SOFTWARE_COST = 1000;
 
 interface Snap {
   tradingDays: number;
@@ -29,103 +26,36 @@ interface Snap {
 
 const MyProgress = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [snap, setSnap] = useState<Snap | null>(null);
+  // Same engine as the admin Payout Sheet: partner days split 50/50, share
+  // and software costs, baseline, and the days-OR-profit level rule.
+  const { history, loading: historyLoading } = useTraderHistory(user?.id);
+  const [storedLevel, setStoredLevel] = useState<number | null>(null);
+  const [baselineInfo, setBaselineInfo] = useState({ days: 0, profit: 0 });
 
   useEffect(() => {
-    if (user) load();
+    if (!user) return;
+    void Promise.all([
+      supabase.from("trader_milestones").select("current_level").eq("user_id", user.id).maybeSingle(),
+      supabase.from("trader_baselines" as any).select("baseline_days, baseline_net_profit").eq("user_id", user.id).maybeSingle(),
+    ]).then(([m, b]) => {
+      setStoredLevel(m.data?.current_level ?? null);
+      const bd = (b as any).data;
+      setBaselineInfo({ days: Number(bd?.baseline_days || 0), profit: Number(bd?.baseline_net_profit || 0) });
+    });
   }, [user]);
 
-  const fetchAllOwnTrades = async () => {
-    if (!user) return [];
-    const all: any[] = [];
-    let from = 0;
-    const size = 1000;
-    while (true) {
-      const { data, error } = await supabase
-        .from("trading_data")
-        .select("trade_date, net_pnl, shares_traded")
-        .or(`user_id.eq.${user.id},and(trader2_id.eq.${user.id},trader2_role.eq.partner)`)
-        .range(from, from + size - 1);
-      if (error || !data || data.length === 0) break;
-      all.push(...data);
-      if (data.length < size) break;
-      from += size;
-    }
-    return all;
-  };
-
-  const load = async () => {
-    if (!user) return;
-    setLoading(true);
-
-    const [trades, baselineRes, milestoneRes, configRes] = await Promise.all([
-      fetchAllOwnTrades(),
-      supabase
-        .from("trader_baselines" as any)
-        .select("baseline_days, baseline_net_profit, baseline_level, as_of_date")
-        .eq("user_id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("trader_milestones")
-        .select("current_level")
-        .eq("user_id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("trader_config")
-        .select("month, year, software_cost")
-        .eq("user_id", user.id),
-    ]);
-
-    const baseline = baselineRes.data as any;
-    const asOf: string | null = baseline?.as_of_date || null;
-    const baselineDays = Number(baseline?.baseline_days || 0);
-    const baselineProfit = Number(baseline?.baseline_net_profit || 0);
-
-    const swCost = new Map<string, number>();
-    (configRes.data || []).forEach((c: any) => {
-      swCost.set(`${c.year}-${c.month}`, Number(c.software_cost) || 0);
-    });
-
-    // Filter trades on/after baseline as-of date (matches admin logic exactly)
-    const filtered = trades.filter((t: any) => !asOf || t.trade_date >= asOf);
-
-    const dayKeys = new Set<string>();
-    const monthKeys = new Set<string>();
-    let gross = 0;
-    let shares = 0;
-    filtered.forEach((t: any) => {
-      dayKeys.add(t.trade_date);
-      const d = new Date(t.trade_date);
-      monthKeys.add(`${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`);
-      gross += Number(t.net_pnl || 0);
-      shares += Number(t.shares_traded || 0);
-    });
-
-    const brokerage = (shares / 1000) * 14;
-    let software = 0;
-    monthKeys.forEach((k) => {
-      software += swCost.has(k) ? (swCost.get(k) as number) : DEFAULT_SOFTWARE_COST;
-    });
-
-    const realPnl = gross - brokerage - software;
-    const tradingDays = dayKeys.size + baselineDays;
-    const totalPnl = realPnl + baselineProfit;
-
-    const eligible = getMilestoneLevel(tradingDays, totalPnl);
-    const stored = milestoneRes.data?.current_level ?? baseline?.baseline_level ?? 0;
-
-    setSnap({
-      tradingDays,
-      totalPnl,
-      baselineDays,
-      baselineProfit,
-      storedLevel: stored,
-      eligibleLevel: eligible.level,
-      eligibleLabel: eligible.label,
-    });
-    setLoading(false);
-  };
+  const loading = historyLoading;
+  const snap: Snap | null = history
+    ? {
+        tradingDays: history.totalDays,
+        totalPnl: history.totalProfit,
+        baselineDays: baselineInfo.days,
+        baselineProfit: baselineInfo.profit,
+        storedLevel: storedLevel ?? history.currentLevel.level,
+        eligibleLevel: history.currentLevel.level,
+        eligibleLabel: history.currentLevel.label,
+      }
+    : null;
 
   if (loading || !snap) {
     return (

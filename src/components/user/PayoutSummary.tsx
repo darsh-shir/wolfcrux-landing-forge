@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import { useTraderHistory } from "@/hooks/useTraderHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +18,9 @@ const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
+
+/** Records saved from this date use the new payout engine (own STO per partner). */
+const NEW_PAYOUT_RULES_FROM = "2026-11-23";
 
 interface PartnerShare {
   month: number;
@@ -37,7 +42,6 @@ const PayoutSummary = () => {
   const [stoHistory, setStoHistory] = useState<any[]>([]);
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
   const [partnerShares, setPartnerShares] = useState<PartnerShare[]>([]);
-  const [computedNetByPeriod, setComputedNetByPeriod] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,56 +52,23 @@ const PayoutSummary = () => {
     if (!user) return;
     setLoading(true);
 
-    const [milestoneRes, stoRes, ltoRes, tradingDaysRes, partnerSessionsRes, ownTradesRes, partnerTradesRes, configRes] = await Promise.all([
+    const [milestoneRes, stoRes, ltoRes, partnerSessionsRes] = await Promise.all([
       supabase.from("trader_milestones").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("sto_ledger").select("*").eq("user_id", user.id)
         .order("year", { ascending: false }).order("month", { ascending: false }),
       supabase.from("lto_ledger").select("*").eq("user_id", user.id)
         .order("year", { ascending: false }).order("month", { ascending: false }),
-      supabase.from("trading_data").select("trade_date, user_id, trader2_id, trader2_role"),
       // Sessions where THIS user sat as the partner (trader2) on someone else's account
-      supabase.from("trading_data")
-        .select("trade_date, user_id, trader2_id, trader2_role")
-        .eq("trader2_id", user.id),
-      supabase.from("trading_data").select("trade_date, net_pnl, shares_traded").eq("user_id", user.id),
-      supabase.from("trading_data")
-        .select("trade_date, net_pnl, shares_traded")
-        .eq("trader2_id", user.id)
-        .eq("trader2_role", "partner"),
-      supabase.from("trader_config").select("month, year, software_cost").eq("user_id", user.id),
+      fetchAllRows<any>((f, t) =>
+        supabase.from("trading_data").select("id, trade_date, user_id, trader2_id, trader2_role")
+          .eq("trader2_id", user.id).order("trade_date").order("id").range(f, t))
+        .then((data) => ({ data })),
     ]);
 
-    // Build per-month combined Net Profit (own + partner sessions) the same way MyData does:
-    //   gross = Σ net_pnl,  brokerage = shares/1000 * 14,  net = gross - brokerage - software_cost
-    const combinedMap = new Map<string, { gross: number; shares: number }>();
-    [...(ownTradesRes.data || []), ...(partnerTradesRes.data || [])].forEach((t: any) => {
-      const d = new Date(t.trade_date);
-      const k = `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`;
-      const cur = combinedMap.get(k) || { gross: 0, shares: 0 };
-      cur.gross += Number(t.net_pnl);
-      cur.shares += Number(t.shares_traded);
-      combinedMap.set(k, cur);
-    });
-    const swMap = new Map<string, number>();
-    (configRes.data || []).forEach((c: any) => swMap.set(`${c.year}-${c.month}`, Number(c.software_cost) || 0));
-    const computedNet = new Map<string, number>();
-    combinedMap.forEach((v, k) => {
-      const brokerage = (v.shares / 1000) * 14;
-      const sw = swMap.has(k) ? (swMap.get(k) as number) : 1000;
-      computedNet.set(k, v.gross - brokerage - sw);
-    });
-    setComputedNetByPeriod(computedNet);
 
     setMilestoneData(milestoneRes.data);
     setStoHistory(stoRes.data || []);
     setLtoHistory(ltoRes.data || []);
-    // Count distinct trading days: as primary trader OR as partner
-    const uniqueDays = new Set<string>();
-    (tradingDaysRes.data || []).forEach((t: any) => {
-      if (t.user_id === user.id) uniqueDays.add(t.trade_date);
-      if (t.trader2_id === user.id && t.trader2_role?.toLowerCase() === "partner") uniqueDays.add(t.trade_date);
-    });
-    setTradingDaysCount(uniqueDays.size);
 
     // ---- Build partner shares from actual joint sessions ----
     // Group partner sessions by primary user + month/year, counting days sat together.
@@ -123,7 +94,7 @@ const PayoutSummary = () => {
       // and the partner's own STO ledger rows (for their leave deduction %).
       const [primaryStoRes, primaryProfilesRes, primaryAllTradesRes] = await Promise.all([
         supabase.from("sto_ledger")
-          .select("user_id, month, year, sto_amount, payout_due_date")
+          .select("user_id, month, year, sto_amount, payout_due_date, updated_at")
           .in("user_id", primaryIds),
         supabase.from("profiles").select("user_id, full_name").in("user_id", primaryIds),
         supabase.from("trading_data")
@@ -181,7 +152,15 @@ const PayoutSummary = () => {
           payout_due_date: primaryStoRow?.payout_due_date || null,
         };
       })
-      .filter(s => s.share_amount > 0)
+      // Under the new rules each partner has their own STO record, so only
+      // months last saved with the old formula still need a derived share.
+      .filter((s) => {
+        const primaryRow = primaryStoMap.get(`${s.primary_user_id}-${s.year}-${s.month}`);
+        const ownRow = ownStoMap.get(`${s.year}-${s.month}`);
+        const primaryIsOld = primaryRow && String(primaryRow.updated_at) < NEW_PAYOUT_RULES_FROM;
+        const ownIsNew = ownRow && String(ownRow.updated_at) >= NEW_PAYOUT_RULES_FROM;
+        return s.share_amount > 0 && primaryIsOld && !ownIsNew;
+      })
       .sort((a, b) => (b.year - a.year) || (b.month - a.month));
       setPartnerShares(shares);
     } else {
@@ -191,12 +170,16 @@ const PayoutSummary = () => {
     setLoading(false);
   };
 
-  const [tradingDaysCount, setTradingDaysCount] = useState(0);
+  // Level, trading days and cumulative net profit come from the shared payout
+  // engine (partner days split 50/50, costs, baseline, days-OR-profit rule).
+  const { history } = useTraderHistory(user?.id);
+  const tradingDaysCount = history?.totalDays ?? 0;
+  const cumulativeProfit = history?.totalProfit ?? 0;
 
   const milestone = useMemo(() => {
-    if (!milestoneData) return MILESTONES[0];
-    return getMilestoneLevel(tradingDaysCount, Number(milestoneData.cumulative_net_profit || 0));
-  }, [milestoneData, tradingDaysCount]);
+    if (!history) return MILESTONES[0];
+    return getMilestoneLevel(history.totalDays, history.totalProfit);
+  }, [history]);
 
   const nextMilestone = useMemo(() => getNextMilestone(milestone.level), [milestone]);
 
@@ -254,7 +237,7 @@ const PayoutSummary = () => {
                 <p className="text-sm text-muted-foreground">Days Worked</p>
                 <p className="text-xl font-bold text-foreground">{tradingDaysCount} days</p>
                 <p className="text-xs text-muted-foreground">
-                  Cumulative Profit: {fmt(Number(milestoneData?.cumulative_net_profit || 0))}
+                  Cumulative Profit: {fmt(cumulativeProfit)}
                 </p>
               </div>
             </div>
@@ -263,7 +246,7 @@ const PayoutSummary = () => {
       </div>
 
       {/* Milestone Progress */}
-      {nextMilestone && milestoneData && (
+      {nextMilestone && history && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -275,10 +258,10 @@ const PayoutSummary = () => {
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-muted-foreground">Cumulative Profit</span>
-                <span className="font-medium">{fmt(Number(milestoneData.cumulative_net_profit))} / {fmt(nextMilestone.profitRequired)}</span>
+                <span className="font-medium">{fmt(cumulativeProfit)} / {fmt(nextMilestone.profitRequired)}</span>
               </div>
               <Progress
-                value={Math.min(100, (Number(milestoneData.cumulative_net_profit) / nextMilestone.profitRequired) * 100)}
+                value={Math.max(0, Math.min(100, (cumulativeProfit / nextMilestone.profitRequired) * 100))}
                 className="h-2"
               />
             </div>
@@ -338,8 +321,8 @@ const PayoutSummary = () => {
                       return (
                       <tr key={s.id} className="border-t">
                         <td className="p-3 font-medium whitespace-nowrap">{MONTHS[(s.month || 1) - 1]} {s.year}</td>
-                        <td className={`p-3 text-right whitespace-nowrap ${(computedNetByPeriod.get(`${s.year}-${s.month}`) ?? Number(s.net_profit)) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {fmt(computedNetByPeriod.get(`${s.year}-${s.month}`) ?? Number(s.net_profit))}
+                        <td className={`p-3 text-right whitespace-nowrap ${Number(s.net_profit) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {fmt(Number(s.net_profit))}
                         </td>
                         <td className="p-3 text-right whitespace-nowrap">{s.sto_percentage}%</td>
                         <td className="p-3 text-right whitespace-nowrap">{fmt(sto)}</td>

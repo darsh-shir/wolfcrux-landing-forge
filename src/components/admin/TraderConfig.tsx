@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Settings } from "lucide-react";
 import { getMilestoneLevel } from "@/lib/payoutCalculations";
+import { loadAllTraderHistories } from "@/hooks/useTraderHistory";
+import { fetchAllRows, must } from "@/lib/fetchAllRows";
 
 interface Profile {
   id: string;
@@ -57,6 +59,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
   const [isInherited, setIsInherited] = useState(false);
   const [milestones, setMilestones] = useState<TraderMilestone[]>([]);
   const [tradingDaysMap, setTradingDaysMap] = useState<Record<string, number>>({});
+  const [profitMap, setProfitMap] = useState<Record<string, number>>({});
 
   useEffect(() => { fetchConfigs(); }, [selectedMonth, selectedYear]);
 
@@ -72,31 +75,28 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
 
     setMilestones((milestoneRes.data || []) as TraderMilestone[]);
 
-    // Fetch all trading data for day counts (paginated)
-    const allTrades: any[] = [];
-    let from = 0;
-    while (true) {
-      const { data, error } = await supabase
-        .from("trading_data")
-        .select("user_id, trade_date, trader2_id, trader2_role")
-        .range(from, from + 999);
-      if (error || !data || data.length === 0) break;
-      allTrades.push(...data);
-      if (data.length < 1000) break;
-      from += 1000;
-    }
-    const daysMap: Record<string, Set<string>> = {};
-    allTrades.forEach((t) => {
-      if (!daysMap[t.user_id]) daysMap[t.user_id] = new Set();
-      daysMap[t.user_id].add(t.trade_date);
-      if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") {
-        if (!daysMap[t.trader2_id]) daysMap[t.trader2_id] = new Set();
-        daysMap[t.trader2_id].add(t.trade_date);
-      }
+    // Trading days and net profit per trader from the shared payout engine.
+    const tradeUsers = await fetchAllRows<any>((f, t) =>
+      supabase.from("trading_data").select("id, user_id, trader2_id, trader2_role").order("id").range(f, t)
+    ).catch(() => [] as any[]);
+    const ids = new Set<string>();
+    tradeUsers.forEach((t: any) => {
+      ids.add(t.user_id);
+      if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") ids.add(t.trader2_id);
     });
     const countMap: Record<string, number> = {};
-    Object.entries(daysMap).forEach(([uid, set]) => { countMap[uid] = set.size; });
+    const profits: Record<string, number> = {};
+    try {
+      const histories = await loadAllTraderHistories([...ids]);
+      histories.forEach((h, uid) => {
+        countMap[uid] = h.totalDays;
+        profits[uid] = h.totalProfit;
+      });
+    } catch {
+      /* leave maps empty; levels show as unknown */
+    }
     setTradingDaysMap(countMap);
+    setProfitMap(profits);
 
     if (!configRes.error && configRes.data && configRes.data.length > 0) {
       setConfigs(configRes.data.map(c => ({
@@ -149,10 +149,8 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
   const isEdited = (userId: string) => Boolean(editing[userId]);
 
   const getMilestoneForUser = (userId: string) => {
-    const milestone = milestones.find(m => m.user_id === userId);
-    if (!milestone) return null;
-    const tradingDays = tradingDaysMap[userId] || 0;
-    return getMilestoneLevel(tradingDays, milestone.cumulative_net_profit);
+    if (tradingDaysMap[userId] === undefined && profitMap[userId] === undefined) return null;
+    return getMilestoneLevel(tradingDaysMap[userId] || 0, profitMap[userId] || 0);
   };
 
   const handleChange = (userId: string, field: keyof TraderConfigData, value: any) => {
@@ -207,7 +205,13 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     }
 
-    await propagateToFutureMonths(userId, payload);
+    try {
+      await propagateToFutureMonths(userId, payload);
+    } catch (e) {
+      toast({ title: "Saved this month, but later months weren't updated", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+      fetchConfigs();
+      return;
+    }
     toast({ title: "Saved", description: "Config saved" });
     setEditing(prev => { const n = { ...prev }; delete n[userId]; return n; });
     fetchConfigs();
@@ -222,13 +226,13 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
 
     if (futureConfigs && futureConfigs.length > 0) {
       for (const fc of futureConfigs) {
-        await supabase.from("trader_config").update({
+        must(await supabase.from("trader_config").update({
           payout_percentage: payload.payout_percentage,
           sto_percentage: payload.sto_percentage,
           lto_percentage: payload.lto_percentage,
           config_mode: payload.config_mode,
           software_cost: payload.software_cost,
-        }).eq("id", fc.id);
+        }).eq("id", fc.id));
       }
     }
   };

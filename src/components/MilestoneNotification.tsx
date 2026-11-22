@@ -3,6 +3,7 @@ import { TrendingUp, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getMilestoneLevel, getNextMilestone, MILESTONES } from "@/lib/payoutCalculations";
+import { loadAllTraderHistories } from "@/hooks/useTraderHistory";
 import { Progress } from "@/components/ui/progress";
 import { formatIndian } from "@/lib/utils";
 import {
@@ -103,38 +104,29 @@ const MilestoneNotification = () => {
     const profiles = profilesRes.data || [];
     const milestones = milestonesRes.data || [];
 
-    // Count distinct trading days + compute NET P&L (gross - brokerage - software)
-    // matching TraderProgress logic: brokerage = $14/1000 shares, software = $1000 flat
-    const SOFTWARE_COST = 1000;
-    const tradingDaysMap: Record<string, Set<string>> = {};
-    const totalPnlMap: Record<string, number> = {};
+    // Trading days, first trade and net profit from the shared payout engine
+    // (partner days split 50/50, monthly software cost, baseline, days-OR-profit).
+    const activeIds = new Set<string>();
     const firstTradeDateMap: Record<string, string> = {};
-
     tradingData.forEach((t) => {
-      const shares = Number(t.shares_traded || 0);
-      const brokerage = (shares / 1000) * 14;
-      const netAfterBrokerage = Number(t.net_pnl) - brokerage;
-
-      if (!tradingDaysMap[t.user_id]) tradingDaysMap[t.user_id] = new Set();
-      tradingDaysMap[t.user_id].add(t.trade_date);
-      totalPnlMap[t.user_id] = (totalPnlMap[t.user_id] || 0) + netAfterBrokerage;
-      if (!firstTradeDateMap[t.user_id] || t.trade_date < firstTradeDateMap[t.user_id]) {
-        firstTradeDateMap[t.user_id] = t.trade_date;
-      }
-
-      if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") {
-        if (!tradingDaysMap[t.trader2_id]) tradingDaysMap[t.trader2_id] = new Set();
-        tradingDaysMap[t.trader2_id].add(t.trade_date);
-        totalPnlMap[t.trader2_id] = (totalPnlMap[t.trader2_id] || 0) + netAfterBrokerage;
-        if (!firstTradeDateMap[t.trader2_id] || t.trade_date < firstTradeDateMap[t.trader2_id]) {
-          firstTradeDateMap[t.trader2_id] = t.trade_date;
-        }
-      }
+      const ids = [t.user_id];
+      if (t.trader2_id && t.trader2_role?.toLowerCase() === "partner") ids.push(t.trader2_id);
+      ids.forEach((uid) => {
+        activeIds.add(uid);
+        if (!firstTradeDateMap[uid] || t.trade_date < firstTradeDateMap[uid]) firstTradeDateMap[uid] = t.trade_date;
+      });
     });
-
-    // Subtract flat software cost per trader who has any trading activity
-    Object.keys(totalPnlMap).forEach((uid) => {
-      totalPnlMap[uid] -= SOFTWARE_COST;
+    let histories: Awaited<ReturnType<typeof loadAllTraderHistories>>;
+    try {
+      histories = await loadAllTraderHistories([...activeIds]);
+    } catch {
+      return; // don't show level alerts from incomplete data
+    }
+    const tradingDaysMap: Record<string, { size: number }> = {};
+    const totalPnlMap: Record<string, number> = {};
+    histories.forEach((h, uid) => {
+      tradingDaysMap[uid] = { size: h.totalDays };
+      totalPnlMap[uid] = h.totalProfit;
     });
 
     // Auto-create missing milestone rows for any trader with activity

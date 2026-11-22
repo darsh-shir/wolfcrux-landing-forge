@@ -15,8 +15,8 @@ import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 
 interface TradeRow {
   trade_date: string;
-  net_pnl: number;
-  shares_traded: number;
+  net_pnl: number | string;
+  shares_traded: number | string;
   trader2_role?: string | null;
 }
 

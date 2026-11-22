@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import { useTraderHistory } from "@/hooks/useTraderHistory";
 import { formatIndian, formatCurrencyINR } from "@/lib/utils";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { useNavigate } from "react-router-dom";
@@ -53,7 +55,9 @@ const MyData = () => {
   const [dataLoading, setDataLoading] = useState(true);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [firstName, setFirstName] = useState<string>("");
-  const [employeeRole, setEmployeeRole] = useState<string>("");
+  // Level title from the shared payout engine (days OR profit), same as admin screens
+  const { history: payoutHistory } = useTraderHistory(user?.id);
+  const employeeRole = payoutHistory?.currentLevel.label ?? MILESTONES[0].label;
 
   // Filters
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("monthly");
@@ -73,18 +77,13 @@ const MyData = () => {
   useEffect(() => {
     if (user) {
       fetchData();
-      // Fetch profile for first name, then milestone level for the title
-      Promise.all([
-        supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle(),
-        supabase.from("trader_milestones").select("current_level").eq("user_id", user.id).maybeSingle(),
-      ]).then(([profileRes, milestoneRes]) => {
-        if (profileRes.data?.full_name) {
-          setFirstName(profileRes.data.full_name.split(" ")[0]);
-        }
-        const lvl = milestoneRes.data?.current_level ?? 0;
-        const milestone = MILESTONES.find((m) => m.level === lvl) || MILESTONES[0];
-        setEmployeeRole(milestone.label);
-      });
+      // First name for the greeting (the level title comes from the payout engine)
+      supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle()
+        .then((profileRes) => {
+          if (profileRes.data?.full_name) {
+            setFirstName(profileRes.data.full_name.split(" ")[0]);
+          }
+        });
     }
   }, [user]);
 
@@ -94,15 +93,17 @@ const MyData = () => {
     setDataLoading(true);
     
     // Fetch user's own trades + trades where they were the partner (trader2)
+    // Load every trade (Supabase returns at most 1,000 rows per request).
+    const pageOf = (build: () => any) => (f: number, t: number) => build().order("id").range(f, t);
     const [accountsRes, ownTradesRes, partnerTradesRes, configRes] = await Promise.all([
       supabase.from("trading_accounts").select("*").order("account_name"),
-      supabase.from("trading_data").select("*").eq("user_id", user.id).order("trade_date", { ascending: false }),
-      supabase
-        .from("trading_data")
-        .select("*")
-        .eq("trader2_id", user.id)
-        .eq("trader2_role", "partner")
-        .order("trade_date", { ascending: false }),
+      fetchAllRows<any>(pageOf(() =>
+        supabase.from("trading_data").select("*").eq("user_id", user.id).order("trade_date", { ascending: false })))
+        .then((data) => ({ data })),
+      fetchAllRows<any>(pageOf(() =>
+        supabase.from("trading_data").select("*").eq("trader2_id", user.id).eq("trader2_role", "partner")
+          .order("trade_date", { ascending: false })))
+        .then((data) => ({ data })),
       supabase.from("trader_config").select("month,year,software_cost").eq("user_id", user.id),
     ]);
 

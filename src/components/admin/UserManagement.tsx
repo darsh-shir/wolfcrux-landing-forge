@@ -236,6 +236,25 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     setIsDeleting(true);
 
     try {
+      // Deleting a user permanently deletes every trade they made (and changes
+      // company and partner history), so it is blocked while trades exist.
+      const [asPrimary, asPartner] = await Promise.all([
+        supabase.from("trading_data").select("id", { count: "exact", head: true }).eq("user_id", deleteUser.user_id),
+        supabase.from("trading_data").select("id", { count: "exact", head: true }).eq("trader2_id", deleteUser.user_id),
+      ]);
+      if (asPrimary.error || asPartner.error) throw new Error((asPrimary.error || asPartner.error)!.message);
+      const tradeCount = (asPrimary.count ?? 0) + (asPartner.count ?? 0);
+      if (tradeCount > 0) {
+        toast({
+          title: "Can't delete this user",
+          description: `${deleteUser.full_name} has ${tradeCount} trade record(s). Deleting them would erase that trading history and change payouts. Reset their password to block access instead.`,
+          variant: "destructive",
+        });
+        setDeleteUser(null);
+        setIsDeleting(false);
+        return;
+      }
+
       const response = await supabase.functions.invoke("admin-operations", {
         body: {
           action: "delete_user",
@@ -517,7 +536,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Employee?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete {deleteUser?.full_name} and all associated data.
+              This cannot be undone. Users who have any trade records can't be deleted, because that would erase their trading history.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -606,6 +625,23 @@ const AccountActions = ({ account, onRefresh }: { account: TradingAccount; onRef
   const [editNumber, setEditNumber] = useState(account.account_number || "");
 
   const handleDelete = async () => {
+    // Deleting an account permanently deletes every trade recorded on it.
+    const { count, error: countError } = await supabase
+      .from("trading_data").select("id", { count: "exact", head: true }).eq("account_id", account.id);
+    if (countError) {
+      toast({ title: "Error", description: countError.message, variant: "destructive" });
+      setShowDelete(false);
+      return;
+    }
+    if ((count ?? 0) > 0) {
+      toast({
+        title: "Can't delete this account",
+        description: `${count} trade record(s) use this account. Deleting it would erase them. Rename it instead if it's no longer used.`,
+        variant: "destructive",
+      });
+      setShowDelete(false);
+      return;
+    }
     const { error } = await supabase.from("trading_accounts").delete().eq("id", account.id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });

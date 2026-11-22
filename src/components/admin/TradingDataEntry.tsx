@@ -1,4 +1,5 @@
 import { formatIndian } from "@/lib/utils";
+import { nyDateKey } from "@/lib/marketDate";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -139,9 +140,12 @@ interface TraderConfigData {
 const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: TradingDataEntryProps) => {
   const { toast } = useToast();
 
-  const today = new Date().toISOString().split("T")[0];
+  // Default to today's US trading date (New York), not the UTC or India date.
+  const today = nyDateKey();
 
   const [trader1, setTrader1Raw] = useState("");
+  // Date/trader/accounts the "account already used" warning was shown for.
+  const [dupWarningFor, setDupWarningFor] = useState<string | null>(null);
   const setTrader1 = (value: string) => {
     setTrader1Raw(value);
     onTraderChange?.(value);
@@ -357,6 +361,46 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
     if (trader1 && trader2 && trader1 === trader2) {
       toast({ title: "Error", description: "Please select two different traders", variant: "destructive" });
       return;
+    }
+
+    // An empty P&L box used to be saved silently as $0.
+    for (const [acc, pnl, shares, n] of [
+      [account1, netPnl1, sharesTraded1, 1],
+      [account2, netPnl2, sharesTraded2, 2],
+    ] as const) {
+      if (!acc) continue;
+      if (String(pnl).trim() === "" || Number.isNaN(Number(pnl))) {
+        toast({ title: "Enter the P&L", description: `Account ${n} has no P&L. Enter 0 if it was flat.`, variant: "destructive" });
+        return;
+      }
+      if (String(shares).trim() !== "" && Number(shares) < 0) {
+        toast({ title: "Check shares traded", description: `Account ${n} has negative shares.`, variant: "destructive" });
+        return;
+      }
+    }
+
+    // Warn once if another trader already has this account on this date (double-counted P&L).
+    const accountsToCheck = [account1, account2].filter(Boolean) as string[];
+    const dupCheckKey = `${tradeDate}|${trader1}|${accountsToCheck.join(",")}`;
+    if (accountsToCheck.length > 0 && dupWarningFor !== dupCheckKey) {
+      const { data: clash, error: clashError } = await supabase
+        .from("trading_data")
+        .select("user_id, account_id")
+        .eq("trade_date", tradeDate)
+        .in("account_id", accountsToCheck)
+        .neq("user_id", trader1);
+      if (!clashError && clash && clash.length > 0) {
+        const names = clash
+          .map((c) => users.find((u) => u.user_id === c.user_id)?.full_name || "another trader")
+          .join(", ");
+        setDupWarningFor(dupCheckKey);
+        toast({
+          title: "Account already used that day",
+          description: `This account already has an entry for ${names} on ${tradeDate}. Its P&L would be counted twice. Click Save again to save anyway.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsSubmitting(true);

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { must } from "@/lib/fetchAllRows";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -145,7 +146,7 @@ const BaselineSeeder = ({ users }: Props) => {
     if (!confirm(`Remove baseline for ${user.full_name}?`)) return;
     setSaving(user.user_id);
     try {
-      await supabase.from("trader_baselines" as any).delete().eq("id", d.existingId);
+      must(await supabase.from("trader_baselines" as any).delete().eq("id", d.existingId));
       toast.success("Baseline removed");
       await fetchBaselines();
     } catch (e: any) {

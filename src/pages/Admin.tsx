@@ -109,7 +109,15 @@ const Admin = () => {
           .order("trade_date", { ascending: false })
           .order("id", { ascending: true })
           .range(from, from + pageSize - 1);
-        if (error || !data) break;
+        if (error || !data) {
+          // Never continue silently with partial trade history.
+          toast({
+            title: "Trade history didn't fully load",
+            description: `${error?.message ?? "Unknown error"}. Refresh the page before working on payouts.`,
+            variant: "destructive",
+          });
+          break;
+        }
         data.forEach((trade) => tradesById.set(trade.id, trade));
         if (data.length < pageSize) break;
         from += pageSize;
