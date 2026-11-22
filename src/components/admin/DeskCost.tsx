@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Building2 } from "lucide-react";
+import { Building2, CheckCircle2 } from "lucide-react";
 import { formatIndian } from "@/lib/utils";
 
 interface Profile {
@@ -40,6 +40,7 @@ const DeskCost = ({ users }: DeskCostProps) => {
   const [loading, setLoading] = useState(false);
   const [editingRow, setEditingRow] = useState<Record<string, DeskCostRecord>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [show, setShow] = useState<"all" | "unpaid">("all");
 
   useEffect(() => {
     fetchRecords();
@@ -124,6 +125,13 @@ const DeskCost = ({ users }: DeskCostProps) => {
 
   const getPending = (row: DeskCostRecord) => Number(row.total_desk_cost) - Number(row.total_paid);
 
+  // Paid status uses saved figures, so rows don't jump around while typing.
+  const savedPending = (userId: string) => getPending(initEditRow(userId));
+  const isFullyPaid = (userId: string) => Number(initEditRow(userId).total_desk_cost) > 0 && savedPending(userId) <= 0;
+  const unpaidUsers = users.filter(u => savedPending(u.user_id) > 0);
+  const shownUsers = show === "unpaid" ? unpaidUsers : users;
+  const unpaidTotal = unpaidUsers.reduce((sum, u) => sum + savedPending(u.user_id), 0);
+
   return (
     <div className="space-y-6">
       <Card>
@@ -145,7 +153,24 @@ const DeskCost = ({ users }: DeskCostProps) => {
             </Select>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex rounded-md border p-1">
+              <Button size="sm" variant={show === "all" ? "secondary" : "ghost"} className="h-8" onClick={() => setShow("all")}>
+                All ({users.length})
+              </Button>
+              <Button size="sm" variant={show === "unpaid" ? "secondary" : "ghost"} className="h-8" onClick={() => setShow("unpaid")}>
+                Not fully paid ({unpaidUsers.length})
+              </Button>
+            </div>
+            {unpaidUsers.length > 0 ? (
+              <span className="text-sm text-muted-foreground">
+                ₹{formatIndian(unpaidTotal)} still to collect from {unpaidUsers.length} {unpaidUsers.length === 1 ? "person" : "people"}
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">Everyone has paid their desk cost for {selectedYear}.</span>
+            )}
+          </div>
           <div className="rounded-md border overflow-x-auto">
             <Table className="min-w-[900px]">
               <TableHeader>
@@ -158,12 +183,21 @@ const DeskCost = ({ users }: DeskCostProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map(user => {
+                {shownUsers.map(user => {
                   const row = getRowData(user.user_id);
                   const pending = getPending(row);
                   return (
                     <TableRow key={user.user_id}>
-                      <TableCell className="font-medium">{user.full_name}</TableCell>
+                      <TableCell className="font-medium">
+                        <span className="inline-flex items-center gap-2">
+                          {user.full_name}
+                          {isFullyPaid(user.user_id) && (
+                            <span title="Paid in full" aria-label="Paid in full">
+                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            </span>
+                          )}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         <Input type="number" className="w-28" value={row.total_desk_cost || ""}
                           onChange={e => handleFieldChange(user.user_id, "total_desk_cost", Number(e.target.value))}
@@ -191,7 +225,7 @@ const DeskCost = ({ users }: DeskCostProps) => {
                   );
                 })}
                 {(() => {
-                  const totals = users.reduce((acc, user) => {
+                  const totals = shownUsers.reduce((acc, user) => {
                     const row = getRowData(user.user_id);
                     acc.cost += Number(row.total_desk_cost);
                     acc.paid += Number(row.total_paid);
