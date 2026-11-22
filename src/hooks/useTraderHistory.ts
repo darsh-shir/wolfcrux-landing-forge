@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { loadTransfers, transfersNetByMonth } from "@/lib/pnlTransfers";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import {
@@ -19,11 +20,12 @@ const currentMonthKey = () => {
 };
 
 /** Month configs (seat cost, manual %) keyed by YYYY-MM. */
-const configLookup = (configs: any[]) => {
+const configLookup = (configs: any[], transfersNet: Map<string, number> = new Map()) => {
   const map = new Map<string, any>(configs.map((c) => [`${c.year}-${String(c.month).padStart(2, "0")}`, c]));
   return (key: string): MonthConfig => {
     const c = map.get(key);
     return {
+      transfersNet: transfersNet.get(key) ?? 0,
       seatCost: c?.software_cost != null ? Number(c.software_cost) : DEFAULT_SEAT_COST,
       mode: c?.config_mode,
       stoPercent: c?.sto_percentage != null ? Number(c.sto_percentage) : undefined,
@@ -53,7 +55,7 @@ export const useTraderHistory = (userId: string | null | undefined) => {
     (async () => {
       setLoading(true);
       try {
-        const [own, asPartner, profileRes, baselineRes, configRes] = await Promise.all([
+        const [own, asPartner, profileRes, baselineRes, configRes, transfers] = await Promise.all([
           fetchAllRows<any>((f, t) =>
             supabase.from("trading_data").select(TRADE_COLS).eq("user_id", userId).order("trade_date").order("id").range(f, t)),
           fetchAllRows<any>((f, t) =>
@@ -61,6 +63,7 @@ export const useTraderHistory = (userId: string | null | undefined) => {
           supabase.from("profiles").select("joining_date").eq("user_id", userId).maybeSingle(),
           supabase.from("trader_baselines").select("as_of_date, baseline_days, baseline_net_profit").eq("user_id", userId).maybeSingle(),
           supabase.from("trader_config").select("*").eq("user_id", userId),
+          loadTransfers(userId),
         ]);
         if (profileRes.error) throw profileRes.error;
         if (configRes.error) throw configRes.error;
@@ -73,7 +76,7 @@ export const useTraderHistory = (userId: string | null | undefined) => {
           startMonth: profileRes.data?.joining_date?.slice(0, 7) ?? null,
           // Traders may not be allowed to read baselines; treat as none.
           baseline: baselineRes.error ? null : toBaseline(baselineRes.data),
-          configFor: configLookup(configRes.data ?? []),
+          configFor: configLookup(configRes.data ?? [], transfersNetByMonth(userId, transfers.rows)),
         });
         if (!cancelled) {
           setHistory(h);
@@ -95,11 +98,12 @@ export const useTraderHistory = (userId: string | null | undefined) => {
 
 /** Every trader's history at once (admin screens). */
 export const loadAllTraderHistories = async (userIds: string[]): Promise<Map<string, HistoryResult>> => {
-  const [rows, profilesRes, baselinesRes, configsRes] = await Promise.all([
+  const [rows, profilesRes, baselinesRes, configsRes, transfers] = await Promise.all([
     fetchAllRows<any>((f, t) => supabase.from("trading_data").select(TRADE_COLS).order("trade_date").order("id").range(f, t)),
     supabase.from("profiles").select("user_id, joining_date"),
     supabase.from("trader_baselines").select("user_id, as_of_date, baseline_days, baseline_net_profit"),
     fetchAllRows<any>((f, t) => supabase.from("trader_config").select("*").order("id").range(f, t)),
+    loadTransfers(),
   ]);
   if (profilesRes.error) throw profilesRes.error;
   if (baselinesRes.error) throw baselinesRes.error;
@@ -116,7 +120,10 @@ export const loadAllTraderHistories = async (userIds: string[]): Promise<Map<str
         throughMonth: through,
         startMonth: profilesRes.data?.find((p: any) => p.user_id === id)?.joining_date?.slice(0, 7) ?? null,
         baseline: toBaseline(baselinesRes.data?.find((b: any) => b.user_id === id)),
-        configFor: configLookup(configsRes.filter((c: any) => c.user_id === id)),
+        configFor: configLookup(
+          configsRes.filter((c: any) => c.user_id === id),
+          transfersNetByMonth(id, transfers.rows)
+        ),
       })
     );
   }

@@ -22,6 +22,8 @@ import {
 } from "@/lib/payoutEngine";
 import { fetchAllRows, localDateKey } from "@/lib/fetchAllRows";
 import { mergeAttendance } from "@/lib/attendance";
+import { loadTransfers, transfersNetByMonth, type PnlTransfer } from "@/lib/pnlTransfers";
+import { saveTraderMonth, saveExchangeRate } from "@/lib/payoutSave";
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 import PayoutCalendarHeatmap from "./PayoutCalendarHeatmap";
 
@@ -90,7 +92,14 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
   const [cashPaidInput, setCashPaidInput] = useState(0);
   const [bankPaidInput, setBankPaidInput] = useState(0);
   const [unlockPaid, setUnlockPaid] = useState(false);
-  const [saving, setSaving] = useState<"month" | "payment" | null>(null);
+  const [saving, setSaving] = useState<"month" | "payment" | "adjustment" | null>(null);
+  // Adjustments
+  const [transfers, setTransfers] = useState<PnlTransfer[]>([]);
+  const [transfersAvailable, setTransfersAvailable] = useState(true);
+  const [adjDirection, setAdjDirection] = useState<"receive" | "give">("receive");
+  const [adjOther, setAdjOther] = useState("");
+  const [adjAmount, setAdjAmount] = useState("");
+  const [adjNote, setAdjNote] = useState("");
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
   const selectedKey = monthKey(selectedYear, selectedMonth);
@@ -107,14 +116,18 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
     try {
       const tradeCols =
         "id, trade_date, user_id, account_id, trader2_id, trader2_role, trader1_attendance, trader2_attendance, late_remarks, net_pnl, shares_traded, is_holiday";
-      const [own, asPartner] = await Promise.all([
+      const [own, asPartner, transferRes] = await Promise.all([
         fetchAllRows<any>((from, to) =>
           supabase.from("trading_data").select(tradeCols).eq("user_id", id)
             .order("trade_date").order("id").range(from, to)),
         fetchAllRows<any>((from, to) =>
           supabase.from("trading_data").select(tradeCols).eq("trader2_id", id)
             .order("trade_date").order("id").range(from, to)),
+        loadTransfers(id),
       ]);
+      if (transferRes.error) throw new Error(transferRes.error);
+      setTransfers(transferRes.rows);
+      setTransfersAvailable(transferRes.available);
 
       const [profileRes, baselineRes, configRes, attendanceRes, carryRes, stoRes, ltoRes, ltoHistRes, recordRes, rateRes] =
         await Promise.all([
@@ -199,6 +212,7 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
   const history = useMemo(() => {
     if (!selectedTrader) return null;
     const cfgByKey = new Map(configs.map((c: any) => [monthKey(c.year, c.month), c]));
+    const transferNet = transfersNetByMonth(selectedTrader, transfers);
     return computeHistory({
       personId: selectedTrader,
       rows: allRows,
@@ -213,10 +227,14 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
           stoPercent: c?.sto_percentage != null ? Number(c.sto_percentage) : undefined,
           ltoPercent: c?.lto_percentage != null ? Number(c.lto_percentage) : undefined,
           leavePct: key === selectedKey ? leavePct : 0,
+          transfersNet: transferNet.get(key) ?? 0,
         };
       },
     });
-  }, [selectedTrader, allRows, selectedKey, joiningDate, baseline, configs, seatCostInput, leavePct]);
+  }, [selectedTrader, allRows, selectedKey, joiningDate, baseline, configs, seatCostInput, leavePct, transfers]);
+
+  const monthTransfers = transfers.filter((t) => t.month === selectedMonth && t.year === selectedYear);
+  const nameOf = (uid: string) => users.find((u) => u.user_id === uid)?.full_name || "Unknown";
 
   const month = history?.byMonth.get(selectedKey) ?? null;
 
@@ -262,62 +280,8 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
     if (isPaid && !unlockPaid) return;
     setSaving("month");
     try {
-      const cfgPayload = { user_id: selectedTrader, month: selectedMonth, year: selectedYear, software_cost: seatCostInput };
-      const cfgRes = savedCfg
-        ? await supabase.from("trader_config").update({ software_cost: seatCostInput }).eq("id", savedCfg.id)
-        : await supabase.from("trader_config").insert(cfgPayload);
-      if (cfgRes.error) throw cfgRes.error;
-
-      const rateRes = await supabase
-        .from("monthly_exchange_rates")
-        .upsert({ month: selectedMonth, year: selectedYear, usd_to_inr: inrRate }, { onConflict: "month,year" });
-      if (rateRes.error) throw rateRes.error;
-
-      const stoRes = await supabase.from("sto_ledger").upsert(
-        {
-          user_id: selectedTrader,
-          month: selectedMonth,
-          year: selectedYear,
-          gross_profit: r2(month.grossPnl),
-          shares_traded: Math.round(month.shares),
-          share_cost: r2(month.shareCost),
-          software_cost: r2(month.softwareCost),
-          net_profit: r2(month.netProfit),
-          sto_percentage: month.stoPercent,
-          sto_amount: r2(month.sto),
-          leave_deduction_percent: month.leavePct,
-          leave_deduction_amount: r2(month.leaveDeductionSto),
-          trainee_pool_contribution: r2(month.secondPcShare),
-          final_sto_amount: r2(month.finalSto),
-          payout_due_date: firstOfMonthAfter(selectedYear, selectedMonth, 3),
-        },
-        { onConflict: "user_id,month,year" }
-      );
-      if (stoRes.error) throw stoRes.error;
-
-      if (!ltoReleased) {
-        if (Math.abs(month.finalLto) < 0.005) {
-          if (existingLto?.id) {
-            const del = await supabase.from("lto_ledger").delete().eq("id", existingLto.id);
-            if (del.error) throw del.error;
-          }
-        } else {
-          const ltoRes = await supabase.from("lto_ledger").upsert(
-            {
-              user_id: selectedTrader,
-              month: selectedMonth,
-              year: selectedYear,
-              net_profit: r2(month.netProfit),
-              lto_percentage: month.ltoPercent,
-              lto_amount: r2(month.finalLto),
-              unlock_date: firstOfMonthAfter(selectedYear, selectedMonth, 12),
-            },
-            { onConflict: "user_id,month,year" }
-          );
-          if (ltoRes.error) throw ltoRes.error;
-        }
-      }
-
+      await saveExchangeRate(selectedYear, selectedMonth, inrRate);
+      await saveTraderMonth({ userId: selectedTrader, year: selectedYear, month: selectedMonth, result: month, seatCost: seatCostInput });
       toast({ title: "Month saved", description: `${traderName} — ${MONTHS[selectedMonth - 1]} ${selectedYear}` });
       await fetchPayoutData();
     } catch (e: any) {
@@ -325,6 +289,42 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
     } finally {
       setSaving(null);
     }
+  };
+
+  // ---------- Adjustments (P&L moved between traders) ----------
+  const addAdjustment = async () => {
+    const amount = Number(adjAmount);
+    if (!adjOther || !(amount > 0)) return;
+    setSaving("adjustment");
+    const give = adjDirection === "give";
+    const { error } = await supabase.from("pnl_transfers").insert({
+      month: selectedMonth,
+      year: selectedYear,
+      from_user_id: give ? selectedTrader : adjOther,
+      to_user_id: give ? adjOther : selectedTrader,
+      amount: Math.round(amount * 100) / 100,
+      note: adjNote.trim() || null,
+    });
+    setSaving(null);
+    if (error) {
+      toast({ title: "Couldn't add the adjustment", description: error.message, variant: "destructive" });
+      return;
+    }
+    setAdjAmount("");
+    setAdjNote("");
+    toast({ title: "Adjustment added", description: "It also appears on the other trader's sheet. Save both months." });
+    await fetchPayoutData();
+  };
+
+  const removeAdjustment = async (id: string) => {
+    setSaving("adjustment");
+    const { error } = await supabase.from("pnl_transfers").delete().eq("id", id);
+    setSaving(null);
+    if (error) {
+      toast({ title: "Couldn't remove the adjustment", description: error.message, variant: "destructive" });
+      return;
+    }
+    await fetchPayoutData();
   };
 
   const savePayment = async () => {
@@ -519,7 +519,35 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                       />
                       {neg(month.softwareCost)}
                     </span>
-                    <Row label="Net profit" value={fmt(month.netProfit)} tone={month.netProfit >= 0 ? "text-green-600" : "text-red-600"} strong />
+                    {monthTransfers.length > 0 && (
+                      <>
+                        <Row label="Net profit before adjustments" value={fmt(month.netProfit - month.transfersNet)} strong />
+                        {monthTransfers.map((t) => {
+                          const incoming = t.to_user_id === selectedTrader;
+                          return (
+                            <React.Fragment key={t.id}>
+                              <span className="text-muted-foreground">
+                                {incoming ? `From ${nameOf(t.from_user_id)}` : `To ${nameOf(t.to_user_id)}`}
+                                {t.note && <span className="block text-xs">{t.note}</span>}
+                              </span>
+                              <span className={`flex items-center justify-end gap-2 font-medium ${incoming ? "text-green-600" : "text-red-600"}`}>
+                                {incoming ? "+" : "−"}{formatCurrencyINR(t.amount, "$")}
+                                <button
+                                  type="button"
+                                  className="text-xs text-muted-foreground underline hover:text-red-600"
+                                  onClick={() => void removeAdjustment(t.id)}
+                                  disabled={saving !== null}
+                                  aria-label="Remove adjustment"
+                                >
+                                  remove
+                                </button>
+                              </span>
+                            </React.Fragment>
+                          );
+                        })}
+                      </>
+                    )}
+                    <Row label={monthTransfers.length > 0 ? "Final net profit" : "Net profit"} value={fmt(month.netProfit)} tone={month.netProfit >= 0 ? "text-green-600" : "text-red-600"} strong />
                     {month.priorDeficit > 0 && (
                       <>
                         <Row label="Earlier losses still to recover" value={neg(month.priorDeficit)} tone="text-red-600" />
@@ -530,6 +558,51 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                       <Row label="Loss carried to next month" value={fmt(month.deficitAfter)} tone="text-red-600" />
                     )}
                   </div>
+                </div>
+
+                {/* Add an adjustment */}
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Adjustments with other traders</h3>
+                  {!transfersAvailable ? (
+                    <p className="text-sm text-muted-foreground border rounded-lg p-3">
+                      Adjustments will work once the database update for them has been applied.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap items-end gap-2 border rounded-lg p-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Type</Label>
+                        <Select value={adjDirection} onValueChange={(v) => setAdjDirection(v as "receive" | "give")}>
+                          <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="receive">+ Receive from</SelectItem>
+                            <SelectItem value="give">− Give to</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Trader</Label>
+                        <Select value={adjOther} onValueChange={setAdjOther}>
+                          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select trader" /></SelectTrigger>
+                          <SelectContent>
+                            {users.filter((u) => u.user_id !== selectedTrader).map((u) => (
+                              <SelectItem key={u.user_id} value={u.user_id}>{u.full_name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="adj-amount" className="text-xs">Amount ($, net)</Label>
+                        <Input id="adj-amount" type="number" min="0" step="0.01" className="w-28 text-right" value={adjAmount} onChange={(e) => setAdjAmount(e.target.value)} />
+                      </div>
+                      <div className="space-y-1 flex-1 min-w-[140px]">
+                        <Label htmlFor="adj-note" className="text-xs">Note (optional)</Label>
+                        <Input id="adj-note" value={adjNote} maxLength={500} onChange={(e) => setAdjNote(e.target.value)} placeholder="e.g. traded together on 12 Mar" />
+                      </div>
+                      <Button type="button" variant="outline" onClick={() => void addAdjustment()} disabled={saving !== null || !adjOther || !(Number(adjAmount) > 0)}>
+                        Add
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {/* STO */}

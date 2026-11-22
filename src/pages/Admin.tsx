@@ -6,10 +6,11 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History, Folder, Fingerprint, Inbox, Briefcase } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History, Folder, Fingerprint, Inbox, Briefcase, CalendarCheck } from "lucide-react";
 import EmployeeDocuments from "@/components/admin/EmployeeDocuments";
 import ContactMessages from "@/components/admin/ContactMessages";
 import JobApplications from "@/components/admin/JobApplications";
+import PayoutRun, { defaultStoMonth } from "@/components/admin/PayoutRun";
 import BiometricAttendance from "@/components/admin/BiometricAttendance";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
@@ -151,6 +152,20 @@ const Admin = () => {
       <Navigation />
       <div className="min-h-screen bg-background pt-20 sm:pt-24 pb-12 px-3 sm:px-4 animate-fade-in">
         <div className="max-w-[1600px] mx-auto">
+          {new Date().getDate() <= 15 && activeTab !== "payout-run" && (() => {
+            const due = defaultStoMonth();
+            return (
+              <div className="mb-4 flex flex-wrap items-center gap-3 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+                <CalendarCheck className="h-4 w-4 text-primary" />
+                <span>
+                  {["January","February","March","April","May","June","July","August","September","October","November","December"][due.month - 1]} {due.year} STO is due around the 5th–10th.
+                </span>
+                <button type="button" className="ml-auto font-medium text-primary underline" onClick={() => setActiveTab("payout-run")}>
+                  Open Payout Run
+                </button>
+              </div>
+            );
+          })()}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
               <TabsList className="w-max bg-muted/30 border border-border/50">
@@ -169,6 +184,10 @@ const Admin = () => {
                 <TabsTrigger value="leaves" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
                   <Calendar className="h-4 w-4" />
                   Leaves
+                </TabsTrigger>
+                <TabsTrigger value="payout-run" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <CalendarCheck className="h-4 w-4" />
+                  Payout Run
                 </TabsTrigger>
                 <TabsTrigger value="payouts" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
                   <FileText className="h-4 w-4" />
@@ -282,6 +301,11 @@ const Admin = () => {
             {/* LEAVES TAB */}
             <TabsContent value="leaves">
               <LeavesManagement users={users} />
+            </TabsContent>
+
+            {/* PAYOUT RUN TAB — everyone's STO due this month */}
+            <TabsContent value="payout-run">
+              <PayoutRun onOpenSheet={openPayoutFor} />
             </TabsContent>
 
             {/* PAYOUT SHEET TAB */}

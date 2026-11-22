@@ -616,6 +616,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pnl_transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          from_user_id: string
+          id: string
+          month: number
+          note: string | null
+          to_user_id: string
+          year: number
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          from_user_id: string
+          id?: string
+          month: number
+          note?: string | null
+          to_user_id: string
+          year: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          from_user_id?: string
+          id?: string
+          month?: number
+          note?: string | null
+          to_user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           assigned_trader_id: string | null
