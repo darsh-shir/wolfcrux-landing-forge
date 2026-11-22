@@ -232,6 +232,39 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          is_read: boolean
+          last_name: string
+          message: string
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          is_read?: boolean
+          last_name: string
+          message: string
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          is_read?: boolean
+          last_name?: string
+          message?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       desk_costs: {
         Row: {
           created_at: string
@@ -334,6 +367,54 @@ export type Database = {
           holiday_date?: string
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      job_applications: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          linkedin_url: string | null
+          message: string | null
+          phone: string | null
+          position: string
+          resume_file_name: string | null
+          resume_path: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          linkedin_url?: string | null
+          message?: string | null
+          phone?: string | null
+          position: string
+          resume_file_name?: string | null
+          resume_path?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          linkedin_url?: string | null
+          message?: string | null
+          phone?: string | null
+          position?: string
+          resume_file_name?: string | null
+          resume_path?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1036,6 +1117,27 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_watchlists: {
+        Row: {
+          created_at: string
+          symbols: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          symbols?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          symbols?: string[]
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useVisibleInterval } from "@/hooks/useVisibleInterval";
+import { supabase } from "@/integrations/supabase/client";
 import { normalizeTipranksQuotes, type ExtendedHoursQuote } from "@/lib/tipranksQuote";
 
 
@@ -68,7 +69,7 @@ const fetchQuote = async (symbol: string): Promise<TickerQuote | null> => {
 
 /**
  * Hook that:
- *  - Loads a per-user watchlist (localStorage, keyed by user id when signed in)
+ *  - Loads the trader's watchlist from their account (Supabase), cached in localStorage
  *  - Merges INDUSTRY_LEADERS at the front, user symbols after
  *  - Fetches live quotes via the existing Cloudflare proxy
  *  - Auto-refreshes every 20s
@@ -115,13 +116,68 @@ export const useTickerWatchlist = () => {
     // anything they added while logged out (and vice versa).
   }, [user?.id]);
 
-  const persist = useCallback((next: string[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* ignore quota errors */
-    }
-  }, []);
+  // Signed in: the watchlist lives in the trader's account (user_watchlists),
+  // so it follows them across computers. The browser copy above is only a
+  // fast first paint and a fallback if the database can't be reached.
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("user_watchlists")
+        .select("symbols")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.warn("Watchlist sync unavailable, using this browser's list:", error.message);
+        return;
+      }
+      if (data) {
+        const fromAccount = (data.symbols || []).map(sanitize).filter(Boolean);
+        setUserSymbols(fromAccount);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(fromAccount));
+        } catch {
+          /* ignore */
+        }
+      } else {
+        // First sign-in since sync was added: copy this browser's list to the account.
+        let local: string[] = [];
+        try {
+          const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+          if (Array.isArray(parsed)) local = parsed.map(sanitize).filter(Boolean);
+        } catch {
+          /* ignore */
+        }
+        if (local.length > 0) {
+          await supabase.from("user_watchlists").upsert({ user_id: user.id, symbols: local });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const persist = useCallback(
+    (next: string[]) => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore quota errors */
+      }
+      if (user?.id) {
+        void supabase
+          .from("user_watchlists")
+          .upsert({ user_id: user.id, symbols: next })
+          .then(({ error }) => {
+            if (error) console.warn("Couldn't save watchlist to your account:", error.message);
+          });
+      }
+    },
+    [user?.id]
+  );
 
   const allSymbols = [...INDUSTRY_LEADERS, ...userSymbols.filter((s) => !INDUSTRY_LEADERS.includes(s))];
 

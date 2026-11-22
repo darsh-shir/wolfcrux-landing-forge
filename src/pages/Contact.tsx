@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import Footer from "@/components/Footer";
@@ -20,13 +22,49 @@ const Contact = () => {
   useReveal();
   usePageMeta({ title: "Contact Us | Wolfcrux Global Markets", description: "Get in touch with Wolfcrux Global Markets LLP, Mumbai, India. Email info@wolfcrux.com.", path: "/contact" });
   const { toast } = useToast();
+  const [sending, setSending] = useState(false);
 
-  // There is no server-side inbox for this form, so instead of pretending the
-  // message was sent, open the visitor's email app with everything pre-filled.
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  // Messages are saved to the database and read by admins in Admin → Messages.
+  // If saving fails, fall back to the visitor's email app so nothing is lost.
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const data = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const data = new FormData(form);
     const get = (key: string) => String(data.get(key) ?? "").trim();
+
+    // Hidden "website" field: real visitors never fill it in, spam bots do.
+    if (get("website")) {
+      form.reset();
+      toast({ title: "Message sent", description: "Thank you — we'll get back to you soon." });
+      return;
+    }
+
+    setSending(true);
+    const { error } = await supabase.from("contact_messages").insert({
+      first_name: get("firstName"),
+      last_name: get("lastName"),
+      email: get("email"),
+      subject: get("subject"),
+      message: get("message"),
+    });
+    setSending(false);
+
+    if (!error) {
+      form.reset();
+      toast({ title: "Message sent", description: "Thank you for reaching out. We'll get back to you soon." });
+      return;
+    }
+
+    if (error.message?.includes("Too many submissions")) {
+      toast({
+        title: "Too many messages",
+        description: "Please wait a while before sending another, or email info@wolfcrux.com.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.error("Contact message not saved:", error.message);
     const name = `${get("firstName")} ${get("lastName")}`.trim();
     const body = `${get("message")}\n\n—\n${name}\n${get("email")}`;
     window.location.href = `mailto:info@wolfcrux.com?subject=${encodeURIComponent(
@@ -34,7 +72,7 @@ const Contact = () => {
     )}&body=${encodeURIComponent(body)}`;
     toast({
       title: "Opening your email app",
-      description: "Your message is ready to send. If nothing opened, email us at info@wolfcrux.com.",
+      description: "We couldn't send your message directly, so it's ready in your email app instead.",
     });
   };
 
@@ -138,6 +176,11 @@ const Contact = () => {
               <Card className="border-0 bg-transparent">
                 <CardContent className="p-5 sm:p-8">
                   <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Honeypot for spam bots: hidden from people and screen readers */}
+                    <div className="hidden" aria-hidden="true">
+                      <label htmlFor="contact-website">Website</label>
+                      <input id="contact-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label htmlFor="contact-firstName" className="block font-['Inter'] text-sm font-medium text-foreground mb-2">
@@ -146,6 +189,7 @@ const Contact = () => {
                         <Input
                           id="contact-firstName"
                           name="firstName"
+                          maxLength={100}
                           autoComplete="given-name"
                           type="text"
                           required
@@ -160,6 +204,7 @@ const Contact = () => {
                         <Input
                           id="contact-lastName"
                           name="lastName"
+                          maxLength={100}
                           autoComplete="family-name"
                           type="text"
                           required
@@ -176,6 +221,7 @@ const Contact = () => {
                       <Input
                         id="contact-email"
                         name="email"
+                        maxLength={254}
                         autoComplete="email"
                         type="email"
                         required
@@ -191,6 +237,7 @@ const Contact = () => {
                       <Input
                         id="contact-subject"
                         name="subject"
+                        maxLength={200}
                         type="text"
                         required
                         className="font-['Inter'] transition-all focus:ring-2 focus:ring-accent/30"
@@ -205,6 +252,7 @@ const Contact = () => {
                       <Textarea
                         id="contact-message"
                         name="message"
+                        maxLength={5000}
                         required
                         className="min-h-[150px] font-['Inter'] transition-all focus:ring-2 focus:ring-accent/30"
                         placeholder="Your message..."
@@ -214,9 +262,10 @@ const Contact = () => {
                     <Button
                       type="submit"
                       size="lg"
+                      disabled={sending}
                       className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-['Inter'] shadow-lg shadow-accent/20"
                     >
-                      Send Message
+                      {sending ? "Sending…" : "Send Message"}
                     </Button>
                   </form>
                 </CardContent>

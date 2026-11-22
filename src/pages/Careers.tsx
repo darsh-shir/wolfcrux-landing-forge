@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, LineChart, Users, Cpu, Code2 } from "lucide-react";
 import { useReveal } from "@/hooks/useReveal";
+import { useState } from "react";
+import ApplyDialog from "@/components/careers/ApplyDialog";
 
 import AuroraBackground from "@/components/landing/AuroraBackground";
 
@@ -53,10 +55,8 @@ const Careers = () => {
     },
   ];
 
-  const applyHref = (title: string) =>
-    `mailto:info@wolfcrux.com?subject=${encodeURIComponent(`Application: ${title}`)}&body=${encodeURIComponent(
-      `Hi Wolfcrux team,\n\nI'd like to apply for the ${title} role.\n\nName:\nPhone:\nLinkedIn (optional):\n\nPlease find my resume attached.\n`
-    )}`;
+  // Role the application form is open for (null = closed).
+  const [applyFor, setApplyFor] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen bg-background">
@@ -189,14 +189,12 @@ const Careers = () => {
                               ))}
                             </div>
 
-                            <Button asChild className="mt-6 group/apply">
-                              <a href={applyHref(position.title)}>
-                                Apply Now
-                                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/apply:translate-x-1" />
-                              </a>
+                            <Button className="mt-6 group/apply" onClick={() => setApplyFor(position.title)}>
+                              Apply Now
+                              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/apply:translate-x-1" />
                             </Button>
                             <p className="mt-2 text-xs text-muted-foreground font-['Inter']">
-                              Opens your email app — or email your resume to{" "}
+                              Upload your resume in the form — or email it to{" "}
                               <a href="mailto:info@wolfcrux.com" className="text-accent underline-offset-2 hover:underline">
                                 info@wolfcrux.com
                               </a>
@@ -274,14 +272,19 @@ const Careers = () => {
           <Button
             size="lg"
             className="bg-accent hover:bg-accent/90 text-accent-foreground font-['Inter'] shadow-lg shadow-accent/20"
-            onClick={() => (window.location.href = "mailto:info@wolfcrux.com")}
+            onClick={() => setApplyFor("General application")}
           >
-            Get in Touch
+            Send Your Resume
             <ArrowRight className="ml-2" size={20} />
           </Button>
         </div>
       </section>
 
+      <ApplyDialog
+        open={applyFor !== null}
+        onOpenChange={(o) => !o && setApplyFor(null)}
+        position={applyFor ?? ""}
+      />
       <Footer />
     </div>
   );

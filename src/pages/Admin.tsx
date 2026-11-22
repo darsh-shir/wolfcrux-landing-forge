@@ -6,8 +6,10 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History, Folder, Fingerprint } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History, Folder, Fingerprint, Inbox, Briefcase } from "lucide-react";
 import EmployeeDocuments from "@/components/admin/EmployeeDocuments";
+import ContactMessages from "@/components/admin/ContactMessages";
+import JobApplications from "@/components/admin/JobApplications";
 import BiometricAttendance from "@/components/admin/BiometricAttendance";
 import UserManagement from "@/components/admin/UserManagement";
 import TradingDataEntry from "@/components/admin/TradingDataEntry";
@@ -217,6 +219,14 @@ const Admin = () => {
                   <Fingerprint className="h-4 w-4" />
                   Biometric
                 </TabsTrigger>
+                <TabsTrigger value="messages" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Inbox className="h-4 w-4" />
+                  Messages
+                </TabsTrigger>
+                <TabsTrigger value="applications" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                  <Briefcase className="h-4 w-4" />
+                  Applications
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -349,6 +359,14 @@ const Admin = () => {
 
             <TabsContent value="biometric">
               <BiometricAttendance />
+            </TabsContent>
+
+            <TabsContent value="messages">
+              <ContactMessages />
+            </TabsContent>
+
+            <TabsContent value="applications">
+              <JobApplications />
             </TabsContent>
           </Tabs>
         </div>
