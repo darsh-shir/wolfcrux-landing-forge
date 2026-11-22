@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getAllTradeRows } from "@/lib/tradeCache";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
@@ -77,9 +78,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
     setMilestones((milestoneRes.data || []) as TraderMilestone[]);
 
     // Trading days and net profit per trader from the shared payout engine.
-    const tradeUsers = await fetchAllRows<any>((f, t) =>
-      supabase.from("trading_data").select("id, user_id, trader2_id, trader2_role").order("id").range(f, t)
-    ).catch(() => [] as any[]);
+    const tradeUsers = await getAllTradeRows().catch(() => [] as any[]);
     const ids = new Set<string>();
     tradeUsers.forEach((t: any) => {
       ids.add(t.user_id);

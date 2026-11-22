@@ -5,6 +5,7 @@ import { SaveButton } from "@/components/ui/save-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateTradeCache } from "@/lib/tradeCache";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Filter } from "lucide-react";
@@ -169,6 +170,7 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
     let success = true;
     for (const recordId of dayGroup.record_ids) {
       const { error } = await supabase.from("trading_data").update(updateData).eq("id", recordId);
+      invalidateTradeCache();
       if (error) {
         toast({ title: "Error saving", description: error.message, variant: "destructive" });
         success = false;
@@ -215,6 +217,7 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
       let allOk = true;
       for (const recordId of dg.record_ids) {
         const { error } = await supabase.from("trading_data").update(updateData).eq("id", recordId);
+      invalidateTradeCache();
         if (error) {
           allOk = false;
           break;

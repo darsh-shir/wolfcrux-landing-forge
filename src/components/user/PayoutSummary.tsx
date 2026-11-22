@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useTraderHistory } from "@/hooks/useTraderHistory";
 import { supabase } from "@/integrations/supabase/client";
+import { getPersonTradeRows } from "@/lib/tradeCache";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,10 +60,7 @@ const PayoutSummary = () => {
       supabase.from("lto_ledger").select("*").eq("user_id", user.id)
         .order("year", { ascending: false }).order("month", { ascending: false }),
       // Sessions where THIS user sat as the partner (trader2) on someone else's account
-      fetchAllRows<any>((f, t) =>
-        supabase.from("trading_data").select("id, trade_date, user_id, trader2_id, trader2_role")
-          .eq("trader2_id", user.id).order("trade_date").order("id").range(f, t))
-        .then((data) => ({ data })),
+      getPersonTradeRows(user.id).then((rows) => ({ data: rows.filter((r: any) => r.trader2_id === user.id) })),
     ]);
 
 

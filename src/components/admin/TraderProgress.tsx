@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isExEmployee } from "@/lib/employees";
+import { getAllTradeRows } from "@/lib/tradeCache";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -50,22 +51,8 @@ const TraderProgress = () => {
     fetchData();
   }, []);
 
-  const fetchAllTradingData = async () => {
-    const allData: any[] = [];
-    let from = 0;
-    const batchSize = 1000;
-    while (true) {
-      const { data, error } = await supabase
-        .from("trading_data")
-        .select("user_id, trade_date, net_pnl, trader2_id, trader2_role, shares_traded")
-        .range(from, from + batchSize - 1);
-      if (error || !data || data.length === 0) break;
-      allData.push(...data);
-      if (data.length < batchSize) break;
-      from += batchSize;
-    }
-    return allData;
-  };
+  // Shared with the rest of Admin, so the trade history downloads once.
+  const fetchAllTradingData = () => getAllTradeRows().catch(() => [] as any[]);
 
   const fetchData = async () => {
     setLoading(true);

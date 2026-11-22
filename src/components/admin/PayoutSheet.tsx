@@ -23,6 +23,7 @@ import {
 } from "@/lib/payoutEngine";
 import { fetchAllRows, localDateKey } from "@/lib/fetchAllRows";
 import { mergeAttendance } from "@/lib/attendance";
+import { getPersonTradeRows } from "@/lib/tradeCache";
 import { loadTransfers, transfersNetByMonth, type PnlTransfer } from "@/lib/pnlTransfers";
 import { saveTraderMonth, saveExchangeRate } from "@/lib/payoutSave";
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
@@ -116,23 +117,12 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
     const monthEnd = `${selectedKey}-${String(lastDay).padStart(2, "0")}`;
 
     try {
-      const tradeCols =
-        "id, trade_date, user_id, account_id, trader2_id, trader2_role, trader1_attendance, trader2_attendance, late_remarks, net_pnl, shares_traded, is_holiday";
-      const [own, asPartner, transferRes] = await Promise.all([
-        fetchAllRows<any>((from, to) =>
-          supabase.from("trading_data").select(tradeCols).eq("user_id", id)
-            .order("trade_date").order("id").range(from, to)),
-        fetchAllRows<any>((from, to) =>
-          supabase.from("trading_data").select(tradeCols).eq("trader2_id", id)
-            .order("trade_date").order("id").range(from, to)),
-        loadTransfers(id),
-      ]);
-      if (transferRes.error) throw new Error(transferRes.error);
-      setTransfers(transferRes.rows);
-      setTransfersAvailable(transferRes.available);
-
-      const [profileRes, baselineRes, configRes, attendanceRes, carryRes, stoRes, ltoRes, ltoHistRes, recordRes, rateRes] =
+      // One round trip: the trade history comes from the shared cache (the Admin
+      // page has usually loaded it already), everything else is fetched together.
+      const [personRows, transferRes, profileRes, baselineRes, configRes, attendanceRes, carryRes, stoRes, ltoRes, ltoHistRes, recordRes, rateRes] =
         await Promise.all([
+          getPersonTradeRows(id),
+          loadTransfers(id),
           supabase.from("profiles").select("joining_date").eq("user_id", id).maybeSingle(),
           supabase.from("trader_baselines").select("as_of_date, baseline_days, baseline_net_profit").eq("user_id", id).maybeSingle(),
           supabase.from("trader_config").select("*").eq("user_id", id),
@@ -146,15 +136,16 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
           supabase.from("payout_records").select("*").eq("user_id", id).eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
           supabase.from("monthly_exchange_rates").select("usd_to_inr").eq("month", selectedMonth).eq("year", selectedYear).maybeSingle(),
         ]);
+      if (transferRes.error) throw new Error(transferRes.error);
+      setTransfers(transferRes.rows);
+      setTransfersAvailable(transferRes.available);
       const failed = [profileRes, baselineRes, configRes, attendanceRes, carryRes, stoRes, ltoRes, ltoHistRes, recordRes, rateRes].find(
         (r) => r.error
       );
       if (failed?.error) throw new Error(failed.error.message);
 
       // A row can appear in both lists if the trader is somehow both; de-duplicate by id.
-      const byId = new Map<string, any>();
-      [...own, ...asPartner].forEach((r) => byId.set(r.id, r));
-      setAllRows([...byId.values()]);
+      setAllRows(personRows);
       setJoiningDate(profileRes.data?.joining_date ?? null);
       setBaseline(
         baselineRes.data

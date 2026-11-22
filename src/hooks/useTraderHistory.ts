@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { loadTransfers, transfersNetByMonth } from "@/lib/pnlTransfers";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAllRows";
-import { getAllTradeRows, rowsByPerson } from "@/lib/tradeCache";
+import { getAllTradeRows, getPersonTradeRows, rowsByPerson } from "@/lib/tradeCache";
 import {
   computeHistory,
   DEFAULT_SEAT_COST,
@@ -56,11 +56,8 @@ export const useTraderHistory = (userId: string | null | undefined) => {
     (async () => {
       setLoading(true);
       try {
-        const [own, asPartner, profileRes, baselineRes, configRes, transfers] = await Promise.all([
-          fetchAllRows<any>((f, t) =>
-            supabase.from("trading_data").select(TRADE_COLS).eq("user_id", userId).order("trade_date").order("id").range(f, t)),
-          fetchAllRows<any>((f, t) =>
-            supabase.from("trading_data").select(TRADE_COLS).eq("trader2_id", userId).order("trade_date").order("id").range(f, t)),
+        const [personRows, profileRes, baselineRes, configRes, transfers] = await Promise.all([
+          getPersonTradeRows(userId),
           supabase.from("profiles").select("joining_date").eq("user_id", userId).maybeSingle(),
           supabase.from("trader_baselines").select("as_of_date, baseline_days, baseline_net_profit").eq("user_id", userId).maybeSingle(),
           supabase.from("trader_config").select("*").eq("user_id", userId),
@@ -68,11 +65,9 @@ export const useTraderHistory = (userId: string | null | undefined) => {
         ]);
         if (profileRes.error) throw profileRes.error;
         if (configRes.error) throw configRes.error;
-        const byId = new Map<string, TradeRow>();
-        [...own, ...asPartner].forEach((r: any) => byId.set(r.id, r));
         const h = computeHistory({
           personId: userId,
-          rows: [...byId.values()],
+          rows: personRows as TradeRow[],
           throughMonth: currentMonthKey(),
           startMonth: profileRes.data?.joining_date?.slice(0, 7) ?? null,
           // Traders may not be allowed to read baselines; treat as none.

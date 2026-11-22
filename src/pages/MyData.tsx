@@ -6,6 +6,7 @@ import AnimatedNumber from "@/components/AnimatedNumber";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { getPersonTradeRows } from "@/lib/tradeCache";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,18 +95,17 @@ const MyData = () => {
     
     // Fetch user's own trades + trades where they were the partner (trader2)
     // Load every trade (Supabase returns at most 1,000 rows per request).
-    const pageOf = (build: () => any) => (f: number, t: number) => build().order("id").range(f, t);
-    const [accountsRes, ownTradesRes, partnerTradesRes, configRes] = await Promise.all([
+    // One shared download of this person's trades (also used by their leave,
+    // payout and progress tabs), newest first here.
+    const [accountsRes, personRows, configRes] = await Promise.all([
       supabase.from("trading_accounts").select("*").order("account_name"),
-      fetchAllRows<any>(pageOf(() =>
-        supabase.from("trading_data").select("*").eq("user_id", user.id).order("trade_date", { ascending: false })))
-        .then((data) => ({ data })),
-      fetchAllRows<any>(pageOf(() =>
-        supabase.from("trading_data").select("*").eq("trader2_id", user.id).eq("trader2_role", "partner")
-          .order("trade_date", { ascending: false })))
-        .then((data) => ({ data })),
+      getPersonTradeRows(user.id).then((rows) => [...rows].reverse()),
       supabase.from("trader_config").select("month,year,software_cost").eq("user_id", user.id),
     ]);
+    const ownTradesRes = { data: personRows.filter((r: any) => r.user_id === user.id) };
+    const partnerTradesRes = {
+      data: personRows.filter((r: any) => r.trader2_id === user.id && (r.trader2_role || "").toLowerCase() === "partner"),
+    };
 
     if (accountsRes.data) setAccounts(accountsRes.data);
 

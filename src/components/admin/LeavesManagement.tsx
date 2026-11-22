@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { mergeAttendance } from "@/lib/attendance";
 import { supabase } from "@/integrations/supabase/client";
+import { getAllTradeRows } from "@/lib/tradeCache";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
@@ -124,10 +125,8 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
       [attendance, trades] = await Promise.all([
         fetchAllRows<any>((f, t) =>
           supabase.from("attendance_records").select("*").order("record_date", { ascending: false }).order("id").range(f, t)),
-        fetchAllRows<any>((f, t) =>
-          supabase.from("trading_data")
-            .select("id,user_id,trader2_id,trader2_role,trade_date,trader1_attendance,trader2_attendance,late_remarks")
-            .order("trade_date", { ascending: false }).order("id").range(f, t)),
+        // Shared trade history (already loaded by the Admin page), newest first.
+        getAllTradeRows().then((all) => [...all].reverse()),
       ]);
     } catch (e) {
       toast({ title: "Couldn't load attendance", description: e instanceof Error ? e.message : String(e), variant: "destructive" });

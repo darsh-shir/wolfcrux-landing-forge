@@ -15,7 +15,7 @@ let cached: { at: number; promise: Promise<any[]> } | null = null;
 export function getAllTradeRows(): Promise<any[]> {
   if (cached && Date.now() - cached.at < TTL_MS) return cached.promise;
   const promise = fetchAllRows<any>((f, t) =>
-    supabase.from("trading_data").select(TRADE_COLS).order("trade_date").order("id").range(f, t)
+    supabase.from("trading_data").select(TRADE_COLS, { count: "exact" }).order("trade_date").order("id").range(f, t)
   );
   cached = { at: Date.now(), promise };
   promise.catch(() => {
@@ -26,6 +26,7 @@ export function getAllTradeRows(): Promise<any[]> {
 
 export function invalidateTradeCache() {
   cached = null;
+  personCache?.clear();
 }
 
 /** Group rows by every person involved (primary trader and partner). */
@@ -41,4 +42,38 @@ export function rowsByPerson(rows: any[]): Map<string, any[]> {
     if (r.trader2_id && r.trader2_id !== r.user_id) add(r.trader2_id, r);
   }
   return map;
+}
+
+// ---------- One person's trades (trader screens: My Data, leaves, payouts) ----------
+const personCache = new Map<string, { at: number; promise: Promise<any[]> }>();
+
+/**
+ * Every trade a person is on (as the trader or as trader 2), all columns,
+ * oldest first. Shared by the trader's own screens so it downloads once.
+ */
+export function getPersonTradeRows(userId: string): Promise<any[]> {
+  const hit = personCache.get(userId);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.promise;
+  // An admin who already has everything loaded doesn't need another download.
+  const promise = (
+    cached && Date.now() - cached.at < TTL_MS
+      ? cached.promise.then((all) => all.filter((r) => r.user_id === userId || r.trader2_id === userId))
+      : Promise.all([
+          fetchAllRows<any>((f, t) =>
+            supabase.from("trading_data").select(TRADE_COLS, { count: "exact" }).eq("user_id", userId).order("trade_date").order("id").range(f, t)
+          ),
+          fetchAllRows<any>((f, t) =>
+            supabase.from("trading_data").select(TRADE_COLS, { count: "exact" }).eq("trader2_id", userId).order("trade_date").order("id").range(f, t)
+          ),
+        ]).then(([own, partner]) => {
+          const byId = new Map<string, any>();
+          [...own, ...partner].forEach((r) => byId.set(r.id, r));
+          return [...byId.values()].sort((a, b) => a.trade_date.localeCompare(b.trade_date) || String(a.id).localeCompare(String(b.id)));
+        })
+  );
+  personCache.set(userId, { at: Date.now(), promise });
+  promise.catch(() => {
+    if (personCache.get(userId)?.promise === promise) personCache.delete(userId);
+  });
+  return promise;
 }

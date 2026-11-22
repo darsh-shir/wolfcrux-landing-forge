@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getAllTradeRows } from "@/lib/tradeCache";
 import { useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -71,9 +72,7 @@ const PoolView = ({ users }: PoolViewProps) => {
       const startDate = `${monthKey}-01`;
       const endDate = `${monthKey}-${String(new Date(selectedYear, selectedMonth, 0).getDate()).padStart(2, "0")}`;
       const [monthRows, ledgerRes] = await Promise.all([
-        fetchAllRows<any>((f, t) =>
-          supabase.from("trading_data").select("id, user_id, trader2_id, trader2_role")
-            .gte("trade_date", startDate).lte("trade_date", endDate).order("id").range(f, t)),
+        getAllTradeRows().then((all) => all.filter((r: any) => r.trade_date >= startDate && r.trade_date <= endDate)),
         supabase.from("sto_ledger").select("user_id, trainee_pool_contribution, updated_at")
           .eq("month", selectedMonth).eq("year", selectedYear),
       ]);

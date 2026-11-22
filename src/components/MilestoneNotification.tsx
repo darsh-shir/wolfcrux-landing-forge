@@ -54,6 +54,9 @@ let cachedUpcoming: UpcomingTrader[] | null = null;
 let cachedForUserId: string | null = null;
 let lastFetchedAt = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// The bell is mounted twice (desktop and mobile menus); share one check between them.
+let evaluating: Promise<void> | null = null;
+const listeners = new Set<() => void>();
 
 const MilestoneNotification = () => {
   const { user, isAdmin } = useAuth();
@@ -75,7 +78,20 @@ const MilestoneNotification = () => {
       if (Date.now() - lastFetchedAt < CACHE_TTL_MS) return;
     }
 
-    evaluateMilestones();
+    const sync = () => {
+      if (cachedAlerts) setAlerts(cachedAlerts);
+      if (cachedUpcoming) setUpcoming(cachedUpcoming);
+    };
+    listeners.add(sync);
+    if (!evaluating) {
+      evaluating = evaluateMilestones().finally(() => {
+        evaluating = null;
+        listeners.forEach((l) => l());
+      });
+    }
+    return () => {
+      listeners.delete(sync);
+    };
   }, [user, isAdmin]);
 
   // Shared, cached copy of the trade history (downloads once per page).
