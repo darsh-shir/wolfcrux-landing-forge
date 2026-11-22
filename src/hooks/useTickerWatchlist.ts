@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useVisibleInterval } from "@/hooks/useVisibleInterval";
 import { supabase } from "@/integrations/supabase/client";
+import { DB_UPDATE_APPLIED } from "@/lib/features";
 import { normalizeTipranksQuotes, type ExtendedHoursQuote } from "@/lib/tipranksQuote";
 
 
@@ -120,7 +121,7 @@ export const useTickerWatchlist = () => {
   // so it follows them across computers. The browser copy above is only a
   // fast first paint and a fallback if the database can't be reached.
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !DB_UPDATE_APPLIED) return;
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
@@ -167,7 +168,7 @@ export const useTickerWatchlist = () => {
       } catch {
         /* ignore quota errors */
       }
-      if (user?.id) {
+      if (user?.id && DB_UPDATE_APPLIED) {
         void supabase
           .from("user_watchlists")
           .upsert({ user_id: user.id, symbols: next })

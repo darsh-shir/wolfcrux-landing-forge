@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAllRows";
+import { DB_UPDATE_APPLIED } from "@/lib/features";
 
 /**
  * Month-end P&L adjustments between traders ("move $X of net profit from A to B").
@@ -27,6 +28,7 @@ const missingTable = (msg: string) => /pnl_transfers|does not exist|schema cache
 
 /** All transfers, or only those involving `userId`. */
 export async function loadTransfers(userId?: string): Promise<TransfersResult> {
+  if (!DB_UPDATE_APPLIED) return { rows: [], available: false };
   try {
     const rows = await fetchAllRows<any>((f, t) => {
       let q = supabase.from("pnl_transfers").select("*");

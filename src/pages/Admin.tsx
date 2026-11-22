@@ -10,6 +10,7 @@ import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Buildi
 import EmployeeDocuments from "@/components/admin/EmployeeDocuments";
 import ContactMessages from "@/components/admin/ContactMessages";
 import JobApplications from "@/components/admin/JobApplications";
+import { DB_UPDATE_APPLIED } from "@/lib/features";
 import PayoutRun, { defaultStoMonth } from "@/components/admin/PayoutRun";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { getAllTradeRows, invalidateTradeCache } from "@/lib/tradeCache";
@@ -237,14 +238,18 @@ const Admin = () => {
                   <Fingerprint className="h-4 w-4" />
                   Biometric
                 </TabsTrigger>
-                <TabsTrigger value="messages" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <Inbox className="h-4 w-4" />
-                  Messages
-                </TabsTrigger>
-                <TabsTrigger value="applications" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
-                  <Briefcase className="h-4 w-4" />
-                  Applications
-                </TabsTrigger>
+                {DB_UPDATE_APPLIED && (
+                  <>
+                    <TabsTrigger value="messages" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                      <Inbox className="h-4 w-4" />
+                      Messages
+                    </TabsTrigger>
+                    <TabsTrigger value="applications" className="gap-2 whitespace-nowrap data-[state=active]:bg-background">
+                      <Briefcase className="h-4 w-4" />
+                      Applications
+                    </TabsTrigger>
+                  </>
+                )}
               </TabsList>
             </div>
 
@@ -384,13 +389,17 @@ const Admin = () => {
               <BiometricAttendance />
             </TabsContent>
 
-            <TabsContent value="messages">
-              <ContactMessages />
-            </TabsContent>
+            {DB_UPDATE_APPLIED && (
+              <>
+                <TabsContent value="messages">
+                  <ContactMessages />
+                </TabsContent>
 
-            <TabsContent value="applications">
-              <JobApplications />
-            </TabsContent>
+                <TabsContent value="applications">
+                  <JobApplications />
+                </TabsContent>
+              </>
+            )}
           </Tabs>
         </div>
       </div>

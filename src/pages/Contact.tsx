@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { DB_UPDATE_APPLIED } from "@/lib/features";
 import Navigation from "@/components/Navigation";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import Footer from "@/components/Footer";
@@ -40,7 +41,9 @@ const Contact = () => {
     }
 
     setSending(true);
-    const { error } = await supabase.from("contact_messages").insert({
+    const { error } = !DB_UPDATE_APPLIED
+      ? { error: { message: "Messages inbox not set up yet" } }
+      : await supabase.from("contact_messages").insert({
       first_name: get("firstName"),
       last_name: get("lastName"),
       email: get("email"),
@@ -72,7 +75,9 @@ const Contact = () => {
     )}&body=${encodeURIComponent(body)}`;
     toast({
       title: "Opening your email app",
-      description: "We couldn't send your message directly, so it's ready in your email app instead.",
+      description: DB_UPDATE_APPLIED
+        ? "We couldn't send your message directly, so it's ready in your email app instead."
+        : "Your message is ready to send. If nothing opened, email us at info@wolfcrux.com.",
     });
   };
 

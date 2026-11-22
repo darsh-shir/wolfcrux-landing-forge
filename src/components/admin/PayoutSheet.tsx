@@ -533,7 +533,9 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                       />
                       {neg(month.softwareCost)}
                     </span>
-                    <Row label="Net profit before adjustments" value={fmt(month.netProfit - month.transfersNet)} strong />
+                    {(transfersAvailable || monthTransfers.length > 0) && (
+                      <Row label="Net profit before adjustments" value={fmt(month.netProfit - month.transfersNet)} strong />
+                    )}
                     {monthTransfers.length > 0 && (
                       <>
                         {monthTransfers.map((t) => {
@@ -561,13 +563,9 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                         })}
                       </>
                     )}
-                    {/* Move net profit to / from another trader */}
+                    {/* Move net profit to / from another trader (hidden until the database supports it) */}
+                    {transfersAvailable && (
                     <div className="col-span-2 rounded-md border border-dashed bg-background p-2">
-                      {!transfersAvailable ? (
-                        <p className="text-xs text-muted-foreground">
-                          Adding or subtracting profit with another trader needs the database update (SQL file 2) to be applied first.
-                        </p>
-                      ) : (
                         <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <Input
@@ -629,9 +627,9 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                             <p className="text-xs text-muted-foreground">Choose the trader {adjValue > 0 ? "it comes from" : "it goes to"}.</p>
                           )}
                         </div>
-                      )}
                     </div>
-                    <Row label="Final net profit" value={fmt(month.netProfit)} tone={month.netProfit >= 0 ? "text-green-600" : "text-red-600"} strong />
+                    )}
+                    <Row label={transfersAvailable || monthTransfers.length > 0 ? "Final net profit" : "Net profit"} value={fmt(month.netProfit)} tone={month.netProfit >= 0 ? "text-green-600" : "text-red-600"} strong />
                     {month.priorDeficit > 0 && (
                       <>
                         <Row label="Earlier losses still to recover" value={neg(month.priorDeficit)} tone="text-red-600" />
