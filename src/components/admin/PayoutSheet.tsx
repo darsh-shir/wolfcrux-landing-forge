@@ -5,12 +5,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Save, TrendingUp, Clock, Lock, Unlock, AlertTriangle, Loader2, Users } from "lucide-react";
+import { FileText, TrendingUp, Clock, Lock, Unlock, AlertTriangle, Loader2, Users } from "lucide-react";
 import { getLeaveBalanceSummary } from "@/lib/payoutCalculations";
 import {
   computeHistory,
@@ -667,10 +668,9 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
 
                 {/* Save month */}
                 <div className="flex flex-wrap items-center gap-3">
-                  <Button onClick={saveMonth} disabled={saving !== null || (isPaid && !unlockPaid)} className="gap-2">
-                    {saving === "month" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  <SaveButton onClick={saveMonth} saving={saving === "month"} disabled={saving !== null || (isPaid && !unlockPaid)}>
                     Save month
-                  </Button>
+                  </SaveButton>
                   <span className={`text-sm ${unsaved ? "text-amber-600" : "text-muted-foreground"}`}>
                     {existingSto ? (unsaved ? "Changed since last save" : "Saved") : "Not saved yet"}
                   </span>
@@ -759,10 +759,9 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                           <span className="font-bold text-base">Outstanding</span>
                           <span className={`text-xl font-bold ${outstanding >= 0 ? "text-green-600" : "text-red-600"}`}>₹{formatIndian(outstanding, 2)}</span>
                         </div>
-                        <Button onClick={savePayment} disabled={saving !== null} variant="outline" className="w-full gap-2">
-                          {saving === "payment" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        <SaveButton onClick={savePayment} saving={saving === "payment"} disabled={saving !== null} className="w-full">
                           Save payment record
-                        </Button>
+                        </SaveButton>
                         {existingRecord && <p className="text-xs text-muted-foreground text-center">A payment record exists for this month.</p>}
                       </div>
                     </div>

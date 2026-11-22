@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format, subDays, addDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { CalendarIcon, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Users } from "lucide-react";
 import { cn, formatCurrencyINR, formatIndian } from "@/lib/utils";
 
 interface Profile {
@@ -367,10 +368,7 @@ const SingleDayPnL = ({ users, accounts, tradingData, onRefresh }: SingleDayPnLP
                                           className="w-24 text-right"
                                           onClick={(e) => e.stopPropagation()}
                                         />
-                                        <Button size="sm" onClick={(e) => { e.stopPropagation(); saveEntry(entry.id); }} disabled={saving === entry.id}>
-                                          <Save className="h-3 w-3 mr-1" />
-                                          {saving === entry.id ? "..." : "Save"}
-                                        </Button>
+                                        <SaveButton onClick={(e) => { e.stopPropagation(); saveEntry(entry.id); }} saving={saving === entry.id} />
                                         <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); cancelEditing(entry.id); }}>
                                           Cancel
                                         </Button>

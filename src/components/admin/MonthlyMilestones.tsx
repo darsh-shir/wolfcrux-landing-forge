@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trophy, Save } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { formatIndian } from "@/lib/utils";
 
 interface Profile {
@@ -155,10 +156,7 @@ const MonthlyMilestones = ({ users }: { users: Profile[] }) => {
             </Select>
           </div>
           <div className="flex items-end">
-            <Button onClick={save} disabled={saving || loading} className="gap-2">
-              <Save className="h-4 w-4" />
-              {saving ? "Saving..." : "Save"}
-            </Button>
+            <SaveButton className="h-10" onClick={save} saving={saving} disabled={loading} />
           </div>
         </div>
 

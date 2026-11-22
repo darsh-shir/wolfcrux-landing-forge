@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -527,7 +528,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                   </SelectContent>
                 </Select>
               </div>
-            <Button type="submit" className="w-full">Save Changes</Button>
+            <SaveButton type="submit" className="w-full" />
           </form>
         </DialogContent>
       </Dialog>
@@ -672,9 +673,7 @@ const SalaryCell = ({ userId, current, isTrainee, onSaved }: { userId: string; c
         aria-label="Default monthly salary"
       />
       {changed && (
-        <Button size="sm" variant="outline" className="h-8" onClick={() => void save()} disabled={saving}>
-          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
-        </Button>
+        <SaveButton onClick={() => void save()} saving={saving} />
       )}
     </div>
   );
@@ -756,7 +755,7 @@ const AccountActions = ({ account, onRefresh }: { account: TradingAccount; onRef
               <Label>Account Number</Label>
               <Input value={editNumber} onChange={(e) => setEditNumber(e.target.value)} />
             </div>
-            <Button type="submit" className="w-full">Save Changes</Button>
+            <SaveButton type="submit" className="w-full" />
           </form>
         </DialogContent>
       </Dialog>

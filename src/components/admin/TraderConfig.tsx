@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { getMilestoneLevel } from "@/lib/payoutCalculations";
 import { loadAllTraderHistories } from "@/hooks/useTraderHistory";
 import { fetchAllRows, must } from "@/lib/fetchAllRows";
@@ -346,7 +347,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
                     </TableCell>
                     <TableCell>
                       {isEdited(user.user_id) ? (
-                        <Button size="sm" onClick={() => {
+                        <SaveButton onClick={() => {
                           if (isMilestone && ml) {
                             handleChange(user.user_id, "sto_percentage", ml.stoPercent);
                             handleChange(user.user_id, "lto_percentage", ml.ltoPercent);
@@ -361,9 +362,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
                             return;
                           }
                           saveConfig(user.user_id);
-                        }}>
-                          <Save className="h-4 w-4" />
-                        </Button>
+                        }} />
                       ) : null}
                     </TableCell>
                   </TableRow>

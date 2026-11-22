@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -305,7 +306,7 @@ const BiometricAttendance = () => {
             <form key={p.user_id} className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); setPin(p.user_id, (new FormData(e.currentTarget).get("pin") as string) ?? ""); }}>
               <span className="flex-1 truncate text-sm">{p.full_name}</span>
               <Input name="pin" defaultValue={p.biometric_pin ?? ""} placeholder="PIN" className="w-28 font-mono" />
-              <Button size="sm" variant="outline" type="submit">Save</Button>
+              <SaveButton type="submit" />
             </form>
           ))}
         </CardContent>
@@ -326,7 +327,7 @@ const BiometricAttendance = () => {
             {[{ value: "13:15", label: "1:15 PM" }, { value: "14:15", label: "2:15 PM" }, { value: "15:15", label: "3:15 PM" }].map((time) => (
               <Button key={time.value} type="button" size="sm" variant="outline" onClick={() => setNewShift({ ...newShift, start: time.value })}>{time.label}</Button>
             ))}
-            <Button onClick={addShift}>Save date and time</Button>
+            <SaveButton className="h-9" onClick={addShift} />
           </div>
           <div className="flex flex-wrap gap-2">{shifts.map((s) => (
             <Badge key={s.id} variant="outline" className="gap-2 py-1">

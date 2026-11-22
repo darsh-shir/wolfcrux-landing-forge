@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Building2 } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { formatIndian } from "@/lib/utils";
 
 interface Profile {
@@ -158,9 +159,7 @@ const DeskCost = ({ users }: DeskCostProps) => {
                           onChange={e => handleFieldChange(user.user_id, "notes", e.target.value)} placeholder="Notes" />
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" onClick={() => saveRecord(user.user_id)}>
-                          <Save className="h-4 w-4" />
-                        </Button>
+                        <SaveButton onClick={() => saveRecord(user.user_id)} />
                       </TableCell>
                     </TableRow>
                   );

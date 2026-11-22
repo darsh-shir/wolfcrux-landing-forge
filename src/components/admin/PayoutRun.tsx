@@ -5,10 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CalendarCheck, Loader2, RefreshCw, Save } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Loader2, RefreshCw } from "lucide-react";
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 import { localDateKey, must } from "@/lib/fetchAllRows";
 import { loadPayoutRun, type PayoutRunRow } from "@/lib/payoutRun";
@@ -241,15 +242,14 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
               <Label htmlFor="run-rate">USD → INR</Label>
               <div className="flex gap-2">
                 <Input id="run-rate" type="number" step="0.01" className="w-28" value={rate} onChange={(e) => setRate(Number(e.target.value) || 0)} />
-                <Button
-                  variant={rateSaved === rate ? "outline" : "default"}
+                <SaveButton
+                  className="h-10"
                   onClick={() => void saveRate()}
+                  saving={busy === "rate"}
                   disabled={busy !== null || !(rate > 0) || rateSaved === rate}
-                  className="gap-2"
                 >
-                  {busy === "rate" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {rateSaved === rate ? "Saved" : "Save rate"}
-                </Button>
+                  {rateSaved === rate ? "Saved" : "Save"}
+                </SaveButton>
               </div>
             </div>
             <Button variant="outline" size="icon" onClick={() => { invalidateTradeCache(); void load(); }} disabled={loading} aria-label="Refresh" title="Reload all data">
@@ -289,10 +289,9 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
             <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
               <span>{needsSave.length} employee month{needsSave.length === 1 ? " isn't" : "s aren't"} saved with the latest figures. Save before paying.</span>
-              <Button size="sm" className="ml-auto gap-2" onClick={() => void saveRows(needsSave)} disabled={busy !== null}>
-                {busy === "save" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              <SaveButton className="ml-auto" onClick={() => void saveRows(needsSave)} saving={busy === "save"} disabled={busy !== null}>
                 Save all
-              </Button>
+              </SaveButton>
             </div>
           )}
         </CardContent>

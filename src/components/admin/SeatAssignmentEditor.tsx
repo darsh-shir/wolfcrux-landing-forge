@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Loader2, Filter } from "lucide-react";
+import { Loader2, Filter } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { formatIndian } from "@/lib/utils";
 
@@ -280,10 +281,9 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
             </Select>
           </div>
           {pendingCount > 0 && (
-            <Button onClick={saveAll} disabled={saving === "all"} className="ml-auto gap-2">
-              {saving === "all" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save All ({pendingCount} changes)
-            </Button>
+            <SaveButton onClick={saveAll} saving={saving === "all"} className="ml-auto">
+              Save all ({pendingCount} changes)
+            </SaveButton>
           )}
         </div>
 
@@ -378,15 +378,7 @@ const SeatAssignmentEditor = ({ users }: SeatAssignmentEditorProps) => {
                               </TableCell>
                               <TableCell>
                                 {hasEdit && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-7 text-xs"
-                                    onClick={() => saveDayGroup(dg)}
-                                    disabled={saving === dg.key}
-                                  >
-                                    {saving === dg.key ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
-                                  </Button>
+                                  <SaveButton onClick={() => saveDayGroup(dg)} saving={saving === dg.key} />
                                 )}
                               </TableCell>
                             </TableRow>

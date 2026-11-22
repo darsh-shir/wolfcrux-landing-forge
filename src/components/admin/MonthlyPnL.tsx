@@ -1,13 +1,14 @@
 import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Save } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from "lucide-react";
 import { cn, formatCurrencyINR, formatIndian } from "@/lib/utils";
 
 const BROKERAGE_PER_1000 = 14;
@@ -497,10 +498,7 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh, onOpenPayout }: M
                         <TableCell className="text-center">
                           {isEditing ? (
                             <div className="flex gap-1 justify-center">
-                              <Button size="sm" onClick={() => saveEntry(entry.id)} disabled={saving === entry.id}>
-                                <Save className="h-3 w-3 mr-1" />
-                                {saving === entry.id ? "..." : "Save"}
-                              </Button>
+                              <SaveButton onClick={() => saveEntry(entry.id)} saving={saving === entry.id} />
                               <Button size="sm" variant="ghost" onClick={() => cancelEditing(entry.id)}>
                                 Cancel
                               </Button>

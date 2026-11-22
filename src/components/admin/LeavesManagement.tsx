@@ -4,6 +4,7 @@ import { mergeAttendance } from "@/lib/attendance";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Calendar, Trash2, Edit, UserCheck, Clock, CalendarDays, Save } from "lucide-react";
+import { Plus, Calendar, Trash2, Edit, UserCheck, Clock, CalendarDays } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { getLeaveBalanceSummary } from "@/lib/payoutCalculations";
 
@@ -504,9 +505,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                       />
                     </div>
                     <DialogFooter>
-                      <Button type="submit" className="w-full">
-                        {editingAttendance ? "Update" : "Save"}
-                      </Button>
+                      <SaveButton type="submit" className="w-full" />
                     </DialogFooter>
                   </form>
                 </DialogContent>
@@ -672,9 +671,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                       />
                     </div>
                     <DialogFooter>
-                      <Button type="submit" className="w-full">
-                        {editingAttendance ? "Update" : "Save"}
-                      </Button>
+                      <SaveButton type="submit" className="w-full" />
                     </DialogFooter>
                   </form>
                 </DialogContent>
@@ -818,9 +815,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
                               onChange={(e) => setEditingCarry(prev => ({ ...prev, [user.user_id]: Number(e.target.value) }))}
                             />
                             {editingCarry[user.user_id] !== undefined && (
-                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => saveCarryForward(user.user_id)}>
-                                <Save className="h-3 w-3" />
-                              </Button>
+                              <SaveButton onClick={() => saveCarryForward(user.user_id)} />
                             )}
                           </div>
                         </TableCell>

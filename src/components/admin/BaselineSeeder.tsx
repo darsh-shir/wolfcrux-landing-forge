@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { History, Save, Trash2, Info } from "lucide-react";
+import { History, Trash2, Info } from "lucide-react";
 import { MILESTONES } from "@/lib/payoutCalculations";
 import { formatIndian } from "@/lib/utils";
 
@@ -304,14 +305,7 @@ const BaselineSeeder = ({ users }: Props) => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleSave(u)}
-                              disabled={saving === u.user_id}
-                            >
-                              <Save className="h-3.5 w-3.5 mr-1" />
-                              {hasExisting ? "Update" : "Save"}
-                            </Button>
+                            <SaveButton onClick={() => handleSave(u)} saving={saving === u.user_id} />
                             {hasExisting && (
                               <Button
                                 size="sm"
