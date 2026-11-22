@@ -234,7 +234,12 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
     });
   }, [selectedTrader, allRows, selectedKey, joiningDate, baseline, configs, seatCostInput, leavePct, transfers]);
 
-  const monthTransfers = transfers.filter((t) => t.month === selectedMonth && t.year === selectedYear);
+  const monthTransfers = transfers.filter(
+    (t) =>
+      t.month === selectedMonth &&
+      t.year === selectedYear &&
+      (t.from_user_id === selectedTrader || t.to_user_id === selectedTrader)
+  );
   const nameOf = (uid: string) => users.find((u) => u.user_id === uid)?.full_name || "Unknown";
 
   const month = history?.byMonth.get(selectedKey) ?? null;
@@ -520,9 +525,9 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                       />
                       {neg(month.softwareCost)}
                     </span>
+                    <Row label="Net profit before adjustments" value={fmt(month.netProfit - month.transfersNet)} strong />
                     {monthTransfers.length > 0 && (
                       <>
-                        <Row label="Net profit before adjustments" value={fmt(month.netProfit - month.transfersNet)} strong />
                         {monthTransfers.map((t) => {
                           const incoming = t.to_user_id === selectedTrader;
                           return (
@@ -548,7 +553,67 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                         })}
                       </>
                     )}
-                    <Row label={monthTransfers.length > 0 ? "Final net profit" : "Net profit"} value={fmt(month.netProfit)} tone={month.netProfit >= 0 ? "text-green-600" : "text-red-600"} strong />
+                    {/* Move net profit to / from another trader */}
+                    <div className="col-span-2 rounded-md border border-dashed bg-background p-2">
+                      {!transfersAvailable ? (
+                        <p className="text-xs text-muted-foreground">
+                          Adding or subtracting profit with another trader needs the database update (SQL file 2) to be applied first.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Select value={adjDirection} onValueChange={(v) => setAdjDirection(v as "receive" | "give")}>
+                            <SelectTrigger className="h-8 w-[170px]" aria-label="Add or subtract"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="receive">+ Add from trader</SelectItem>
+                              <SelectItem value="give">− Subtract, give to</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select value={adjOther} onValueChange={setAdjOther}>
+                            <SelectTrigger className="h-8 w-[170px]" aria-label="Other trader"><SelectValue placeholder="Select trader" /></SelectTrigger>
+                            <SelectContent>
+                              {users.filter((u) => u.user_id !== selectedTrader).map((u) => (
+                                <SelectItem key={u.user_id} value={u.user_id}>{u.full_name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="h-8 w-28 text-right"
+                            placeholder="$ net"
+                            aria-label="Amount in dollars (net)"
+                            value={adjAmount}
+                            onChange={(e) => setAdjAmount(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                void addAdjustment();
+                              }
+                            }}
+                          />
+                          <Input
+                            className="h-8 min-w-[120px] flex-1"
+                            maxLength={500}
+                            placeholder="Note (optional)"
+                            aria-label="Adjustment note"
+                            value={adjNote}
+                            onChange={(e) => setAdjNote(e.target.value)}
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8"
+                            onClick={() => void addAdjustment()}
+                            disabled={saving !== null || !adjOther || !(Number(adjAmount) > 0)}
+                          >
+                            {saving === "adjustment" ? <Loader2 className="h-3 w-3 animate-spin" /> : adjDirection === "receive" ? "+ Add" : "− Subtract"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <Row label="Final net profit" value={fmt(month.netProfit)} tone={month.netProfit >= 0 ? "text-green-600" : "text-red-600"} strong />
                     {month.priorDeficit > 0 && (
                       <>
                         <Row label="Earlier losses still to recover" value={neg(month.priorDeficit)} tone="text-red-600" />
@@ -559,51 +624,6 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                       <Row label="Loss carried to next month" value={fmt(month.deficitAfter)} tone="text-red-600" />
                     )}
                   </div>
-                </div>
-
-                {/* Add an adjustment */}
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Adjustments with other traders</h3>
-                  {!transfersAvailable ? (
-                    <p className="text-sm text-muted-foreground border rounded-lg p-3">
-                      Adjustments will work once the database update for them has been applied.
-                    </p>
-                  ) : (
-                    <div className="flex flex-wrap items-end gap-2 border rounded-lg p-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Type</Label>
-                        <Select value={adjDirection} onValueChange={(v) => setAdjDirection(v as "receive" | "give")}>
-                          <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="receive">+ Receive from</SelectItem>
-                            <SelectItem value="give">− Give to</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Trader</Label>
-                        <Select value={adjOther} onValueChange={setAdjOther}>
-                          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select trader" /></SelectTrigger>
-                          <SelectContent>
-                            {users.filter((u) => u.user_id !== selectedTrader).map((u) => (
-                              <SelectItem key={u.user_id} value={u.user_id}>{u.full_name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="adj-amount" className="text-xs">Amount ($, net)</Label>
-                        <Input id="adj-amount" type="number" min="0" step="0.01" className="w-28 text-right" value={adjAmount} onChange={(e) => setAdjAmount(e.target.value)} />
-                      </div>
-                      <div className="space-y-1 flex-1 min-w-[140px]">
-                        <Label htmlFor="adj-note" className="text-xs">Note (optional)</Label>
-                        <Input id="adj-note" value={adjNote} maxLength={500} onChange={(e) => setAdjNote(e.target.value)} placeholder="e.g. traded together on 12 Mar" />
-                      </div>
-                      <Button type="button" variant="outline" onClick={() => void addAdjustment()} disabled={saving !== null || !adjOther || !(Number(adjAmount) > 0)}>
-                        Add
-                      </Button>
-                    </div>
-                  )}
                 </div>
 
                 {/* STO */}
