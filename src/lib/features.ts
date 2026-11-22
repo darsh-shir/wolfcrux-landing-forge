@@ -8,4 +8,4 @@
  *
  * Set to true once the database has been updated.
  */
-export const DB_UPDATE_APPLIED = false;
+export const DB_UPDATE_APPLIED = true;
