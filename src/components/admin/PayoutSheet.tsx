@@ -70,6 +70,8 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
 
   // Loaded data
   const [loading, setLoading] = useState(false);
+  // Trader + month the loaded data belongs to (auto-save only saves matching data).
+  const [loadedFor, setLoadedFor] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [allRows, setAllRows] = useState<TradeRow[]>([]);
   const [configs, setConfigs] = useState<any[]>([]);
@@ -184,6 +186,7 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
       setMonthlySalaryInput(Number(rec?.salary) || 0);
       setCashPaidInput(Number(rec?.advance_cash) || 0);
       setBankPaidInput(Number(rec?.bank_transfer) || 0);
+      setLoadedFor(`${id}|${selectedKey}`);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -281,14 +284,14 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
     );
   }, [month, existingSto, existingLto]);
 
-  const saveMonth = async () => {
+  const saveMonth = async (auto = false) => {
     if (!month || !selectedTrader) return;
     if (isPaid && !unlockPaid) return;
     setSaving("month");
     try {
       await saveExchangeRate(selectedYear, selectedMonth, inrRate);
       await saveTraderMonth({ userId: selectedTrader, year: selectedYear, month: selectedMonth, result: month, seatCost: seatCostInput });
-      toast({ title: "Month saved", description: `${traderName} — ${MONTHS[selectedMonth - 1]} ${selectedYear}` });
+      if (!auto) toast({ title: "Month saved", description: `${traderName} — ${MONTHS[selectedMonth - 1]} ${selectedYear}` });
       await fetchPayoutData();
     } catch (e: any) {
       toast({ title: "Couldn't save the month", description: e?.message || String(e), variant: "destructive" });
@@ -296,6 +299,25 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
       setSaving(null);
     }
   };
+
+  // Saves by itself a moment after the figures change. Paid months are left
+  // alone, and a month with adjustments from other traders waits for Save.
+  const hasAdjustments = monthTransfers.length > 0;
+  const autoSavedRef = React.useRef("");
+  const currentFor = `${selectedTrader}|${selectedKey}`;
+  useEffect(() => {
+    if (!unsaved || loading || saving !== null || loadError || hasAdjustments) return;
+    if (loadedFor !== currentFor || (isPaid && !unlockPaid)) return;
+    // Never retry the same figures (e.g. a released LTO that can't change).
+    const signature = `${currentFor}|${month?.finalSto}|${month?.netProfit}|${month?.finalLto}|${seatCostInput}|${inrRate}`;
+    if (autoSavedRef.current === signature) return;
+    const timer = setTimeout(() => {
+      autoSavedRef.current = signature;
+      void saveMonth(true);
+    }, 1200);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unsaved, loading, saving, loadError, hasAdjustments, loadedFor, currentFor, isPaid, unlockPaid, month, seatCostInput, inrRate]);
 
   // ---------- Adjustments (P&L moved between traders) ----------
   // "+500" = this trader gets $500 from the chosen trader; "-500" = this trader gives $500 to them.
@@ -462,7 +484,7 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                 {isPaid && (
                   <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
                     <Lock className="h-4 w-4 text-amber-600" />
-                    <span>This month's STO is marked <strong>paid</strong>. Saving would change a paid record.</span>
+                    <span>This month's STO is marked <strong>paid</strong>, so it isn't updated automatically.</span>
                     <label className="ml-auto flex items-center gap-2">
                       <Checkbox checked={unlockPaid} onCheckedChange={(v) => setUnlockPaid(!!v)} />
                       Allow changes
@@ -702,14 +724,24 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                   </div>
                 )}
 
-                {/* Save month */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <SaveButton onClick={saveMonth} saving={saving === "month"} disabled={saving !== null || (isPaid && !unlockPaid)}>
-                    Save month
-                  </SaveButton>
-                  <span className={`text-sm ${unsaved ? "text-amber-600" : "text-muted-foreground"}`}>
-                    {existingSto ? (unsaved ? "Changed since last save" : "Saved") : "Not saved yet"}
-                  </span>
+                {/* Save status: saves by itself; Save only when other traders' amounts are involved */}
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  {hasAdjustments && unsaved && !(isPaid && !unlockPaid) ? (
+                    <>
+                      <SaveButton onClick={() => void saveMonth()} saving={saving === "month"} disabled={saving !== null} />
+                      <span className="text-amber-600">Includes amounts from other traders — press Save to confirm.</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      {saving === "month"
+                        ? "Saving…"
+                        : isPaid && !unlockPaid
+                          ? "Paid — not updated automatically."
+                          : unsaved
+                            ? "Saving shortly…"
+                            : "Saved automatically."}
+                    </span>
+                  )}
                 </div>
 
                 {/* LTO history */}

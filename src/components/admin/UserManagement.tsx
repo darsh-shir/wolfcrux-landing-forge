@@ -5,6 +5,7 @@ import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
+import { EX_EMPLOYEE_ROLE, CLOSED_PREFIX, isExEmployee, isClosedAccount, accountLabel, randomPassword } from "@/lib/employees";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -85,6 +86,10 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const [deleteUser, setDeleteUser] = useState<Profile | null>(null);
+  const activeUsers = users.filter((u) => !isExEmployee(u));
+  const exUsers = users.filter(isExEmployee);
+  const openAccounts = accounts.filter((a) => !isClosedAccount(a));
+  const closedAccounts = accounts.filter(isClosedAccount);
   const [isDeleting, setIsDeleting] = useState(false);
 
 
@@ -244,6 +249,43 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     setIsResettingPassword(false);
   };
 
+  /** Keep every record, hide from lists, and block sign-in. */
+  const moveToExEmployees = async () => {
+    if (!deleteUser) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("profiles").update({ employee_role: EX_EMPLOYEE_ROLE }).eq("user_id", deleteUser.user_id);
+      if (error) throw new Error(error.message);
+      // Block sign-in with a random password nobody knows (Reset Password restores access).
+      const response = await supabase.functions.invoke("admin-operations", {
+        body: { action: "reset_password", userId: deleteUser.user_id, password: randomPassword() },
+      });
+      const blockError = response.error?.message || response.data?.error;
+      toast({
+        title: "Moved to ex-employees",
+        description: blockError
+          ? `${deleteUser.full_name}'s records are kept, but sign-in couldn't be blocked (${blockError}). Reset their password to block it.`
+          : `${deleteUser.full_name}'s records are kept and they can no longer sign in.`,
+        variant: blockError ? "destructive" : undefined,
+      });
+      setDeleteUser(null);
+      onRefresh();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+    setIsDeleting(false);
+  };
+
+  const restoreEmployee = async (user: Profile) => {
+    const { error } = await supabase.from("profiles").update({ employee_role: "trader" }).eq("user_id", user.user_id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Restored", description: `${user.full_name} is back in the employee list. Reset their password so they can sign in.` });
+    onRefresh();
+  };
+
   const handleDeleteUser = async () => {
     if (!deleteUser) return;
 
@@ -261,7 +303,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
       if (tradeCount > 0) {
         toast({
           title: "Can't delete this user",
-          description: `${deleteUser.full_name} has ${tradeCount} trade record(s). Deleting them would erase that trading history and change payouts. Reset their password to block access instead.`,
+          description: `${deleteUser.full_name} has ${tradeCount} trade record(s), so they can't be deleted permanently. Use "Move to ex-employees" instead.`,
           variant: "destructive",
         });
         setDeleteUser(null);
@@ -401,7 +443,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[...users].sort((a, b) => {
+                {activeUsers.sort((a, b) => {
                   const numA = parseInt((a.trader_number || "999999").replace(/\D/g, "")) || 999999;
                   const numB = parseInt((b.trader_number || "999999").replace(/\D/g, "")) || 999999;
                   return numA - numB;
@@ -468,7 +510,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {accounts.map((account) => (
+              {openAccounts.map((account) => (
                 <TableRow key={account.id}>
                   <TableCell className="font-medium">{account.account_number || "—"}</TableCell>
                   <TableCell>{account.account_name}</TableCell>
@@ -482,6 +524,44 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
           </div>
         </CardContent>
       </Card>
+
+      {/* Ex-employees and closed accounts: kept for records, rarely needed */}
+      {(exUsers.length > 0 || closedAccounts.length > 0) && (
+        <div className="space-y-2 text-sm">
+          {exUsers.length > 0 && (
+            <details className="rounded-md border px-3 py-2">
+              <summary className="cursor-pointer text-muted-foreground">Ex-employees ({exUsers.length})</summary>
+              <ul className="mt-2 divide-y">
+                {exUsers.map((u) => (
+                  <li key={u.id} className="flex flex-wrap items-center gap-3 py-2">
+                    <span className="font-mono text-xs text-muted-foreground w-16">{u.trader_number || "—"}</span>
+                    <span className="font-medium">{u.full_name}</span>
+                    <span className="text-muted-foreground">{u.email}</span>
+                    {u.joining_date && <span className="text-xs text-muted-foreground">joined {u.joining_date}</span>}
+                    <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => void restoreEmployee(u)}>
+                      Restore
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          {closedAccounts.length > 0 && (
+            <details className="rounded-md border px-3 py-2">
+              <summary className="cursor-pointer text-muted-foreground">Closed accounts ({closedAccounts.length})</summary>
+              <ul className="mt-2 divide-y">
+                {closedAccounts.map((a) => (
+                  <li key={a.id} className="flex flex-wrap items-center gap-3 py-2">
+                    <span className="font-mono text-xs text-muted-foreground w-24">{a.account_number || "—"}</span>
+                    <span className="font-medium">{accountLabel(a)}</span>
+                    <ReopenAccountButton account={a} onRefresh={onRefresh} />
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
 
       {/* Edit User Dialog */}
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
@@ -557,16 +637,27 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
       <AlertDialog open={!!deleteUser} onOpenChange={() => setDeleteUser(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Employee?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This cannot be undone. Users who have any trade records can't be deleted, because that would erase their trading history.
+            <AlertDialogTitle>Remove {deleteUser?.full_name}?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  <strong>Move to ex-employees</strong> keeps all their trades, payouts and documents, hides them from the employee
+                  list and blocks their sign-in. You can restore them later from "Ex-employees" at the bottom of this page.
+                </p>
+                <p>
+                  <strong>Delete permanently</strong> erases the account. It's only possible for someone with no trade records.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2">
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isDeleting}>
-              {isDeleting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Deleting...</>) : "Delete"}
-            </AlertDialogAction>
+            <Button variant="outline" className="text-destructive" onClick={() => void handleDeleteUser()} disabled={isDeleting}>
+              Delete permanently
+            </Button>
+            <Button onClick={() => void moveToExEmployees()} disabled={isDeleting}>
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Move to ex-employees"}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -699,7 +790,7 @@ const AccountActions = ({ account, onRefresh }: { account: TradingAccount; onRef
     if ((count ?? 0) > 0) {
       toast({
         title: "Can't delete this account",
-        description: `${count} trade record(s) use this account. Deleting it would erase them. Rename it instead if it's no longer used.`,
+        description: `${count} trade record(s) use this account, so it can't be deleted. Choose "Account closed" instead.`,
         variant: "destructive",
       });
       setShowDelete(false);
@@ -710,6 +801,20 @@ const AccountActions = ({ account, onRefresh }: { account: TradingAccount; onRef
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Deleted", description: "Account removed" });
+      onRefresh();
+    }
+    setShowDelete(false);
+  };
+
+  const closeAccount = async () => {
+    const { error } = await supabase
+      .from("trading_accounts")
+      .update({ account_name: CLOSED_PREFIX + accountLabel(account) })
+      .eq("id", account.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Account closed", description: `${accountLabel(account)} moved to Closed accounts. Its trades are kept.` });
       onRefresh();
     }
     setShowDelete(false);
@@ -763,20 +868,48 @@ const AccountActions = ({ account, onRefresh }: { account: TradingAccount; onRef
       <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Account?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete {account.account_name}. This action cannot be undone.
+            <AlertDialogTitle>Remove {account.account_name}?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  <strong>Account closed</strong> keeps all its trades and moves it to "Closed accounts" at the bottom of this page.
+                  It won't be offered for new entries.
+                </p>
+                <p>
+                  <strong>Delete</strong> erases it permanently. It's only possible for an account with no trades.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2">
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <Button variant="outline" className="text-destructive" onClick={() => void handleDelete()}>
               Delete
-            </AlertDialogAction>
+            </Button>
+            <Button onClick={() => void closeAccount()}>Account closed</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+};
+
+/** Puts a closed account back in the active list. */
+const ReopenAccountButton = ({ account, onRefresh }: { account: TradingAccount; onRefresh: () => void }) => {
+  const { toast } = useToast();
+  const reopen = async () => {
+    const { error } = await supabase.from("trading_accounts").update({ account_name: accountLabel(account) }).eq("id", account.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Account reopened", description: accountLabel(account) });
+    onRefresh();
+  };
+  return (
+    <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={() => void reopen()}>
+      Reopen
+    </Button>
   );
 };
 

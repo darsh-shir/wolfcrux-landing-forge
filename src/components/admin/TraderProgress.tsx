@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isExEmployee } from "@/lib/employees";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -76,7 +77,8 @@ const TraderProgress = () => {
       fetchAllTradingData(),
     ]);
 
-    const profiles = profilesRes.data || [];
+    // Ex-employees keep their records but aren't tracked or promoted.
+    const profiles = (profilesRes.data || []).filter((p: any) => !isExEmployee(p));
     const milestones = milestonesRes.data || [];
     const configs = configRes.data || [];
     const baselines = (baselinesRes.data || []) as any[];

@@ -16,6 +16,16 @@ import { loadPayoutRun, type PayoutRunRow } from "@/lib/payoutRun";
 import { invalidateTradeCache } from "@/lib/tradeCache";
 import { saveExchangeRate, saveTraderMonth } from "@/lib/payoutSave";
 import type { TablesInsert } from "@/integrations/supabase/types";
+import { backupUsedFromNote, changeBackup, withBackupNote } from "@/lib/salary";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -51,6 +61,8 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
   // Money typed per employee before marking paid (₹)
   const [money, setMoney] = useState<Record<string, { salary: string; online: string; cash: string }>>({});
   const [paidOn, setPaidOn] = useState<Record<string, string>>({});
+  // Row waiting for the admin to decide whether its shortfall comes from salary backup.
+  const [askBackup, setAskBackup] = useState<PayoutRunRow | null>(null);
 
   const payable = new Date(year, month - 1 + 3, 1);
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 3 + i);
@@ -120,7 +132,7 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
       online += a.online;
       cash += a.cash;
       if (r.isTrainee) fromPool += a.salary + a.online + a.cash;
-      else if (a.balance < 0) fromBackup += -a.balance;
+      else fromBackup += backupUsedFromNote(r.payoutRecord?.notes);
       if (isPaid(r)) paidCount++;
       else if (!r.isTrainee && a.balance > 0) left += a.balance + a.salary + a.online + a.cash;
       else if (!isPaid(r)) left += a.salary + a.online + a.cash;
@@ -164,11 +176,29 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
     }
   };
 
-  const setPaid = async (r: PayoutRunRow, paid: boolean) => {
+  /** Tick: a shortfall (salary more than STO) asks about salary backup first. */
+  const onPaidClick = (r: PayoutRunRow, paid: boolean) => {
+    if (paid && !r.isTrainee && amounts(r).balance < -0.5) {
+      setAskBackup(r);
+      return;
+    }
+    void setPaid(r, paid);
+  };
+
+  const setPaid = async (r: PayoutRunRow, paid: boolean, takeFromBackup = 0) => {
     setBusy(r.userId);
+    const alreadyUsed = backupUsedFromNote(r.payoutRecord?.notes);
+    // Backup moves: take when paying (if chosen); give back when un-ticking.
+    const backupDelta = paid ? -takeFromBackup : alreadyUsed;
+    let backupChanged = false;
     try {
       const date = paidOn[r.userId] ?? localDateKey(new Date());
       const a = amounts(r);
+      if (backupDelta !== 0) {
+        if (!r.backupRecordId) throw new Error(`${r.name} has no salary backup record.`);
+        await changeBackup(r.backupRecordId, backupDelta);
+        backupChanged = true;
+      }
       if (r.saved) {
         must(
           await supabase
@@ -191,8 +221,18 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
         paid_cash: paid && a.cash > 0,
       };
       // Trainees have no STO record, so keep the payment date in the note.
-      if (!r.saved && paid && !r.payoutRecord?.notes) record.notes = `Paid on ${date}`;
-      must(await supabase.from("payout_records").upsert(record, { onConflict: "user_id,month,year" }));
+      let note = r.payoutRecord?.notes ?? "";
+      if (!r.saved && paid && !note.includes("Paid on")) note = note ? `Paid on ${date} · ${note}` : `Paid on ${date}`;
+      note = withBackupNote(note, paid ? takeFromBackup : 0);
+      record.notes = note || null;
+      const res = await supabase.from("payout_records").upsert(record, { onConflict: "user_id,month,year" });
+      if (res.error) {
+        // Undo the backup change so the two never disagree.
+        if (backupChanged && r.backupRecordId) await changeBackup(r.backupRecordId, -backupDelta).catch(() => {});
+        throw new Error(res.error.message);
+      }
+      if (takeFromBackup > 0) toast({ title: `₹${formatIndian(takeFromBackup, 0)} taken from ${r.name}'s salary backup` });
+      if (!paid && alreadyUsed > 0) toast({ title: `₹${formatIndian(alreadyUsed, 0)} returned to ${r.name}'s salary backup` });
       // This row's amounts are now saved; keep what was typed on other rows.
       setMoney((m) => {
         const next = { ...m };
@@ -382,7 +422,18 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
                           ) : a.balance > 0.5 ? (
                             <span className="font-medium text-amber-600">{inr(a.balance)} left</span>
                           ) : a.balance < -0.5 ? (
-                            <span className="font-medium text-red-600">{inr(-a.balance)} from salary backup</span>
+                            paid ? (
+                              backupUsedFromNote(r.payoutRecord?.notes) > 0 ? (
+                                <span className="font-medium text-red-600">{inr(backupUsedFromNote(r.payoutRecord?.notes))} from salary backup</span>
+                              ) : (
+                                <span className="text-muted-foreground">{inr(-a.balance)} over STO · backup not used</span>
+                              )
+                            ) : (
+                              <span className="font-medium text-amber-600">
+                                {inr(-a.balance)} short
+                                <span className="block font-normal text-muted-foreground">backup {inr(r.backupAvailable)}</span>
+                              </span>
+                            )
                           ) : (
                             <span className="text-emerald-600">settled</span>
                           )}
@@ -407,7 +458,7 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
                             <Checkbox
                               checked={paid}
                               disabled={busy !== null || (!paid && !canPay)}
-                              onCheckedChange={(v) => void setPaid(r, !!v)}
+                              onCheckedChange={(v) => onPaidClick(r, !!v)}
                               aria-label={`Mark ${r.name} paid`}
                               title={!canPay && !paid ? "Save this month first" : undefined}
                             />
@@ -422,6 +473,57 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Salary more than STO: ask whether the difference comes from salary backup */}
+      <AlertDialog open={!!askBackup} onOpenChange={(o) => !o && setAskBackup(null)}>
+        <AlertDialogContent>
+          {askBackup && (() => {
+            const short = Math.round(-amounts(askBackup).balance);
+            const available = Math.max(0, Math.round(askBackup.backupAvailable));
+            const take = Math.min(short, available);
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Take {inr(take)} from {askBackup.name}'s salary backup?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-1">
+                      <p>
+                        Paying {inr(short)} more than their STO this month. Salary backup available: <strong>{inr(available)}</strong>.
+                      </p>
+                      {available === 0 && <p>There's no backup to take from.</p>}
+                      {available > 0 && take < short && <p>Only {inr(take)} is available, so that much will be taken.</p>}
+                      <p>Choose "Don't take" if the backup shouldn't be used — nothing is deducted then.</p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="gap-2">
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const r = askBackup;
+                      setAskBackup(null);
+                      void setPaid(r, true, 0);
+                    }}
+                  >
+                    Don't take
+                  </Button>
+                  <Button
+                    disabled={take <= 0}
+                    onClick={() => {
+                      const r = askBackup;
+                      setAskBackup(null);
+                      void setPaid(r, true, take);
+                    }}
+                  >
+                    Take {inr(take)} from backup
+                  </Button>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

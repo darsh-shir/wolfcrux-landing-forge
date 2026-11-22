@@ -16,6 +16,9 @@ export interface PayoutRunRow {
   isTrainee: boolean;
   /** Default monthly salary in ₹ (Users tab / Salary Backup), or the trainee stipend. */
   defaultSalary: number;
+  /** Salary backup held for this person (₹) and the record it lives in. */
+  backupAvailable: number;
+  backupRecordId: string | null;
   seatCost: number;
   /** Saved STO ledger row for the month, if any. */
   saved: any | null;
@@ -111,6 +114,8 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
         result: null,
         isTrainee: true,
         defaultSalary: salaryInfo?.salary || TRAINEE_STIPEND_INR,
+        backupAvailable: 0,
+        backupRecordId: null,
         seatCost: 0,
         saved: null,
         changedSinceSave: false,
@@ -164,6 +169,8 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
       result: m,
       isTrainee: false,
       defaultSalary: salaryInfo?.salary ?? 0,
+      backupAvailable: salaryInfo?.backup ?? 0,
+      backupRecordId: salaryInfo?.recordId ?? null,
       seatCost: seatCfg?.software_cost != null ? Number(seatCfg.software_cost) : DEFAULT_SEAT_COST,
       saved,
       changedSinceSave:

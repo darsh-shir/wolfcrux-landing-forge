@@ -11,6 +11,7 @@ import EmployeeDocuments from "@/components/admin/EmployeeDocuments";
 import ContactMessages from "@/components/admin/ContactMessages";
 import JobApplications from "@/components/admin/JobApplications";
 import { DB_UPDATE_APPLIED } from "@/lib/features";
+import { isExEmployee, isClosedAccount } from "@/lib/employees";
 import PayoutRun, { defaultStoMonth } from "@/components/admin/PayoutRun";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { getAllTradeRows, invalidateTradeCache } from "@/lib/tradeCache";
@@ -67,6 +68,9 @@ const Admin = () => {
 
   const [users, setUsers] = useState<Profile[]>([]);
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
+  // Ex-employees and closed accounts keep their history but aren't offered for new work.
+  const activeUsers = users.filter((u) => !isExEmployee(u as { employee_role?: string }));
+  const openAccounts = accounts.filter((a) => !isClosedAccount(a));
   const [tradingData, setTradingData] = useState<TradingData[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [selectedTrader, setSelectedTrader] = useState("");
@@ -144,13 +148,14 @@ const Admin = () => {
       <Navigation />
       <div className="min-h-screen bg-background pt-20 sm:pt-24 pb-12 px-3 sm:px-4 animate-fade-in">
         <div className="max-w-[1600px] mx-auto">
-          {new Date().getDate() <= 15 && activeTab !== "payout-run" && (() => {
+          {/* Payday reminder: shown on the 10th of each month */}
+          {new Date().getDate() === 10 && activeTab !== "payout-run" && (() => {
             const due = defaultStoMonth();
             return (
               <div className="mb-4 flex flex-wrap items-center gap-3 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
                 <CalendarCheck className="h-4 w-4 text-primary" />
                 <span>
-                  {["January","February","March","April","May","June","July","August","September","October","November","December"][due.month - 1]} {due.year} STO is due around the 5th–10th.
+                  {["January","February","March","April","May","June","July","August","September","October","November","December"][due.month - 1]} {due.year} STO is due today (10th).
                 </span>
                 <button type="button" className="ml-auto font-medium text-primary underline" onClick={() => setActiveTab("payout-run")}>
                   Open Payout Run
@@ -276,8 +281,8 @@ const Admin = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1">
                   <TradingDataEntry 
-                    users={users} 
-                    accounts={accounts} 
+                    users={activeUsers} 
+                    accounts={openAccounts} 
                     onRefresh={fetchAllData}
                     onTraderChange={setSelectedTrader}
                   />
@@ -296,7 +301,7 @@ const Admin = () => {
 
             {/* LEAVES TAB */}
             <TabsContent value="leaves">
-              <LeavesManagement users={users} />
+              <LeavesManagement users={activeUsers} />
             </TabsContent>
 
             {/* PAYOUT RUN TAB — everyone's STO due this month */}
@@ -321,22 +326,22 @@ const Admin = () => {
 
             {/* SALARY BACKUP TAB */}
             <TabsContent value="salary-backup">
-              <SalaryBackup users={users} />
+              <SalaryBackup users={activeUsers} />
             </TabsContent>
 
             {/* DESK COST TAB */}
             <TabsContent value="desk-cost">
-              <DeskCost users={users} />
+              <DeskCost users={activeUsers} />
             </TabsContent>
 
             {/* TRADER CONFIG TAB */}
             <TabsContent value="trader-config">
-              <TraderConfig users={users} />
+              <TraderConfig users={activeUsers} />
             </TabsContent>
 
             {/* POOL TAB */}
             <TabsContent value="pool">
-              <PoolView users={users} />
+              <PoolView users={activeUsers} />
             </TabsContent>
 
             {/* LTO TAB */}
@@ -371,13 +376,13 @@ const Admin = () => {
 
             {/* MONTHLY MILESTONES (MANUAL) TAB */}
             <TabsContent value="milestones">
-              <MonthlyMilestones users={users} />
+              <MonthlyMilestones users={activeUsers} />
             </TabsContent>
 
 
             {/* BASELINE SEEDER TAB */}
             <TabsContent value="baseline">
-              <BaselineSeeder users={users} />
+              <BaselineSeeder users={activeUsers} />
             </TabsContent>
 
             {/* DOCUMENTS TAB */}
