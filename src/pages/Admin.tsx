@@ -15,6 +15,7 @@ import { isExEmployee, isClosedAccount } from "@/lib/employees";
 import PayoutRun, { defaultStoMonth } from "@/components/admin/PayoutRun";
 import TodayBox from "@/components/admin/TodayBox";
 import ChangeHistory from "@/components/admin/ChangeHistory";
+import CheckIns from "@/components/admin/CheckIns";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { getAllTradeRows, invalidateTradeCache } from "@/lib/tradeCache";
 import BiometricAttendance from "@/components/admin/BiometricAttendance";
@@ -334,7 +335,17 @@ const Admin = () => {
             </TabsContent>
 
             <TabsContent value="biometric">
-              <BiometricAttendance />
+              <div className="space-y-4">
+                <CheckIns users={users} />
+                <details className="group rounded-lg border bg-card">
+                  <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground">
+                    Device, PINs, raw punches &amp; setup
+                  </summary>
+                  <div className="border-t p-4">
+                    <BiometricAttendance />
+                  </div>
+                </details>
+              </div>
             </TabsContent>
 
             {DB_UPDATE_APPLIED && (
@@ -372,7 +383,7 @@ const ADMIN_SECTIONS: { name: string; tabs: { value: string; label: string; icon
       { value: "users", label: "Users", icon: Users },
       { value: "leaves", label: "Leaves", icon: Calendar },
       { value: "documents", label: "Documents", icon: Folder },
-      { value: "biometric", label: "Biometric", icon: Fingerprint },
+      { value: "biometric", label: "Check-ins", icon: Fingerprint },
       ...(DB_UPDATE_APPLIED
         ? [
             { value: "messages", label: "Messages", icon: Inbox },

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useTraderHistory } from "@/hooks/useTraderHistory";
 import ThisMonthCard from "@/components/user/ThisMonthCard";
+import MyCheckins from "@/components/user/MyCheckins";
 import { formatIndian, formatCurrencyINR } from "@/lib/utils";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { useNavigate } from "react-router-dom";
@@ -677,6 +678,7 @@ const MyData = () => {
 
             {/* ATTENDANCE TAB - Read-only */}
             <TabsContent value="attendance" className="tab-anim">
+              <MyCheckins />
               <LeaveApplication />
             </TabsContent>
 
