@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -142,9 +142,11 @@ export type Database = {
       }
       attendance_shift_settings: {
         Row: {
+          checkout_after_minutes: number
           created_at: string
           effective_from: string
           grace_minutes: number
+          half_day_after_minutes: number
           half_day_min_hours: number
           id: string
           notes: string | null
@@ -152,9 +154,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          checkout_after_minutes?: number
           created_at?: string
           effective_from: string
           grace_minutes?: number
+          half_day_after_minutes?: number
           half_day_min_hours?: number
           id?: string
           notes?: string | null
@@ -162,9 +166,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          checkout_after_minutes?: number
           created_at?: string
           effective_from?: string
           grace_minutes?: number
+          half_day_after_minutes?: number
           half_day_min_hours?: number
           id?: string
           notes?: string | null
@@ -231,6 +237,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      change_log: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          id: number
+          new_data: Json | null
+          old_data: Json | null
+          row_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: never
+          new_data?: Json | null
+          old_data?: Json | null
+          row_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: never
+          new_data?: Json | null
+          old_data?: Json | null
+          row_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
+      checkin_overrides: {
+        Row: {
+          checkin_at: string | null
+          created_at: string
+          id: string
+          note: string | null
+          punch_date: string
+          status: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          checkin_at?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          punch_date: string
+          status?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          checkin_at?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          punch_date?: string
+          status?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       contact_messages: {
         Row: {
@@ -666,6 +741,7 @@ export type Database = {
           trader_number: string | null
           updated_at: string
           user_id: string
+          uses_biometric: boolean
         }
         Insert: {
           assigned_trader_id?: string | null
@@ -680,6 +756,7 @@ export type Database = {
           trader_number?: string | null
           updated_at?: string
           user_id: string
+          uses_biometric?: boolean
         }
         Update: {
           assigned_trader_id?: string | null
@@ -694,6 +771,7 @@ export type Database = {
           trader_number?: string | null
           updated_at?: string
           user_id?: string
+          uses_biometric?: boolean
         }
         Relationships: []
       }
@@ -1180,7 +1258,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      daily_checkins: {
+        Row: {
+          checkin_at: string | null
+          decided_status: string | null
+          device_checkin: string | null
+          edited: boolean | null
+          note: string | null
+          punch_date: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       all_correlations: {
