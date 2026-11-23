@@ -14,7 +14,6 @@ import { DB_UPDATE_APPLIED } from "@/lib/features";
 import { isExEmployee, isClosedAccount } from "@/lib/employees";
 import PayoutRun, { defaultStoMonth } from "@/components/admin/PayoutRun";
 import TodayBox from "@/components/admin/TodayBox";
-import DocumentMigration from "@/components/admin/DocumentMigration";
 import ChangeHistory from "@/components/admin/ChangeHistory";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { getAllTradeRows, invalidateTradeCache } from "@/lib/tradeCache";
@@ -331,8 +330,6 @@ const Admin = () => {
             </TabsContent>
 
             <TabsContent value="documents">
-              {/* One-time copy of files from Lovable Cloud; remove once done */}
-              <DocumentMigration />
               <EmployeeDocuments users={users} />
             </TabsContent>
 
@@ -419,8 +416,8 @@ const AdminNav = ({ activeTab, onSelect }: { activeTab: string; onSelect: (tab: 
   const section = ADMIN_SECTIONS.find((sec) => sec.tabs.some((t) => t.value === activeTab)) ?? ADMIN_SECTIONS[0];
   return (
     <div className="space-y-2">
-      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
-        <div className="flex w-max gap-1 rounded-lg border border-border/50 bg-muted/30 p-1" role="navigation" aria-label="Admin sections">
+      <div>
+        <div className="flex flex-wrap gap-1 rounded-lg border border-border/50 bg-muted/30 p-1 sm:w-max" role="navigation" aria-label="Admin sections">
           {ADMIN_SECTIONS.map((sec) => {
             const active = sec === section;
             return (
@@ -440,8 +437,8 @@ const AdminNav = ({ activeTab, onSelect }: { activeTab: string; onSelect: (tab: 
         </div>
       </div>
       {section.tabs.length > 1 && (
-        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
-          <TabsList className="w-max bg-transparent p-0 gap-1">
+        <div>
+          <TabsList className="h-auto flex-wrap justify-start bg-transparent p-0 gap-1">
             {section.tabs.map((t) => (
               <TabsTrigger
                 key={t.value}

@@ -30,7 +30,7 @@ const DateRangeFilterComponent = ({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="flex bg-muted/50 rounded-lg p-1">
+      <div className="flex flex-wrap bg-muted/50 rounded-lg p-1">
         {filters.map((filter) => (
           <Button
             key={filter.value}

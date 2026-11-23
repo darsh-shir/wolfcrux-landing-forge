@@ -449,8 +449,8 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
         {/* DAILY VIEW TAB */}
         <TabsContent value="daily">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Daily Attendance - {format(parseISO(selectedDate), "EEEE, MMM d, yyyy")}</CardTitle>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="text-lg sm:text-2xl">Daily Attendance - {format(parseISO(selectedDate), "EEEE, MMM d, yyyy")}</CardTitle>
               <Dialog open={showAttendanceDialog} onOpenChange={(open) => {
                 if (!open) resetAttendanceForm();
                 else {
@@ -618,7 +618,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
         {/* MONTHLY RECORDS TAB */}
         <TabsContent value="attendance">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle>Attendance Records</CardTitle>
               <Dialog open={showAttendanceDialog} onOpenChange={(open) => {
                 if (!open) resetAttendanceForm();
@@ -872,7 +872,7 @@ const LeavesManagement = ({ users }: LeavesManagementProps) => {
         {/* HOLIDAYS TAB */}
         <TabsContent value="holidays">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle>Holidays</CardTitle>
               <Dialog open={showHolidayDialog} onOpenChange={setShowHolidayDialog}>
                 <DialogTrigger asChild>

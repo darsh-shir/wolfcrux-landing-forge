@@ -297,8 +297,8 @@ const MyData = () => {
           </div>
 
           <Tabs defaultValue="analytics" className="space-y-6">
-            <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
-              <TabsList className="w-max sm:w-auto">
+            <div>
+              <TabsList className="h-auto flex-wrap justify-start sm:w-auto">
                 <TabsTrigger value="analytics" className="gap-2 transition-all duration-200 hover:text-foreground whitespace-nowrap">
                   <LineChart className="h-4 w-4" />
                   Analytics
