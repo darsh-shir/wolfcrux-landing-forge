@@ -20,18 +20,32 @@ const todayIST = () => new Date().toLocaleDateString("en-CA", { timeZone: TZ });
 
 const FUNCTION_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/adms-attendance`;
 
-const WORKER_CODE = `// Cloudflare Worker for attendance.wolfcrux.com
-// Relays K90 Pro ADMS calls without changing method, query, body, or headers.
+/** Address of the Cloudflare Worker relay the device talks to (plain HTTP, port 80). */
+const RELAY_HOST = "wolfcrux-adms.pc-shiroiya25.workers.dev";
+
+const WORKER_CODE = `// Cloudflare Worker "wolfcrux-adms": relay for the eSSL K90 Pro (ADMS).
+// The device can only speak plain HTTP to /iclock/...; this forwards each
+// request unchanged (method, query, body) to the HTTPS backend function.
 const TARGET = "${import.meta.env.VITE_SUPABASE_URL}/functions/v1/adms-attendance";
 export default {
   async fetch(request) {
     const source = new URL(request.url);
-    if (!source.pathname.toLowerCase().startsWith("/iclock/")) return new Response("Not found", { status: 404 });
+    const path = source.pathname;
+    if (path === "/" || path === "") {
+      return new Response("Wolfcrux ADMS relay is running", { headers: { "content-type": "text/plain" } });
+    }
+    if (!path.toLowerCase().startsWith("/iclock/")) return new Response("Not found", { status: 404 });
     const target = new URL(TARGET);
-    target.pathname = target.pathname.replace(/\\/$/, "") + source.pathname;
+    target.pathname = target.pathname.replace(/\\/$/, "") + path;
     target.search = source.search;
-    const forwarded = new Request(target.toString(), request);
-    return fetch(forwarded);
+    const init = {
+      method: request.method,
+      headers: request.headers,
+      body: request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer(),
+    };
+    const reply = await fetch(target.toString(), init);
+    // Devices expect a plain-text reply; pass it through as-is.
+    return new Response(await reply.arrayBuffer(), { status: reply.status, headers: { "content-type": "text/plain" } });
   },
 };`;
 
@@ -341,23 +355,23 @@ const BiometricAttendance = () => {
       {/* Device configuration */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Server className="h-5 w-5" />Device Configuration</CardTitle>
-          <CardDescription>Set the device only after the subdomain has been attached to the relay and tested from the device network.</CardDescription></CardHeader>
+          <CardDescription>Create the relay Worker first (code below), open its address in a browser to check it says "Wolfcrux ADMS relay is running", then enter these settings on the device.</CardDescription></CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div className="grid md:grid-cols-2 gap-2">
             {[
-              ["Server Mode", "ADMS"], ["Enable Domain Name", "ON"], ["Server Address", "attendance.wolfcrux.com"],
-              ["Server Port", "Not configured yet — Cloudflare relay and firmware HTTPS capability must be verified"], ["Server Path", "/iclock (the device sends /cdata, /getrequest and /devicecmd)"],
+              ["Server Mode", "ADMS"], ["Enable Domain Name", "ON"], ["Server Address", RELAY_HOST],
+              ["Server Port", "80"], ["HTTPS / SSL (if the menu has it)", "OFF"],
               ["Enable Proxy Server", "OFF"], ["Device Serial Number", devices.map((d) => d.device_serial_number).join(", ") || "Register it above"],
-              ["Backend function path", "/functions/v1/adms-attendance"],
+              ["Network (Comm. → Ethernet)", "DHCP ON, or set Gateway and DNS (e.g. 8.8.8.8)"],
             ].map(([k, v]) => (
               <div key={k} className="p-2 rounded border flex justify-between gap-2"><span className="text-muted-foreground">{k}</span><span className="font-mono text-xs text-right break-all">{v}</span></div>
             ))}
           </div>
           <div>
-            <div className="flex items-center justify-between mb-1"><p className="text-xs text-muted-foreground">Cloudflare Worker code for attendance.wolfcrux.com</p>
+            <div className="flex items-center justify-between mb-1"><p className="text-xs text-muted-foreground">Cloudflare Worker code (name it wolfcrux-adms)</p>
               <Button size="sm" variant="ghost" onClick={() => copy(WORKER_CODE)}><Copy className="h-4 w-4 mr-1" />Copy</Button></div>
             <pre className="text-xs p-3 rounded bg-muted overflow-x-auto max-h-64">{WORKER_CODE}</pre>
-            <p className="mt-2 text-xs text-muted-foreground">The worker's custom domain/DNS route must be enabled in Cloudflare before this address can receive traffic. The K90 Pro's HTTPS support and accepted port must be verified on the unit; do not change its current settings yet.</p>
+            <p className="mt-2 text-xs text-muted-foreground">In Cloudflare: Workers &amp; Pages → Create → Worker → name it <span className="font-mono">wolfcrux-adms</span> → Deploy → Edit code → paste this → Deploy. Its workers.dev address accepts plain HTTP on port 80, which the device needs.</p>
           </div>
         </CardContent>
       </Card>
