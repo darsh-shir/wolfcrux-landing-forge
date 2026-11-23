@@ -769,6 +769,27 @@ export type Database = {
         }
         Relationships: []
       }
+      price_history_cache: {
+        Row: {
+          bars: Json
+          ticker: string
+          trading_day: string
+          updated_at: string
+        }
+        Insert: {
+          bars: Json
+          ticker: string
+          trading_day: string
+          updated_at?: string
+        }
+        Update: {
+          bars?: Json
+          ticker?: string
+          trading_day?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           assigned_trader_id: string | null
@@ -850,6 +871,69 @@ export type Database = {
           updated_at?: string
           user_id?: string
           year?: number
+        }
+        Relationships: []
+      }
+      screener_rows: {
+        Row: {
+          data: Json
+          fetched_at: string
+          ticker: string
+        }
+        Insert: {
+          data: Json
+          fetched_at?: string
+          ticker: string
+        }
+        Update: {
+          data?: Json
+          fetched_at?: string
+          ticker?: string
+        }
+        Relationships: []
+      }
+      screener_runs: {
+        Row: {
+          cooldown_until: string | null
+          error: string | null
+          failed_pages: number
+          finished_at: string | null
+          id: number
+          pages_done: number
+          pages_total: number | null
+          routes: Json
+          run_date: string
+          started_at: string
+          status: string
+          total_rows: number | null
+        }
+        Insert: {
+          cooldown_until?: string | null
+          error?: string | null
+          failed_pages?: number
+          finished_at?: string | null
+          id?: never
+          pages_done?: number
+          pages_total?: number | null
+          routes?: Json
+          run_date: string
+          started_at?: string
+          status?: string
+          total_rows?: number | null
+        }
+        Update: {
+          cooldown_until?: string | null
+          error?: string | null
+          failed_pages?: number
+          finished_at?: string | null
+          id?: never
+          pages_done?: number
+          pages_total?: number | null
+          routes?: Json
+          run_date?: string
+          started_at?: string
+          status?: string
+          total_rows?: number | null
         }
         Relationships: []
       }

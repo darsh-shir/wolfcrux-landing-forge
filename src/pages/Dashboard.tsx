@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock, LineChart, Activity, Search, Filter } from "lucide-react";
+import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock, LineChart, Activity, Search, Filter, GitCompareArrows } from "lucide-react";
 import { normalizeTipranksQuote, type ExtendedHoursQuote } from "@/lib/tipranksQuote";
 import { fetchEconomicEvents, type EconomicEvent } from "@/lib/economic";
 import { useVisibleInterval } from "@/hooks/useVisibleInterval";
@@ -32,6 +32,7 @@ import EconomicOverview from "@/components/dashboard/EconomicOverview";
 import EconomicCalendar from "@/components/dashboard/EconomicCalendar";
 import EarningsOverview from "@/components/dashboard/EarningsOverview";
 import CompareStocks from "@/components/dashboard/CompareStocks";
+import PairTrading from "@/components/dashboard/PairTrading";
 import TickerTape from "@/components/dashboard/TickerTape";
 import MarketClock from "@/components/dashboard/MarketClock";
 import MarketPulse from "@/components/dashboard/MarketPulse";
@@ -507,6 +508,11 @@ const Dashboard = () => {
                   Economic
                 </TabsTrigger>
 
+                <TabsTrigger value="pairs" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
+                  <GitCompareArrows className="w-4 h-4 mr-1 sm:mr-2" />
+                  Pairs
+                </TabsTrigger>
+
                 <TabsTrigger value="compare" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <LineChart className="w-4 h-4 mr-1 sm:mr-2" />
                   Compare
@@ -591,6 +597,11 @@ const Dashboard = () => {
             {/* ================= ECONOMIC CALENDAR TAB ================= */}
             <TabsContent value="economic" className="mt-6 tab-anim">
               <EconomicCalendar data={economicEvents} loading={economicLoading} updatedAt={economicUpdated} />
+            </TabsContent>
+
+            {/* ================= PAIRS TAB ================= */}
+            <TabsContent value="pairs" className="mt-6 tab-anim">
+              <PairTrading />
             </TabsContent>
 
             {/* ================= COMPARE STOCKS TAB ================= */}
