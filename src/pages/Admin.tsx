@@ -14,6 +14,8 @@ import { DB_UPDATE_APPLIED } from "@/lib/features";
 import { isExEmployee, isClosedAccount } from "@/lib/employees";
 import PayoutRun, { defaultStoMonth } from "@/components/admin/PayoutRun";
 import TodayBox from "@/components/admin/TodayBox";
+import DocumentMigration from "@/components/admin/DocumentMigration";
+import ChangeHistory from "@/components/admin/ChangeHistory";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { getAllTradeRows, invalidateTradeCache } from "@/lib/tradeCache";
 import BiometricAttendance from "@/components/admin/BiometricAttendance";
@@ -324,7 +326,13 @@ const Admin = () => {
             </TabsContent>
 
             {/* DOCUMENTS TAB */}
+            <TabsContent value="history">
+              <ChangeHistory users={users} />
+            </TabsContent>
+
             <TabsContent value="documents">
+              {/* One-time copy of files from Lovable Cloud; remove once done */}
+              <DocumentMigration />
               <EmployeeDocuments users={users} />
             </TabsContent>
 
@@ -354,7 +362,13 @@ const Admin = () => {
 
 /** Admin tabs grouped into sections: pick a section, then one of its pages. */
 const ADMIN_SECTIONS: { name: string; tabs: { value: string; label: string; icon: React.ComponentType<{ className?: string }> }[] }[] = [
-  { name: "Home", tabs: [{ value: "dashboard", label: "Dashboard", icon: LayoutDashboard }] },
+  {
+    name: "Home",
+    tabs: [
+      { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { value: "history", label: "Change history", icon: History },
+    ],
+  },
   {
     name: "People",
     tabs: [

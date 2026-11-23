@@ -51,7 +51,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { action, userId, password, email, fullName, role } = await req.json();
+    const body = await req.json();
+    const { action, userId, password, email, fullName, role } = body;
 
     switch (action) {
       case "create_user": {
@@ -139,6 +140,36 @@ Deno.serve(async (req) => {
           });
         }
 
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "set_access": {
+        // Block (ex-employee) or restore sign-in. A blocked account can't sign
+        // in or refresh its session; its records are untouched.
+        const blocked = body.blocked;
+        if (!userId || typeof blocked !== "boolean") {
+          return new Response(JSON.stringify({ error: "userId and blocked are required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (userId === user.id) {
+          return new Response(JSON.stringify({ error: "You can't block your own account" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { error: banError } = await adminClient.auth.admin.updateUserById(userId, {
+          ban_duration: blocked ? "876000h" : "none",
+        });
+        if (banError) {
+          return new Response(JSON.stringify({ error: banError.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

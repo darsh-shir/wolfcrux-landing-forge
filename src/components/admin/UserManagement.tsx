@@ -5,7 +5,7 @@ import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
-import { EX_EMPLOYEE_ROLE, CLOSED_PREFIX, isExEmployee, isClosedAccount, accountLabel, randomPassword } from "@/lib/employees";
+import { EX_EMPLOYEE_ROLE, CLOSED_PREFIX, isExEmployee, isClosedAccount, accountLabel } from "@/lib/employees";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -256,15 +256,15 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     try {
       const { error } = await supabase.from("profiles").update({ employee_role: EX_EMPLOYEE_ROLE }).eq("user_id", deleteUser.user_id);
       if (error) throw new Error(error.message);
-      // Block sign-in with a random password nobody knows (Reset Password restores access).
+      // Block sign-in on the server (Restore unblocks it); their password is kept.
       const response = await supabase.functions.invoke("admin-operations", {
-        body: { action: "reset_password", userId: deleteUser.user_id, password: randomPassword() },
+        body: { action: "set_access", userId: deleteUser.user_id, blocked: true },
       });
       const blockError = response.error?.message || response.data?.error;
       toast({
         title: "Moved to ex-employees",
         description: blockError
-          ? `${deleteUser.full_name}'s records are kept, but sign-in couldn't be blocked (${blockError}). Reset their password to block it.`
+          ? `${deleteUser.full_name}'s records are kept, but sign-in couldn't be blocked (${blockError}). Try again from Ex-employees → Restore, then remove again.`
           : `${deleteUser.full_name}'s records are kept and they can no longer sign in.`,
         variant: blockError ? "destructive" : undefined,
       });
@@ -282,7 +282,17 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Restored", description: `${user.full_name} is back in the employee list. Reset their password so they can sign in.` });
+    const response = await supabase.functions.invoke("admin-operations", {
+      body: { action: "set_access", userId: user.user_id, blocked: false },
+    });
+    const unblockError = response.error?.message || response.data?.error;
+    toast({
+      title: "Restored",
+      description: unblockError
+        ? `${user.full_name} is back in the list, but sign-in couldn't be unblocked (${unblockError}).`
+        : `${user.full_name} is back in the employee list and can sign in with their old password.`,
+      variant: unblockError ? "destructive" : undefined,
+    });
     onRefresh();
   };
 
