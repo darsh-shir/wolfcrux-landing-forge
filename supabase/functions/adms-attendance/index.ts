@@ -166,7 +166,8 @@ async function requireAdmin(req: Request) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return text("ok");
   const url = new URL(req.url);
-  const path = url.pathname.toLowerCase();
+  // Older eSSL/ZKTeco firmware (e.g. "iClock Proxy/1.09") adds .aspx: /iclock/cdata.aspx, /iclock/getrequest.aspx.
+  const path = url.pathname.toLowerCase().replace(/\.aspx$/, "");
   const requestBody = req.method === "POST" ? await req.text() : "";
 
   try {

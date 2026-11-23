@@ -135,7 +135,26 @@ const BiometricAttendance = () => {
   const setPin = async (userId: string, pin: string | null) => {
     const { error } = await supabase.from("profiles").update({ biometric_pin: pin && pin.trim() ? pin.trim() : null }).eq("user_id", userId);
     if (error) return toast({ title: "Could not save PIN", description: error.message.includes("unique") || error.message.includes("duplicate") ? "That PIN is already assigned to someone else." : error.message, variant: "destructive" });
-    toast({ title: "Biometric PIN saved" }); load();
+    // Link punches already received for this PIN (and unlink this person's punches
+    // under any other PIN). Punches stay review-only; attendance is not changed.
+    const newPin = pin && pin.trim() ? pin.trim() : null;
+    const unlink = newPin
+      ? await supabase.from("biometric_attendance_logs").update({ employee_id: null }).eq("employee_id", userId).neq("biometric_pin", newPin)
+      : await supabase.from("biometric_attendance_logs").update({ employee_id: null }).eq("employee_id", userId);
+    const link = newPin
+      ? await supabase.from("biometric_attendance_logs").update({ employee_id: userId }).eq("biometric_pin", newPin).select("id")
+      : { data: [], error: null };
+    const linkError = unlink.error || link.error;
+    toast({
+      title: "Biometric PIN saved",
+      description: linkError
+        ? `Saved, but earlier punches couldn't be linked: ${linkError.message}`
+        : newPin
+          ? `${link.data?.length ?? 0} punch(es) already received for PIN ${newPin} are now linked.`
+          : "Earlier punches were unlinked.",
+      variant: linkError ? "destructive" : undefined,
+    });
+    load();
   };
 
   const addShift = async () => {
