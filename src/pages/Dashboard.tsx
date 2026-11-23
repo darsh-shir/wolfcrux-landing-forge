@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock, LineChart, Activity, Search } from "lucide-react";
+import { BarChart3, Scissors, Newspaper, Calendar, Users, CalendarClock, LineChart, Activity, Search, Filter } from "lucide-react";
 import { normalizeTipranksQuote, type ExtendedHoursQuote } from "@/lib/tipranksQuote";
 import { fetchEconomicEvents, type EconomicEvent } from "@/lib/economic";
 import { useVisibleInterval } from "@/hooks/useVisibleInterval";
@@ -22,6 +22,7 @@ import SectorPerformance from "@/components/dashboard/SectorPerformance";
 import MarketMovers from "@/components/dashboard/MarketMovers";
 import MarketNews from "@/components/dashboard/MarketNews";
 import FinvizNews from "@/components/dashboard/FinvizNews";
+import FinvizScreener from "@/components/dashboard/FinvizScreener";
 import StockSplits from "@/components/dashboard/StockSplits";
 import MarketSentiment from "@/components/dashboard/MarketSentiment";
 import NewsOverview from "@/components/dashboard/NewsOverview";
@@ -476,6 +477,11 @@ const Dashboard = () => {
                   Overview
                 </TabsTrigger>
 
+                <TabsTrigger value="screener" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
+                  <Filter className="w-4 h-4 mr-1 sm:mr-2" />
+                  Screener
+                </TabsTrigger>
+
                 <TabsTrigger value="news" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <Newspaper className="w-4 h-4 mr-1 sm:mr-2" />
                   News
@@ -557,6 +563,10 @@ const Dashboard = () => {
             </TabsContent>
 
             {/* ================= MARKET NEWS TAB ================= */}
+            <TabsContent value="screener" className="mt-4 sm:mt-6 tab-anim">
+              <FinvizScreener />
+            </TabsContent>
+
             <TabsContent value="news" className="mt-6 tab-anim space-y-6">
               <FinvizNews onSymbolSubmit={setNewsSymbol} />
               <MarketNews data={{ posts: newsPosts }} loading={loadingNews} externalSymbol={newsSymbol} />
