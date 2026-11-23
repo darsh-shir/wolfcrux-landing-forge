@@ -16,6 +16,7 @@ import PayoutRun, { defaultStoMonth } from "@/components/admin/PayoutRun";
 import TodayBox from "@/components/admin/TodayBox";
 import ChangeHistory from "@/components/admin/ChangeHistory";
 import CheckIns from "@/components/admin/CheckIns";
+import MachineAlert from "@/components/admin/MachineAlert";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { getAllTradeRows, invalidateTradeCache } from "@/lib/tradeCache";
 import BiometricAttendance from "@/components/admin/BiometricAttendance";
@@ -170,6 +171,7 @@ const Admin = () => {
       <Navigation />
       <div className="min-h-screen bg-background pt-20 sm:pt-24 pb-12 px-3 sm:px-4 animate-fade-in">
         <div className="max-w-[1600px] mx-auto">
+          <MachineAlert onOpen={() => setActiveTab("biometric")} />
           {/* Payday reminder: shown on the 10th of each month */}
           {new Date().getDate() === 10 && activeTab !== "payout-run" && (() => {
             const due = defaultStoMonth();
@@ -339,7 +341,7 @@ const Admin = () => {
                 <CheckIns users={users} />
                 <details className="group rounded-lg border bg-card">
                   <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground">
-                    Device, PINs, raw punches &amp; setup
+                    Machine &amp; fingerprint numbers
                   </summary>
                   <div className="border-t p-4">
                     <BiometricAttendance />

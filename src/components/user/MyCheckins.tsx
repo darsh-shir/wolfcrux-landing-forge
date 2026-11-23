@@ -3,10 +3,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Fingerprint, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusBadge } from "@/components/CheckinBadge";
 import {
-  type CheckinDay, type Shift, istTime, loadCheckins, loadHolidays, loadLeaves, loadShifts, monthDates, shiftFor, shiftLabel, statusFor, todayIST,
+  type CheckinDay, type CheckinRequest, type Shift, fileRequest, loadRequests, withdrawRequest, istTime, loadCheckins, loadHolidays, loadLeaves, loadShifts, monthDates, shiftFor, shiftLabel, statusFor, todayIST,
 } from "@/lib/checkins";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -14,6 +20,13 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 /** The trader's own daily check-in times (first fingerprint of the day). */
 const MyCheckins = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [requests, setRequests] = useState<CheckinRequest[]>([]);
+  const [asking, setAsking] = useState<string | null>(null);
+  const [askTime, setAskTime] = useState("");
+  const [askReason, setAskReason] = useState("");
+  const [sending, setSending] = useState(false);
+  const [reload, setReload] = useState(0);
   const today = todayIST();
   const [ym, setYm] = useState({ y: Number(today.slice(0, 4)), m: Number(today.slice(5, 7)) });
   const [days, setDays] = useState<CheckinDay[]>([]);
@@ -34,8 +47,10 @@ const MyCheckins = () => {
       loadHolidays(all[0], all[all.length - 1]),
       loadLeaves(all[0], all[all.length - 1], user.id),
       supabase.from("profiles").select("uses_biometric").eq("user_id", user.id).maybeSingle(),
+      loadRequests({ userId: user.id, from: all[0], to: all[all.length - 1] }).catch(() => [] as CheckinRequest[]),
     ])
-      .then(([d, s, h, l, prof]) => {
+      .then(([d, s, h, l, prof, reqs]) => {
+        setRequests(reqs);
         setDays(d);
         setShifts(s);
         setHolidays(h);
@@ -44,9 +59,38 @@ const MyCheckins = () => {
       })
       .catch(() => setDays([]))
       .finally(() => setLoading(false));
-  }, [user, ym]);
+  }, [user, ym, reload]);
 
   const byDate = useMemo(() => new Map(days.map((d) => [d.punch_date, d])), [days]);
+  // Latest request per day
+  const requestFor = useMemo(() => {
+    const m = new Map<string, CheckinRequest>();
+    requests.forEach((r) => { if (!m.has(r.punch_date)) m.set(r.punch_date, r); });
+    return m;
+  }, [requests]);
+
+  const submit = async () => {
+    if (!asking) return;
+    setSending(true);
+    try {
+      await fileRequest(asking, askTime || null, askReason);
+      toast({ title: "Request sent", description: "An admin will review it." });
+      setAsking(null);
+      setReload((n) => n + 1);
+    } catch (e) {
+      toast({ title: "Couldn't send", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+  const withdraw = async (r: CheckinRequest) => {
+    try {
+      await withdrawRequest(r.id);
+      setReload((n) => n + 1);
+    } catch (e) {
+      toast({ title: "Couldn't withdraw", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+    }
+  };
   const rows = dates
     .map((d) => ({ d, day: byDate.get(d), status: statusFor(d, byDate.get(d), shifts, holidays, leaves.get(`${user?.id}|${d}`)) }))
     .filter((r) => r.status.kind !== "weekend" || r.day?.checkin_at)
@@ -117,12 +161,66 @@ const MyCheckins = () => {
                   {status.kind === "missed" ? "—" : istTime(day?.checkin_at ?? null)}
                 </span>
                 <StatusBadge status={status} />
-                {day?.edited && <span className="ml-auto truncate text-xs text-muted-foreground" title={day.note ?? ""}>corrected{day.note ? ` · ${day.note}` : ""}</span>}
+                <span className="ml-auto flex items-center gap-2">
+                  {(() => {
+                    const r = requestFor.get(d);
+                    if (r?.status === "pending")
+                      return (
+                        <>
+                          <Badge variant="outline" className="border-sky-500/60 text-sky-700 dark:text-sky-400">Request pending</Badge>
+                          <button type="button" className="text-xs text-muted-foreground underline" onClick={() => void withdraw(r)}>withdraw</button>
+                        </>
+                      );
+                    if (r?.status === "rejected")
+                      return <span className="text-xs text-muted-foreground" title={r.admin_note ?? ""}>Request declined{r.admin_note ? `: ${r.admin_note}` : ""}</span>;
+                    if (r?.status === "approved") return <span className="text-xs text-emerald-600">Request approved</span>;
+                    if (day?.edited) return <span className="truncate text-xs text-muted-foreground" title={day.note ?? ""}>corrected</span>;
+                    return null;
+                  })()}
+                  {requestFor.get(d)?.status !== "pending" && status.kind !== "holiday" && status.kind !== "future" && (
+                    <button
+                      type="button"
+                      className="text-xs text-primary underline-offset-2 hover:underline"
+                      onClick={() => {
+                        setAsking(d);
+                        setAskTime(day?.checkin_at && status.kind !== "missed" ? istTime(day.checkin_at) : "");
+                        setAskReason("");
+                      }}
+                    >
+                      Request change
+                    </button>
+                  )}
+                </span>
               </li>
             ))}
           </ul>
         )}
       </CardContent>
+      <Dialog open={!!asking} onOpenChange={(o) => !o && setAsking(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request a check-in change</DialogTitle>
+            <DialogDescription>
+              {asking && new Date(`${asking}T12:00:00Z`).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })} — an admin will review it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="rq-time">When did you arrive? (India time, optional)</Label>
+              <Input id="rq-time" type="time" className="w-36" value={askTime} onChange={(e) => setAskTime(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="rq-reason">Reason</Label>
+              <Input id="rq-reason" maxLength={500} value={askReason} onChange={(e) => setAskReason(e.target.value)} placeholder="e.g. forgot to punch in, machine didn't read my finger" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button disabled={sending || askReason.trim().length < 3} onClick={() => void submit()}>
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

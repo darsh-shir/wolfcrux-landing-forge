@@ -16,6 +16,14 @@ import { Fingerprint, Server, Activity, UserX, Clock, Copy, RefreshCw, Trash2 } 
 const TZ = "Asia/Kolkata";
 const fmt = (s?: string | null) =>
   s ? new Date(s).toLocaleString("en-IN", { timeZone: TZ, dateStyle: "medium", timeStyle: "medium" }) : "—";
+const ago = (iso?: string | null) => {
+  if (!iso) return "never";
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 60 * 24) return `${Math.round(mins / 60)} h ago`;
+  return fmt(iso);
+};
 const todayIST = () => new Date().toLocaleDateString("en-CA", { timeZone: TZ });
 
 const FUNCTION_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/adms-attendance`;
@@ -53,7 +61,7 @@ type Device = { id: string; device_serial_number: string; device_name: string; l
 type Punch = { id: string; biometric_pin: string; employee_id: string | null; punch_timestamp: string; received_at: string; device_serial_number: string; verify_mode: string | null; in_out_status: string | null };
 type Evt = { id: string; device_serial_number: string | null; event_type: string; created_at: string; method: string | null; path: string | null; table_name: string | null; records_received: number; records_accepted: number; records_duplicate: number; records_unmatched: number; records_malformed: number; payload_excerpt: string | null; error: string | null; request_diagnostic: unknown };
 type Shift = { id: string; effective_from: string; shift_start: string; notes: string | null };
-type Prof = { user_id: string; full_name: string; biometric_pin: string | null };
+type Prof = { user_id: string; full_name: string; biometric_pin: string | null; employee_role?: string | null; uses_biometric?: boolean | null };
 
 const BiometricAttendance = () => {
   const { toast } = useToast();
@@ -75,7 +83,7 @@ const BiometricAttendance = () => {
       supabase.from("biometric_attendance_logs").select("id,biometric_pin,employee_id,punch_timestamp,received_at,device_serial_number,verify_mode,in_out_status").order("received_at", { ascending: false }).limit(500),
       supabase.from("adms_device_events").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("attendance_shift_settings").select("*").order("effective_from", { ascending: false }),
-      supabase.from("profiles").select("user_id,full_name,biometric_pin").order("full_name"),
+      supabase.from("profiles").select("user_id,full_name,biometric_pin,employee_role,uses_biometric").order("full_name"),
     ]);
     setDevices((d.data as Device[]) ?? []);
     setPunches((p.data as Punch[]) ?? []);
@@ -184,7 +192,7 @@ const BiometricAttendance = () => {
   const runConnectivityTest = async () => {
     setConnectivityResult("Checking the public GET handshake and an authenticated POST probe…");
     try {
-      const getUrl = new URL("https://attendance.wolfcrux.com/iclock/cdata");
+      const getUrl = new URL(`https://${RELAY_HOST}/iclock/cdata`);
       getUrl.searchParams.set("options", "all");
       getUrl.searchParams.set("pushver", "diagnostic");
       getUrl.searchParams.set("SN", "WOLFCRUX-CONNECTIVITY-TEST");
@@ -195,7 +203,7 @@ const BiometricAttendance = () => {
         setConnectivityResult(`GET handshake: HTTP ${getResponse.status}\n${getBody.slice(0, 500)}\nPOST forwarding test requires an admin session.`);
         return;
       }
-      const postUrl = new URL("https://attendance.wolfcrux.com/iclock/cdata");
+      const postUrl = new URL(`https://${RELAY_HOST}/iclock/cdata`);
       postUrl.searchParams.set("__wolfcrux_probe", "connectivity");
       postUrl.searchParams.set("table", "ATTLOG");
       const probeBody = "ADMS connectivity test; no punch data";
@@ -219,31 +227,94 @@ const BiometricAttendance = () => {
 
   return (
     <div className="space-y-6">
-      {/* Debug / status */}
+      {/* Machine: plain-language status */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Activity className="h-5 w-5" />Biometric Device Status</CardTitle>
-            <CardDescription>Live view of the fingerprint machine connection (Mumbai time)</CardDescription>
+            <CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Fingerprint className="h-5 w-5" />Fingerprint machine</CardTitle>
+            <CardDescription>Is the machine connected, and when did it last send punches?</CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-4 w-4 mr-1" />Refresh</Button>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-          {[
-            ["Last heartbeat", fmt(lastHeartbeat?.created_at)],
-            ["Last device serial", lastHeartbeat?.device_serial_number || events[0]?.device_serial_number || "—"],
-            ["Last upload", lastUpload ? `${fmt(lastUpload.created_at)} · ${lastUpload.records_accepted} new / ${lastUpload.records_duplicate} dup` : "—"],
-            ["Punches today", String(todayCount)],
-          ["Last matched punch", lastGoodPunch ? `${(lastGoodPunch.employee_id && nameOf.get(lastGoodPunch.employee_id)) ?? "?"} · ${fmt(lastGoodPunch.punch_timestamp)}` : "—"],
-            ["Unknown PINs", String(unknown.length)],
-            ["Last error", lastError ? `${lastError.error} (${fmt(lastError.created_at)})` : "None"],
-            ["Endpoint", events.length ? "Receiving" : "Waiting for device"],
-          ].map(([k, v]) => (
-            <div key={k} className="p-3 rounded-lg border bg-muted/30"><p className="text-xs text-muted-foreground">{k}</p><p className="font-medium break-words">{v}</p></div>
+        <CardContent className="space-y-3">
+          {devices.length === 0 && <p className="text-sm text-muted-foreground">No machine added yet — see Advanced below.</p>}
+          {devices.map((d) => (
+            <div key={d.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Machine</p>
+                <p className="font-medium">{d.device_name}</p>
+                <p className="text-xs text-muted-foreground">{d.location || "Office"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Connection</p>
+                <div className="mt-0.5">{status(d)}</div>
+                <p className="mt-1 text-xs text-muted-foreground">Last contact {ago(d.last_seen_at)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Last fingerprint</p>
+                <p className="font-medium">{ago(d.last_punch_at)}</p>
+                {lastGoodPunch && <p className="text-xs text-muted-foreground">{nameOf.get(lastGoodPunch.employee_id!) ?? "—"}</p>}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Punches today</p>
+                <p className="text-2xl font-bold tabular-nums">{todayCount}</p>
+              </div>
+            </div>
           ))}
+          {devices.some((d) => d.last_seen_at && Date.now() - new Date(d.last_seen_at).getTime() > 30 * 60000) && (
+            <p className="rounded-md bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+              The machine hasn't been in touch for a while. Check that it's switched on and connected to the internet (network cable or Wi-Fi). Punches are stored on the machine and arrive once it reconnects.
+            </p>
+          )}
         </CardContent>
       </Card>
 
+      {/* People ↔ machine numbers */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><UserX className="h-5 w-5" />Fingerprint numbers</CardTitle>
+          <CardDescription>
+            Each person has a number on the machine (Menu → User Management → User ID). Enter it here so their fingerprints are matched to them.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {unknown.length > 0 && (
+            <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+              <p className="text-sm font-medium">{unknown.length} number{unknown.length === 1 ? "" : "s"} on the machine not linked to anyone yet</p>
+              {unknown.map((u) => (
+                <div key={u.pin} className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="w-16 font-mono font-semibold">No. {u.pin}</span>
+                  <span className="w-48 text-xs text-muted-foreground">{u.count} punch{u.count === 1 ? "" : "es"} · last {fmt(u.last.punch_timestamp)}</span>
+                  <Select value={mapSel[u.pin] ?? ""} onValueChange={(v) => setMapSel({ ...mapSel, [u.pin]: v })}>
+                    <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Who is this?" /></SelectTrigger>
+                    <SelectContent>{profiles.filter((p) => !p.biometric_pin).map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Button size="sm" className="h-8" disabled={!mapSel[u.pin]} onClick={() => setPin(mapSel[u.pin], u.pin)}>Link</Button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="grid gap-x-6 gap-y-2 md:grid-cols-2">
+            {profiles
+              // Only people who use the machine (others are switched off in "Who uses fingerprint").
+              .filter((p) => p.biometric_pin || (p.uses_biometric !== false && ["trader", "trainee"].includes((p.employee_role || "").toLowerCase())))
+              .map((p) => (
+              <form key={p.user_id} className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); setPin(p.user_id, (new FormData(e.currentTarget).get("pin") as string) ?? ""); }}>
+                <span className="flex-1 truncate text-sm">{p.full_name}</span>
+                <Input name="pin" defaultValue={p.biometric_pin ?? ""} placeholder="No." className="h-8 w-20 text-center font-mono" aria-label={`Machine number for ${p.full_name}`} />
+                <SaveButton type="submit" />
+              </form>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Everything technical, folded away */}
+      <details className="rounded-lg border">
+        <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground">
+          Advanced — machine registration, all raw punches, setup and troubleshooting
+        </summary>
+        <div className="space-y-6 border-t p-4">
       {/* Devices */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><Fingerprint className="h-5 w-5" />Devices</CardTitle>
@@ -298,50 +369,6 @@ const BiometricAttendance = () => {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-
-      {/* Unknown PINs */}
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2 font-['Space_Grotesk']"><UserX className="h-5 w-5" />Unknown biometric PIN</CardTitle>
-          <CardDescription>Punches are kept. Assign the PIN to an employee and their past punches are attached automatically.</CardDescription></CardHeader>
-        <CardContent>
-          {unknown.length === 0 ? <p className="text-sm text-muted-foreground">All punches are matched.</p> : (
-            <div className="overflow-x-auto"><Table>
-              <TableHeader><TableRow><TableHead>PIN</TableHead><TableHead>Device</TableHead><TableHead>Last punch</TableHead><TableHead>Received</TableHead><TableHead>Punches</TableHead><TableHead>Map to employee</TableHead></TableRow></TableHeader>
-              <TableBody>{unknown.map((u) => (
-                <TableRow key={u.pin}>
-                  <TableCell className="font-mono">{u.pin}</TableCell>
-                  <TableCell className="font-mono text-xs">{u.last.device_serial_number}</TableCell>
-                  <TableCell className="text-xs">{fmt(u.last.punch_timestamp)}</TableCell>
-                  <TableCell className="text-xs">{fmt(u.last.received_at)}</TableCell>
-                  <TableCell>{u.count}</TableCell>
-                  <TableCell className="flex gap-2">
-                    <Select value={mapSel[u.pin] ?? ""} onValueChange={(v) => setMapSel({ ...mapSel, [u.pin]: v })}>
-                      <SelectTrigger className="w-48"><SelectValue placeholder="Select employee" /></SelectTrigger>
-                      <SelectContent>{profiles.filter((p) => !p.biometric_pin).map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <Button size="sm" disabled={!mapSel[u.pin]} onClick={() => setPin(mapSel[u.pin], u.pin)}>Map</Button>
-                  </TableCell>
-                </TableRow>
-              ))}</TableBody>
-            </Table></div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Employee PINs */}
-      <Card>
-        <CardHeader><CardTitle className="font-['Space_Grotesk']">Employee Biometric PINs</CardTitle>
-          <CardDescription>Enter the same User ID that the employee was enrolled with on the machine.</CardDescription></CardHeader>
-        <CardContent className="grid md:grid-cols-2 gap-2">
-          {profiles.map((p) => (
-            <form key={p.user_id} className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); setPin(p.user_id, (new FormData(e.currentTarget).get("pin") as string) ?? ""); }}>
-              <span className="flex-1 truncate text-sm">{p.full_name}</span>
-              <Input name="pin" defaultValue={p.biometric_pin ?? ""} placeholder="PIN" className="w-28 font-mono" />
-              <SaveButton type="submit" />
-            </form>
-          ))}
         </CardContent>
       </Card>
 
@@ -441,6 +468,8 @@ const BiometricAttendance = () => {
           ))}</TableBody>
         </Table></CardContent>
       </Card>
+        </div>
+      </details>
     </div>
   );
 };

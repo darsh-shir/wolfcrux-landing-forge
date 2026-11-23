@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { StatusBadge } from "@/components/CheckinBadge";
-import { ChevronLeft, ChevronRight, Clock, Fingerprint, Loader2, Pencil, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Download, Fingerprint, Inbox, Loader2, Pencil, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { isExEmployee } from "@/lib/employees";
 import {
-  type CheckinDay, type DayStatus, type Decision, type Shift,
+  type CheckinDay, type CheckinRequest, type DayStatus, type Decision, type Shift, decideRequest, loadRequests,
   istTime, loadCheckins, loadHolidays, loadLeaves, loadShifts, monthDates, needsReview, resetCorrection, saveCorrection, saveShift,
   setUsesBiometric, shiftFor, shiftLabel, statusFor, todayIST,
 } from "@/lib/checkins";
@@ -79,6 +80,9 @@ const CheckIns = ({ users }: { users: Person[] }) => {
   const [editStatus, setEditStatus] = useState<Decision>("ontime");
   const [editTime, setEditTime] = useState("");
   const [editNote, setEditNote] = useState("");
+  const [requests, setRequests] = useState<CheckinRequest[]>([]);
+  const [requestsOpen, setRequestsOpen] = useState(false);
+  const [reqNotes, setReqNotes] = useState<Record<string, string>>({});
 
   const range = useMemo(() => {
     if (view === "day") return { from: date, to: date };
@@ -89,9 +93,11 @@ const CheckIns = ({ users }: { users: Person[] }) => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [d, s, h, l] = await Promise.all([
+      const [d, s, h, l, rq] = await Promise.all([
         loadCheckins(range.from, range.to), loadShifts(), loadHolidays(range.from, range.to), loadLeaves(range.from, range.to),
+        loadRequests({ pendingOnly: true }).catch(() => [] as CheckinRequest[]),
       ]);
+      setRequests(rq);
       setDays(d);
       setShifts(s);
       setHolidays(h);
@@ -221,6 +227,94 @@ const CheckIns = ({ users }: { users: Person[] }) => {
     }
   };
 
+  const nameOf = (id: string) => users.find((u) => u.user_id === id)?.full_name ?? "Unknown";
+  const pendingFor = (userId: string, d: string) => requests.find((r) => r.user_id === userId && r.punch_date === d);
+  const answer = async (r: CheckinRequest, approve: boolean) => {
+    setBusy(r.id);
+    try {
+      await decideRequest(r, approve, reqNotes[r.id] ?? null);
+      toast({ title: approve ? "Approved" : "Declined", description: `${nameOf(r.user_id)} · ${r.punch_date}` });
+      await load();
+    } catch (e) {
+      toast({ title: "Couldn't save", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /** Monthly report: one summary row per person, plus a day-by-day sheet. */
+  const downloadReport = async () => {
+    setBusy("report");
+    try {
+      const XLSX = await import("xlsx");
+      const monthDays = monthDates(ym.y, ym.m);
+      const label = (st: DayStatus, day?: CheckinDay) => {
+        const t = day?.checkin_at && st.kind !== "missed" ? istTime(day.checkin_at) : "";
+        switch (st.kind) {
+          case "ontime": return t ? `${t} on time` : "On time";
+          case "late": return `${t} late${st.minutes ? ` ${st.minutes}m` : ""}`.trim();
+          case "half_day": return `Half day${t ? ` (${t})` : ""}`;
+          case "absent": return "Absent";
+          case "half_day_review": return `${t} half day?`;
+          case "missed": return "Missed check-in";
+          case "leave": return st.label;
+          case "holiday": return "Holiday";
+          case "weekend": return "";
+          case "future": return "";
+          default: return "No punch";
+        }
+      };
+      const summary = people.map((p) => {
+        let working = 0, ontime = 0, late = 0, half = 0, absent = 0, leave = 0, review = 0, lateMins = 0;
+        monthDays.forEach((d) => {
+          const st = statusOf(p, d);
+          if (["weekend", "holiday", "future"].includes(st.kind)) return;
+          working++;
+          if (st.kind === "ontime") ontime++;
+          else if (st.kind === "late") { late++; lateMins += Math.max(0, st.minutes ?? 0); }
+          else if (st.kind === "half_day") half++;
+          else if (st.kind === "absent") absent++;
+          else if (st.kind === "leave") leave++;
+          else review++;
+        });
+        const attended = ontime + late + half;
+        return {
+          Employee: p.full_name.trim(),
+          ID: p.trader_number ?? "",
+          "Working days": working,
+          "On time": ontime,
+          Late: late,
+          "Half day": half,
+          Absent: absent,
+          Leave: leave,
+          "Needs review": review,
+          "On-time %": attended ? Math.round((ontime / attended) * 100) : 0,
+          "Avg minutes late": late ? Math.round(lateMins / late) : 0,
+        };
+      });
+      const daily = people.map((p) => {
+        const row: Record<string, string> = { Employee: p.full_name.trim() };
+        monthDays.forEach((d) => {
+          // Text keys ("1 Nov") keep the columns in date order.
+          row[`${Number(d.slice(8))} ${MONTHS[ym.m - 1].slice(0, 3)}`] = label(statusOf(p, d), byKey.get(`${p.user_id}|${d}`));
+        });
+        return row;
+      });
+      const wb = XLSX.utils.book_new();
+      const s1 = XLSX.utils.json_to_sheet(summary);
+      s1["!cols"] = [{ wch: 24 }, { wch: 8 }, ...Array(9).fill({ wch: 12 })];
+      XLSX.utils.book_append_sheet(wb, s1, "Summary");
+      const s2 = XLSX.utils.json_to_sheet(daily);
+      s2["!cols"] = [{ wch: 24 }, ...monthDays.map(() => ({ wch: 14 }))];
+      XLSX.utils.book_append_sheet(wb, s2, "Day by day");
+      XLSX.writeFile(wb, `Check-ins ${MONTHS[ym.m - 1]} ${ym.y}.xlsx`);
+    } catch (e) {
+      toast({ title: "Couldn't create the report", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const dayShift = shiftFor(date, shifts);
   const dates = monthDates(ym.y, ym.m);
   const shownRows = reviewOnly ? dayRows.filter((r) => needsReview(r.status)) : dayRows;
@@ -233,6 +327,10 @@ const CheckIns = ({ users }: { users: Person[] }) => {
             <Fingerprint className="h-5 w-5 text-primary" /> Check-ins
           </CardTitle>
           <div className="flex flex-wrap gap-2">
+            <Button variant={requests.length ? "default" : "outline"} size="sm" className="h-8 gap-1.5" onClick={() => setRequestsOpen(true)}>
+              <Inbox className="h-4 w-4" /> Requests
+              {requests.length > 0 && <Badge variant="secondary" className="ml-0.5 h-5 px-1.5">{requests.length}</Badge>}
+            </Button>
             <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={openRules}>
               <Clock className="h-4 w-4" /> Shift rules
             </Button>
@@ -272,6 +370,9 @@ const CheckIns = ({ users }: { users: Person[] }) => {
               <SelectTrigger className="h-9 w-24"><SelectValue /></SelectTrigger>
               <SelectContent>{[ym.y - 1, ym.y, ym.y + 1].map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
             </Select>
+            <Button variant="outline" size="sm" className="ml-auto h-9 gap-1.5" disabled={loading || busy === "report"} onClick={() => void downloadReport()}>
+              {busy === "report" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download Excel
+            </Button>
           </div>
         )}
       </CardHeader>
@@ -320,6 +421,11 @@ const CheckIns = ({ users }: { users: Person[] }) => {
                         <p className="text-xs text-muted-foreground">
                           {p.trader_number || "—"}
                           {day?.edited && <span className="ml-2 text-primary">set by admin{day.note ? ` · ${day.note}` : ""}</span>}
+                          {pendingFor(p.user_id, date) && (
+                            <button type="button" className="ml-2 text-sky-600 underline" onClick={() => setRequestsOpen(true)}>
+                              asked for a change
+                            </button>
+                          )}
                         </p>
                       </div>
                       <span className={`w-14 text-right text-lg font-semibold tabular-nums ${status.kind === "late" || status.kind === "half_day_review" ? "text-red-600" : status.kind === "ontime" ? "text-emerald-600" : "text-muted-foreground"}`}>
@@ -462,6 +568,51 @@ const CheckIns = ({ users }: { users: Person[] }) => {
                 </Button>
               </DialogFooter>
             </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Correction requests from traders */}
+      <Dialog open={requestsOpen} onOpenChange={setRequestsOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Check-in change requests</DialogTitle>
+            <DialogDescription>Approving saves the requested arrival time for that day (late or on time follows the shift rules).</DialogDescription>
+          </DialogHeader>
+          {requests.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No open requests.</p>
+          ) : (
+            <ul className="space-y-3">
+              {requests.map((r) => (
+                <li key={r.id} className="space-y-2 rounded-lg border p-3 text-sm">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-medium">{nameOf(r.user_id)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(`${r.punch_date}T12:00:00Z`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}
+                    </span>
+                  </div>
+                  <p>
+                    {r.requested_time ? <>Says they arrived at <span className="font-semibold">{r.requested_time.slice(0, 5)}</span>. </> : null}
+                    <span className="text-muted-foreground">“{r.reason}”</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Machine: {istTime(byKey.get(`${r.user_id}|${r.punch_date}`)?.device_checkin ?? null)}
+                  </p>
+                  <Input
+                    className="h-8"
+                    placeholder="Reply (optional)"
+                    value={reqNotes[r.id] ?? ""}
+                    onChange={(e) => setReqNotes((m) => ({ ...m, [r.id]: e.target.value }))}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="ghost" className="text-destructive" disabled={busy === r.id} onClick={() => void answer(r, false)}>Decline</Button>
+                    <Button size="sm" disabled={busy === r.id} onClick={() => void answer(r, true)}>
+                      {busy === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Approve"}
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </DialogContent>
       </Dialog>

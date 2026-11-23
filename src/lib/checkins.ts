@@ -132,6 +132,14 @@ export function statusFor(
   if (isWeekend(date)) return { kind: "weekend" };
   if (date > todayIST()) return { kind: "future" };
   if (leave) return { kind: "leave", label: leave };
+  // Today, before the shift has started (plus grace), nobody is missing yet.
+  if (date === todayIST()) {
+    const shift = shiftFor(date, shifts);
+    if (shift) {
+      const [h, m] = shift.shift_start.split(":").map(Number);
+      if (istMinutes(new Date().toISOString()) <= h * 60 + m + (shift.grace_minutes || 0)) return { kind: "future" };
+    }
+  }
   return { kind: "none" };
 }
 
@@ -189,3 +197,54 @@ export async function setUsesBiometric(userId: string, on: boolean) {
 
 /** Statuses that need an admin decision. */
 export const needsReview = (s: DayStatus) => s.kind === "missed" || s.kind === "half_day_review" || s.kind === "none";
+
+// ---------- Correction requests (trader asks, admin decides) ----------
+export interface CheckinRequest {
+  id: string;
+  user_id: string;
+  punch_date: string;
+  requested_time: string | null; // HH:MM:SS
+  reason: string;
+  status: "pending" | "approved" | "rejected";
+  admin_note: string | null;
+  decided_at: string | null;
+  created_at: string;
+}
+
+export async function loadRequests(opts: { userId?: string; pendingOnly?: boolean; from?: string; to?: string } = {}): Promise<CheckinRequest[]> {
+  let q = supabase.from("checkin_requests").select("*").order("created_at", { ascending: false }).limit(500);
+  if (opts.userId) q = q.eq("user_id", opts.userId);
+  if (opts.pendingOnly) q = q.eq("status", "pending");
+  if (opts.from) q = q.gte("punch_date", opts.from);
+  if (opts.to) q = q.lte("punch_date", opts.to);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as CheckinRequest[];
+}
+
+export async function fileRequest(date: string, time: string | null, reason: string) {
+  const { error } = await supabase.from("checkin_requests").insert({ punch_date: date, requested_time: time ? `${time}:00` : null, reason: reason.trim() });
+  if (error) throw new Error(/one_pending|duplicate/i.test(error.message) ? "You already have an open request for this day." : error.message);
+}
+
+export async function withdrawRequest(id: string) {
+  const { error } = await supabase.from("checkin_requests").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Approve: saves the requested time as that day's check-in (status follows the
+ * shift rules, or the admin's chosen status). Reject: just records the answer.
+ */
+export async function decideRequest(r: CheckinRequest, approve: boolean, adminNote: string | null, status: Decision | null = null) {
+  if (approve) {
+    const time = r.requested_time ? r.requested_time.slice(0, 5) : null;
+    await saveCorrection(r.user_id, r.punch_date, time, `Request: ${r.reason}`.slice(0, 500), status ?? (time ? null : "ontime"));
+  }
+  const { data: auth } = await supabase.auth.getUser();
+  const { error } = await supabase
+    .from("checkin_requests")
+    .update({ status: approve ? "approved" : "rejected", admin_note: adminNote?.trim() || null, decided_by: auth.user?.id ?? null, decided_at: new Date().toISOString() })
+    .eq("id", r.id);
+  if (error) throw new Error(error.message);
+}

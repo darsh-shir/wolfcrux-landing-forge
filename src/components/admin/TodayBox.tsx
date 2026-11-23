@@ -4,11 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrencyINR } from "@/lib/utils";
 import { nyDateKey } from "@/lib/marketDate";
 import { defaultStoMonth } from "@/components/admin/PayoutRun";
+import { loadCheckins, loadHolidays, loadLeaves, loadShifts, needsReview, statusFor, todayIST } from "@/lib/checkins";
+import { isExEmployee } from "@/lib/employees";
 
 interface Person {
   user_id: string;
   full_name: string;
   employee_role?: string | null;
+  uses_biometric?: boolean | null;
 }
 interface Trade {
   user_id: string;
@@ -86,11 +89,33 @@ const TodayBox = ({
       });
   }, [due.month, due.year]);
 
+  // Today's fingerprint check-ins
+  const [checkins, setCheckins] = useState<{ ontime: number; late: number; review: number; total: number } | null>(null);
+  useEffect(() => {
+    const d = todayIST();
+    Promise.all([loadCheckins(d, d), loadShifts(), loadHolidays(d, d), loadLeaves(d, d)])
+      .then(([days, shifts, hols, leaves]) => {
+        const byUser = new Map(days.map((x) => [x.user_id, x]));
+        const people = users.filter(
+          (u) => ["trader", "trainee"].includes((u.employee_role || "").toLowerCase()) && !isExEmployee(u) && u.uses_biometric !== false
+        );
+        const c = { ontime: 0, late: 0, review: 0, total: people.length };
+        people.forEach((u) => {
+          const st = statusFor(d, byUser.get(u.user_id), shifts, hols, leaves.get(`${u.user_id}|${d}`));
+          if (st.kind === "ontime") c.ontime++;
+          else if (st.kind === "late" || st.kind === "half_day") c.late++;
+          else if (needsReview(st)) c.review++;
+        });
+        setCheckins(c);
+      })
+      .catch(() => setCheckins(null));
+  }, [users]);
+
   const tone = (v: number) => (v >= 0 ? "text-green-600" : "text-red-600");
 
   return (
     <Card className="mb-6">
-      <CardContent className="grid gap-4 p-4 sm:grid-cols-3">
+      <CardContent className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
         <button
           type="button"
           disabled={!latestDate}
@@ -143,6 +168,32 @@ const TodayBox = ({
             <p className="text-xs text-green-600">Everyone's entry is in.</p>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={() => onOpen("biometric")}
+          className="-m-2 space-y-1 rounded-md p-2 text-left transition-colors hover:bg-muted/50"
+          title="Open Check-ins"
+        >
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Check-ins today →</p>
+          {checkins ? (
+            <>
+              <p className="text-2xl font-bold tabular-nums">
+                <span className="text-green-600">{checkins.ontime}</span>
+                <span className="text-base font-normal text-muted-foreground"> on time</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-red-600">{checkins.late} late</span>
+                {" · "}
+                <span className="font-medium text-amber-600">{checkins.review} need review</span>
+                {" · "}
+                {checkins.total} on fingerprint
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          )}
+        </button>
 
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
