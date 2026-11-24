@@ -269,13 +269,6 @@ const PayoutSummary = () => {
         </CardContent>
       </Card>
 
-      {stoHistory.length === 0 && ltoHistory.length === 0 && !milestoneData && (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No payout data available yet. Your admin will set up your payout structure.
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

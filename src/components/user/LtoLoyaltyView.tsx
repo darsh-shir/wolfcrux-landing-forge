@@ -21,6 +21,14 @@ const LtoLoyaltyView = () => {
   const [loading, setLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(true);
   const [acknowledged, setAcknowledged] = useState(false);
+  // The button unlocks after a short read: 3, 2, 1.
+  const [wait, setWait] = useState(3);
+  useEffect(() => {
+    if (!showWelcome) return;
+    setWait(3);
+    const id = setInterval(() => setWait((w) => (w > 0 ? w - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [showWelcome]);
 
   useEffect(() => {
     if (!user) return;
@@ -86,7 +94,7 @@ const LtoLoyaltyView = () => {
   return (
     <>
       {/* Animated Loyalty Welcome Popup */}
-      <Dialog open={showWelcome} onOpenChange={(open) => { if (!open) { setAcknowledged(true); setShowWelcome(false); } }}>
+      <Dialog open={showWelcome} onOpenChange={(open) => { if (!open && wait === 0) { setAcknowledged(true); setShowWelcome(false); } }}>
         <DialogContent
           className="max-w-lg p-0 overflow-hidden border-0 bg-gradient-to-br from-primary/5 via-background to-primary/10 [&>button.absolute]:hidden"
           onEscapeKeyDown={(e) => e.preventDefault()}
@@ -156,13 +164,14 @@ const LtoLoyaltyView = () => {
             </div>
 
             <Button
+              disabled={wait > 0}
               onClick={() => { setAcknowledged(true); setShowWelcome(false); }}
               className="w-full mt-2 animate-fade-in bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/30"
               style={{ animationDelay: "0.6s", animationFillMode: "both" }}
               size="lg"
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              View My LTO Pool
+              {wait > 0 ? `View My LTO Pool in ${wait}…` : "View My LTO Pool"}
             </Button>
           </div>
         </DialogContent>

@@ -1,6 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useMemo } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -17,7 +15,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 import AnimatedNumber from "@/components/AnimatedNumber";
-import { DollarSign, Briefcase, CalendarCheck } from "lucide-react";
+import { DollarSign, CalendarCheck } from "lucide-react";
 
 interface DailySummary {
   date: string;
@@ -53,41 +51,6 @@ interface TradingAnalyticsProps {
 }
 
 const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDays, allTradingData, allDailySummary, softwareCosts = {}, calendarMonth }: TradingAnalyticsProps) => {
-  const { user } = useAuth();
-  const [totalGiven, setTotalGiven] = useState(0);
-
-  // Total money given till date — manually recorded by admin per month.
-  useEffect(() => {
-    if (!user) return;
-    let active = true;
-
-    const load = async () => {
-      const { data } = await supabase
-        .from("trader_monthly_manual" as any)
-        .select("amount_given")
-        .eq("user_id", user.id);
-      if (!active) return;
-      setTotalGiven((data || []).reduce((s: number, r: any) => s + Number(r.amount_given || 0), 0));
-    };
-
-    load();
-
-    const channel = supabase
-      .channel("analytics-money-given")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "trader_monthly_manual", filter: `user_id=eq.${user.id}` },
-        () => load()
-      )
-      .subscribe();
-
-    return () => {
-      active = false;
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-
   const analytics = useMemo(() => {
     if (dailySummary.length === 0) {
       return {
@@ -204,7 +167,7 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
   return (
     <div className="space-y-6">
       {/* Personal Summary - always lifetime/current month */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-start gap-3">
@@ -223,24 +186,6 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
             </div>
           </CardContent>
         </Card>
-
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Briefcase className="h-4 w-4 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Total Money Given (Till Date)</p>
-                <p className="text-xl font-bold text-emerald-600">
-                  <AnimatedNumber value={totalGiven} format={formatCurrency} resetKey={totalGiven} />
-                </p>
-                <p className="text-xs text-muted-foreground">As recorded by admin each month</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
 
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="pt-4 pb-4">

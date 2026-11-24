@@ -28,6 +28,8 @@ import MyMilestones from "@/components/user/MyMilestones";
 import MyDocuments from "@/components/user/MyDocuments";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, parseISO } from "date-fns";
 import { MILESTONES } from "@/lib/payoutCalculations";
+import { isPresent } from "@/lib/payoutEngine";
+import EarningsSummary from "@/components/user/EarningsSummary";
 
 interface TradingAccount {
   id: string;
@@ -45,6 +47,8 @@ interface TradingData {
   notes: string | null;
   account_id: string;
   user_id: string;
+  /** Partner seat, but the partner was absent: this person traded it alone. */
+  alone?: boolean;
 }
 
 type TimeFilter = "monthly" | "quarterly" | "yearly";
@@ -104,23 +108,25 @@ const MyData = () => {
       getPersonTradeRows(user.id).then((rows) => [...rows].reverse()),
       supabase.from("trader_config").select("month,year,software_cost").eq("user_id", user.id),
     ]);
-    const ownTradesRes = { data: personRows.filter((r: any) => r.user_id === user.id) };
-    const partnerTradesRes = {
-      data: personRows.filter((r: any) => r.trader2_id === user.id && (r.trader2_role || "").toLowerCase() === "partner"),
-    };
-
     if (accountsRes.data) setAccounts(accountsRes.data);
 
-    // Merge own + partner trades. Show full P&L/shares to the partner — same as the primary trader.
-    const ownRows = ownTradesRes.data || [];
-    const partnerRows = (partnerTradesRes.data || []).map((t: any) => ({
-      ...t,
-      user_id: user.id, // normalize so downstream grouping treats it as the partner's row
-    }));
-
-    const merged = [...ownRows, ...partnerRows].sort((a, b) =>
-      b.trade_date.localeCompare(a.trade_date)
-    );
+    // Only the days this person was actually at the desk. On a partner seat,
+    // the day shows the whole seat's numbers; if the partner was absent it is
+    // marked "Alone".
+    const merged: TradingData[] = [];
+    for (const r of personRows as any[]) {
+      const isPartnerRow = (r.trader2_role || "").toLowerCase() === "partner" && !!r.trader2_id;
+      const p1 = isPresent(r.trader1_attendance);
+      const p2 = isPartnerRow && isPresent(r.trader2_attendance);
+      if (r.user_id === user.id) {
+        const hasNumbers = Number(r.net_pnl) !== 0 || Number(r.shares_traded) !== 0;
+        // Nobody marked present but the row has numbers: it stays with the seat owner.
+        if (p1 || (!p2 && hasNumbers)) merged.push({ ...r, alone: isPartnerRow && !p2 });
+      } else if (isPartnerRow && r.trader2_id === user.id && p2) {
+        merged.push({ ...r, user_id: user.id, alone: !p1 });
+      }
+    }
+    merged.sort((a, b) => b.trade_date.localeCompare(a.trade_date));
     setTradingData(merged);
 
     if (configRes.data) {
@@ -189,6 +195,7 @@ const MyData = () => {
       const netAfterBrokerage = data.pnl - brokerage;
       return {
         date,
+        alone: data.entries.some((e) => e.alone),
         combinedPnl: data.pnl,
         totalShares: data.shares,
         brokerage,
@@ -242,33 +249,39 @@ const MyData = () => {
   const tradingDays = dailySummary.length;
 
   // Generate months for dropdown
+  // Every month back to this person's first trading day (at least 12).
+  const firstTradeDate = tradingData.length ? tradingData[tradingData.length - 1].trade_date : null;
   const months = useMemo(() => {
     const result = [];
     const now = new Date();
-    for (let i = 0; i < 12; i++) {
+    const first = firstTradeDate ? parseISO(firstTradeDate) : null;
+    const back = first ? (now.getFullYear() - first.getFullYear()) * 12 + now.getMonth() - first.getMonth() + 1 : 12;
+    for (let i = 0; i < Math.max(12, back); i++) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       result.push(format(date, "yyyy-MM"));
     }
     return result;
-  }, []);
+  }, [firstTradeDate]);
 
   // Generate quarters for dropdown
   const quarters = useMemo(() => {
     const result = [];
     const currentYear = new Date().getFullYear();
-    for (let y = currentYear; y >= currentYear - 2; y--) {
+    const firstYear = Math.min(currentYear - 2, firstTradeDate ? Number(firstTradeDate.slice(0, 4)) : currentYear);
+    for (let y = currentYear; y >= firstYear; y--) {
       for (let q = 4; q >= 1; q--) {
         result.push(`${y}-Q${q}`);
       }
     }
     return result;
-  }, []);
+  }, [firstTradeDate]);
 
   // Generate years for dropdown
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
-    return Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
-  }, []);
+    const firstYear = Math.min(currentYear - 4, firstTradeDate ? Number(firstTradeDate.slice(0, 4)) : currentYear);
+    return Array.from({ length: currentYear - firstYear + 1 }, (_, i) => (currentYear - i).toString());
+  }, [firstTradeDate]);
 
   if (loading) {
     return (
@@ -296,6 +309,8 @@ const MyData = () => {
               View your trading performance and attendance
             </p>
           </div>
+
+          <EarningsSummary />
 
           <Tabs defaultValue="analytics" className="space-y-6">
             <div>
@@ -470,11 +485,11 @@ const MyData = () => {
               </div>
 
               {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4 mb-8 [&>*:last-child]:col-span-2 lg:[&>*:last-child]:col-span-1">
                 <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "0ms" }}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${totalPnl >= 0 ? "bg-green-100" : "bg-red-100"}`}>
+                  <CardContent className="p-3 pt-3 sm:p-6 sm:pt-6">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className={`hidden sm:block p-2 rounded-lg ${totalPnl >= 0 ? "bg-green-100" : "bg-red-100"}`}>
                         {totalPnl >= 0 ? (
                           <TrendingUp className="h-5 w-5 text-green-600" />
                         ) : (
@@ -482,8 +497,8 @@ const MyData = () => {
                         )}
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Gross P&L</p>
-                        <p className={`text-2xl font-bold ${totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Gross P&L</p>
+                        <p className={`text-lg sm:text-2xl font-bold ${totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                           <AnimatedNumber value={totalPnl} format={(n) => formatCurrencyINR(n)} resetKey={totalPnl} />
                         </p>
                       </div>
@@ -492,14 +507,14 @@ const MyData = () => {
                 </Card>
 
                 <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "80ms" }}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-orange-100">
+                  <CardContent className="p-3 pt-3 sm:p-6 sm:pt-6">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="hidden sm:block p-2 rounded-lg bg-orange-100">
                         <DollarSign className="h-5 w-5 text-orange-600" />
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Brokerage</p>
-                        <p className="text-2xl font-bold text-orange-600">
+                        <p className="text-xs sm:text-sm text-muted-foreground">Brokerage</p>
+                        <p className="text-lg sm:text-2xl font-bold text-orange-600">
                           -<AnimatedNumber value={totalBrokerage} format={(n) => formatCurrencyINR(n)} resetKey={totalBrokerage} />
                         </p>
                       </div>
@@ -508,14 +523,14 @@ const MyData = () => {
                 </Card>
 
                 <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "160ms" }}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-purple-100">
+                  <CardContent className="p-3 pt-3 sm:p-6 sm:pt-6">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="hidden sm:block p-2 rounded-lg bg-purple-100">
                         <DollarSign className="h-5 w-5 text-purple-600" />
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Software Cost</p>
-                        <p className="text-2xl font-bold text-purple-600">
+                        <p className="text-xs sm:text-sm text-muted-foreground">Software Cost</p>
+                        <p className="text-lg sm:text-2xl font-bold text-purple-600">
                           -<AnimatedNumber value={totalSoftwareCost} format={(n) => formatCurrencyINR(n)} resetKey={totalSoftwareCost} />
                         </p>
                       </div>
@@ -524,9 +539,9 @@ const MyData = () => {
                 </Card>
 
                 <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "240ms" }}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${netAfterBrokerage >= 0 ? "bg-green-100" : "bg-red-100"}`}>
+                  <CardContent className="p-3 pt-3 sm:p-6 sm:pt-6">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className={`hidden sm:block p-2 rounded-lg ${netAfterBrokerage >= 0 ? "bg-green-100" : "bg-red-100"}`}>
                         {netAfterBrokerage >= 0 ? (
                           <TrendingUp className="h-5 w-5 text-green-600" />
                         ) : (
@@ -534,8 +549,8 @@ const MyData = () => {
                         )}
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Net P&L</p>
-                        <p className={`text-2xl font-bold ${netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Net P&L</p>
+                        <p className={`text-lg sm:text-2xl font-bold ${netAfterBrokerage >= 0 ? "text-green-600" : "text-red-600"}`}>
                           <AnimatedNumber value={netAfterBrokerage} format={(n) => formatCurrencyINR(n)} resetKey={netAfterBrokerage} />
                         </p>
                       </div>
@@ -544,14 +559,14 @@ const MyData = () => {
                 </Card>
 
                 <Card className="hover-lift-sm animate-scale-in" style={{ animationDelay: "320ms" }}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-accent/10">
+                  <CardContent className="p-3 pt-3 sm:p-6 sm:pt-6">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="hidden sm:block p-2 rounded-lg bg-accent/10">
                         <BarChart3 className="h-5 w-5 text-accent" />
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Shares Traded</p>
-                        <p className="text-2xl font-bold"><AnimatedNumber value={totalShares} format={(n) => formatIndian(Math.round(n))} resetKey={totalShares} /></p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Shares Traded</p>
+                        <p className="text-lg sm:text-2xl font-bold"><AnimatedNumber value={totalShares} format={(n) => formatIndian(Math.round(n))} resetKey={totalShares} /></p>
                       </div>
                     </div>
                   </CardContent>
@@ -611,6 +626,11 @@ const MyData = () => {
                                         isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                       )}
                                       {format(parseISO(day.date), "MMM d, yyyy")}
+                                      {day.alone && (
+                                        <Badge variant="outline" className="ml-1 border-amber-500/50 text-[10px] text-amber-700 dark:text-amber-400" title="Your partner was absent; you traded the seat alone">
+                                          Alone
+                                        </Badge>
+                                      )}
                                     </div>
                                   </TableCell>
                                   {showAccounts && (
@@ -642,7 +662,7 @@ const MyData = () => {
                                   const entryNet = Number(entry.net_pnl) - entryBrokerage;
                                   return (
                                     <TableRow key={entry.id} className="bg-muted/30">
-                                      <TableCell className="pl-10 text-muted-foreground text-sm whitespace-nowrap">↳</TableCell>
+                                      <TableCell className="pl-10 text-muted-foreground text-sm whitespace-nowrap">↳{entry.alone ? " Alone" : ""}</TableCell>
                                       {showAccounts && (
                                         <TableCell>
                                           <Badge variant="secondary" className="text-xs whitespace-nowrap">
