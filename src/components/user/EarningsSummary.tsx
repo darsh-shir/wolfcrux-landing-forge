@@ -6,6 +6,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatIndian } from "@/lib/utils";
 import { useLiveRows } from "@/hooks/useLiveRows";
 
+/** Fixed rate for showing the LTO pool in ₹ (set by management). */
+const LTO_INR_PER_USD = 87;
+
 const inr = (n: number) => `${n < 0 ? "-" : ""}₹${formatIndian(Math.abs(Math.round(n)), 0)}`;
 const usd = (n: number) => `${n < 0 ? "-" : ""}$${formatIndian(Math.abs(n), 2)}`;
 
@@ -21,7 +24,7 @@ interface State {
 /**
  * Top of My Data: everything this person has been paid by Wolfcrux (₹, from the
  * admin's paid payout records) plus their LTO pool waiting to be released
- * (kept in $, shown in ₹ at the latest exchange rate).
+ * (kept in $, shown in ₹ at a fixed ₹87 per $).
  */
 const EarningsSummary = () => {
   const { user } = useAuth();
@@ -36,15 +39,8 @@ const EarningsSummary = () => {
         .select("salary, bank_transfer, advance_cash, advance_bank, paid_cash, paid_online")
         .eq("user_id", user.id),
       supabase.from("lto_ledger").select("lto_amount, unlock_date, is_released").eq("user_id", user.id),
-      supabase
-        .from("monthly_exchange_rates")
-        .select("usd_to_inr")
-        .order("year", { ascending: false })
-        .order("month", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
       supabase.from("profiles").select("joining_date").eq("user_id", user.id).maybeSingle(),
-    ]).then(([pay, lto, rate, prof]) => {
+    ]).then(([pay, lto, prof]) => {
       if (!active) return;
       const paid = (pay.data ?? []).filter((r) => r.paid_cash || r.paid_online);
       const received = paid.reduce(
@@ -62,7 +58,7 @@ const EarningsSummary = () => {
         monthsPaid: paid.length,
         joining: prof.data?.joining_date ?? null,
         ltoUsd: waiting.reduce((t, l) => t + Number(l.lto_amount || 0), 0),
-        rate: rate.data?.usd_to_inr ? Number(rate.data.usd_to_inr) : null,
+        rate: LTO_INR_PER_USD,
         nextUnlock: unlocks[0] ?? null,
       });
     });
