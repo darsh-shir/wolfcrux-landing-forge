@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLiveRows } from "@/hooks/useLiveRows";
 import { formatIndian } from "@/lib/utils";
 import { backupUsedFromNote } from "@/lib/salary";
+import AnimatedNumber from "@/components/AnimatedNumber";
 
 const inr = (n: number) => `${n < 0 ? "-" : ""}₹${formatIndian(Math.abs(Math.round(n)), 0)}`;
 const monthName = (m: number, y: number) => format(new Date(y, m - 1, 1), "MMM yyyy");
@@ -109,15 +110,15 @@ const DeskAndBackup = () => {
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
                         <p className="text-xs text-muted-foreground">Total</p>
-                        <p className="font-semibold tabular-nums">{inr(d.cost)}</p>
+                        <p className="font-semibold tabular-nums"><AnimatedNumber value={d.cost} format={inr} resetKey={d.cost} /></p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">You paid</p>
-                        <p className="font-semibold tabular-nums text-green-600">{inr(d.paid)}</p>
+                        <p className="font-semibold tabular-nums text-green-600"><AnimatedNumber value={d.paid} format={inr} resetKey={d.paid} /></p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Pending</p>
-                        <p className={`font-semibold tabular-nums ${pending > 0 ? "text-destructive" : ""}`}>{inr(pending)}</p>
+                        <p className={`font-semibold tabular-nums ${pending > 0 ? "text-destructive" : ""}`}><AnimatedNumber value={pending} format={inr} resetKey={pending} /></p>
                       </div>
                     </div>
                   </div>
@@ -141,11 +142,11 @@ const DeskAndBackup = () => {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Backup held for you</p>
-                  <p className="text-2xl font-bold tabular-nums">{inr(backup.held)}</p>
+                  <p className="text-2xl font-bold tabular-nums"><AnimatedNumber value={backup.held} format={inr} resetKey={backup.held} /></p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Monthly salary</p>
-                  <p className="text-2xl font-bold tabular-nums">{backup.salary ? inr(backup.salary) : "—"}</p>
+                  <p className="text-2xl font-bold tabular-nums">{backup.salary ? <AnimatedNumber value={backup.salary} format={inr} resetKey={backup.salary} /> : "—"}</p>
                 </div>
               </div>
               {backup.used.length > 0 ? (

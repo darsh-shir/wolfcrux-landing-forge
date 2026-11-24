@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatIndian } from "@/lib/utils";
 import { useLiveRows } from "@/hooks/useLiveRows";
+import AnimatedNumber from "@/components/AnimatedNumber";
 
 /** Fixed rate for showing the LTO pool in ₹ (set by management). */
 const LTO_INR_PER_USD = 87;
@@ -81,7 +82,7 @@ const EarningsSummary = () => {
         {/* The headline: paid so far + LTO waiting */}
         <div className="px-4 pb-5 pt-6 text-center sm:pb-6 sm:pt-8">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Earned with Wolfcrux</p>
-          <p className="mt-2 text-4xl font-bold tabular-nums tracking-tight text-primary sm:text-6xl">{inr(total)}</p>
+          <p className="mt-2 text-4xl font-bold tabular-nums tracking-tight text-primary sm:text-6xl"><AnimatedNumber value={total} format={inr} resetKey={total} /></p>
           <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
             Earned till now + LTO waiting for you{s.joining ? ` · with us since ${format(parseISO(s.joining), "MMM yyyy")}` : ""}
           </p>
@@ -89,7 +90,7 @@ const EarningsSummary = () => {
         <div className="grid grid-cols-2 divide-x divide-border/60 border-t border-border/60 bg-background/40">
           <div className="p-3 text-center sm:p-4">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Earned till now</p>
-            <p className="mt-1 text-lg font-bold tabular-nums sm:text-2xl">{inr(s.received)}</p>
+            <p className="mt-1 text-lg font-bold tabular-nums sm:text-2xl"><AnimatedNumber value={s.received} format={inr} resetKey={s.received} /></p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               {s.monthsPaid > 0
                 ? `Paid to you over ${s.monthsPaid} month${s.monthsPaid === 1 ? "" : "s"}`
@@ -98,7 +99,7 @@ const EarningsSummary = () => {
           </div>
           <div className="p-3 text-center sm:p-4">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">LTO waiting for you</p>
-            <p className="mt-1 text-lg font-bold tabular-nums sm:text-2xl">{ltoInr === null ? usd(s.ltoUsd) : inr(ltoInr)}</p>
+            <p className="mt-1 text-lg font-bold tabular-nums sm:text-2xl">{ltoInr === null ? usd(s.ltoUsd) : <AnimatedNumber value={ltoInr} format={inr} resetKey={ltoInr} />}</p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               {usd(s.ltoUsd)}
               {s.rate ? ` at ₹${s.rate}/$` : ""} · after 12 months, once your level's minimum is met

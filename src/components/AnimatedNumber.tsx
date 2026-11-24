@@ -30,6 +30,10 @@ const AnimatedNumber = ({
   const ref = useRef<HTMLSpanElement>(null);
   const seen = useRef(false);
   const rafRef = useRef<number | null>(null);
+  // Latest value, so a number that changes before it scrolls into view
+  // still counts up to the current figure (not the one it was first given).
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   // Run the count-up animation from 0 -> value
   const runAnimation = (target: number) => {
@@ -59,7 +63,7 @@ const AnimatedNumber = ({
         entries.forEach((e) => {
           if (e.isIntersecting && !seen.current) {
             seen.current = true;
-            runAnimation(value);
+            runAnimation(valueRef.current);
             obs.unobserve(el);
           }
         });
