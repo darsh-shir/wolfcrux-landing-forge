@@ -29,9 +29,7 @@ const configLookup = (configs: any[], transfersNet: Map<string, number> = new Ma
     return {
       transfersNet: transfersNet.get(key) ?? 0,
       seatCost: c?.software_cost != null ? Number(c.software_cost) : DEFAULT_SEAT_COST,
-      mode: c?.config_mode,
-      stoPercent: c?.sto_percentage != null ? Number(c.sto_percentage) : undefined,
-      ltoPercent: c?.lto_percentage != null ? Number(c.lto_percentage) : undefined,
+      // STO/LTO % come only from level history (Admin → Levels & %).
     };
   };
 };

@@ -27,7 +27,8 @@ export const groupIndian = (raw: string): string => {
 const clean = (text: string, allowNegative: boolean, allowDecimal: boolean) => {
   let s = text.replace(/[^\d.-]/g, "");
   s = allowNegative ? s.replace(/(?!^)-/g, "") : s.replace(/-/g, "");
-  if (!allowDecimal) s = s.replace(/\./g, "");
+  // Whole-number box: anything after a typed "." is dropped (never glued onto the number).
+  if (!allowDecimal) s = s.split(".")[0];
   else {
     const i = s.indexOf(".");
     if (i >= 0) s = s.slice(0, i + 1) + s.slice(i + 1).replace(/\./g, "");
@@ -52,7 +53,12 @@ export const AmountInput = React.forwardRef<HTMLInputElement, Props>(
   ({ value, onValueChange, allowNegative = false, allowDecimal = true, ...rest }, ref) => {
     const inner = React.useRef<HTMLInputElement | null>(null);
     const caret = React.useRef<number | null>(null);
-    const raw = value === null || value === undefined ? "" : String(value);
+    let raw = value === null || value === undefined ? "" : String(value);
+    // Whole numbers only: round a stored decimal (976.73 → 977), never just drop the point.
+    if (!allowDecimal && raw.includes(".") && Number.isFinite(Number(raw))) {
+      const n = Number(raw);
+      raw = String(Math.sign(n) * Math.round(Math.abs(n)) || 0);
+    }
     const shown = groupIndian(clean(raw, allowNegative, allowDecimal));
 
     // Put the cursor back after the same number of digits it was after.

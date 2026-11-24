@@ -230,9 +230,7 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
         const c = cfgByKey.get(key);
         return {
           seatCost: key === selectedKey ? seatCostInput : c?.software_cost != null ? Number(c.software_cost) : DEFAULT_SEAT_COST,
-          mode: c?.config_mode,
-          stoPercent: c?.sto_percentage != null ? Number(c.sto_percentage) : undefined,
-          ltoPercent: c?.lto_percentage != null ? Number(c.lto_percentage) : undefined,
+      // STO/LTO % come only from level history (Admin → Levels & %).
           leavePct: key === selectedKey ? leavePct : 0,
           transfersNet: transferNet.get(key) ?? 0,
         };
@@ -274,8 +272,6 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
   const traderName = users.find((u) => u.user_id === selectedTrader)?.full_name || "";
   const isPaid = !!existingSto?.is_paid;
   const ltoReleased = !!existingLto?.is_released;
-  const savedCfg = configs.find((c: any) => c.month === selectedMonth && c.year === selectedYear);
-  const manualMode = savedCfg?.config_mode === "manual" && Number(savedCfg?.sto_percentage) > 0;
 
   // Has anything changed since the month was last saved?
   const unsaved = useMemo(() => {
@@ -465,7 +461,8 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
               {month && (
                 <Badge variant="outline" className="gap-1">
                   <TrendingUp className="h-3 w-3" />
-                  {manualMode ? "Manual" : `L${month.level.level} ${month.level.label}`} · STO {month.stoPercent}% / LTO {month.ltoPercent}%
+                  {`L${month.level.level} ${month.level.label}`} · STO {month.stoPercent}% / LTO {month.ltoPercent}%
+                  {(month.stoPercent !== month.level.stoPercent || month.ltoPercent !== month.level.ltoPercent) && " (custom %)"}
                 </Badge>
               )}
             </CardTitle>

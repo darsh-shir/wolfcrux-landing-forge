@@ -61,7 +61,7 @@ const LtoView = ({ users }: LtoViewProps) => {
     const calculated = original ?? current;
     const wanted = raw === "" ? calculated : roundLto(Number(raw));
     if (!Number.isFinite(wanted)) return clear();
-    if (Math.abs(wanted - current) < 0.005) return clear();
+    if (Math.abs(wanted - current) < 0.005 || (original === null && Math.abs(wanted - roundLto(current)) < 0.005)) return clear();
     const backToCalc = Math.abs(wanted - calculated) < 0.005;
     setSavingLto(e.id);
     const { error } = await supabase
@@ -299,9 +299,8 @@ const LtoView = ({ users }: LtoViewProps) => {
                                     <span className="text-muted-foreground">$</span>
                                     <AmountInput
                                       allowNegative
-                                      allowDecimal={false}
                                       className={`h-8 w-28 text-right font-semibold ${e.lto_amount_original != null ? "border-amber-500/60" : ""}`}
-                                      value={ltoEdit[e.id] ?? String(amt)}
+                                      value={ltoEdit[e.id] ?? String(roundLto(amt))}
                                       onValueChange={(v) => setLtoEdit((x) => ({ ...x, [e.id]: v }))}
                                       onBlur={() => ltoEdit[e.id] !== undefined && void saveLtoAmount(e)}
                                       onKeyDown={(ev) => ev.key === "Enter" && (ev.target as HTMLInputElement).blur()}

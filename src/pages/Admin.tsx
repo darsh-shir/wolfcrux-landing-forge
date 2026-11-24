@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History, Folder, Fingerprint, Inbox, Briefcase, CalendarCheck, Layers } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History, Folder, Fingerprint, Inbox, Briefcase, CalendarCheck, Layers } from "lucide-react";
 import EmployeeDocuments from "@/components/admin/EmployeeDocuments";
 import ContactMessages from "@/components/admin/ContactMessages";
 import JobApplications from "@/components/admin/JobApplications";
@@ -29,7 +29,6 @@ import PayoutTracker from "@/components/admin/PayoutTracker";
 import PayoutSheet from "@/components/admin/PayoutSheet";
 import SalaryBackup from "@/components/admin/SalaryBackup";
 import DeskCost from "@/components/admin/DeskCost";
-import TraderConfig from "@/components/admin/TraderConfig";
 import PoolView from "@/components/admin/PoolView";
 import SingleDayPnL from "@/components/admin/SingleDayPnL";
 import MonthlyPnL from "@/components/admin/MonthlyPnL";
@@ -276,11 +275,6 @@ const Admin = () => {
               <DeskCost users={activeUsers} />
             </TabsContent>
 
-            {/* TRADER CONFIG TAB */}
-            <TabsContent value="trader-config">
-              <TraderConfig users={activeUsers} />
-            </TabsContent>
-
             {/* POOL TAB */}
             <TabsContent value="pool">
               <PoolView users={activeUsers} />
@@ -425,7 +419,6 @@ const ADMIN_SECTIONS: { name: string; tabs: { value: string; label: string; icon
       { value: "levels", label: "Levels & %", icon: Layers },
       { value: "progress", label: "Trader Progress", icon: TrendingUp },
       { value: "milestones", label: "Milestones", icon: TrendingUp },
-      { value: "trader-config", label: "Trader Config", icon: Settings },
       { value: "baseline", label: "Baseline Seeder", icon: History },
     ],
   },
