@@ -59,6 +59,7 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [isInherited, setIsInherited] = useState(false);
+  const [defaultPct, setDefaultPct] = useState<Record<string, { sto: number; lto: number; manual: boolean; stoUsed: number; ltoUsed: number }>>({});
   const [milestones, setMilestones] = useState<TraderMilestone[]>([]);
   const [tradingDaysMap, setTradingDaysMap] = useState<Record<string, number>>({});
   const [profitMap, setProfitMap] = useState<Record<string, number>>({});
@@ -86,16 +87,23 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
     });
     const countMap: Record<string, number> = {};
     const profits: Record<string, number> = {};
+    const levelPct: Record<string, { sto: number; lto: number; manual: boolean; stoUsed: number; ltoUsed: number }> = {};
     try {
       const histories = await loadAllTraderHistories([...ids]);
+      const key = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
       histories.forEach((h, uid) => {
         countMap[uid] = h.totalDays;
         profits[uid] = h.totalProfit;
+        // % the payout engine uses for this month by default (level history or days/profit).
+        const m = h.byMonth.get(key);
+        levelPct[uid] = m ? { sto: m.level.stoPercent, lto: m.level.ltoPercent, manual: m.manualLevel, stoUsed: m.stoPercent, ltoUsed: m.ltoPercent }
+          : { sto: h.currentStoPercent, lto: h.currentLtoPercent, manual: !!h.levelSince, stoUsed: h.currentStoPercent, ltoUsed: h.currentLtoPercent };
       });
     } catch {
       /* leave maps empty; levels show as unknown */
     }
     setTradingDaysMap(countMap);
+    setDefaultPct(levelPct);
     setProfitMap(profits);
 
     if (!configRes.error && configRes.data && configRes.data.length > 0) {
@@ -106,43 +114,25 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
         config_mode: c.config_mode ?? 'manual',
       })) as TraderConfigData[]);
     } else {
-      const { data: fallback } = await supabase
-        .from("trader_config")
-        .select("*")
-        .order("year", { ascending: false })
-        .order("month", { ascending: false })
-        .limit(100);
-
-      if (fallback && fallback.length > 0) {
-        const latestYear = fallback[0].year;
-        const latestMonth = fallback[0].month;
-        const latestConfigs = fallback.filter(
-          (c: any) => c.year === latestYear && c.month === latestMonth
-        );
-        setConfigs(
-          latestConfigs.map((c: any) => ({
-            user_id: c.user_id,
-            payout_percentage: c.payout_percentage,
-            sto_percentage: c.sto_percentage ?? c.payout_percentage ?? 0,
-            lto_percentage: c.lto_percentage ?? 0,
-            config_mode: c.config_mode ?? 'manual',
-            software_cost: c.software_cost,
-            month: selectedMonth,
-            year: selectedYear,
-          }))
-        );
-        setIsInherited(true);
-      } else {
-        setConfigs([]);
-      }
+      // Nothing saved for this month: payouts use the defaults (level % and
+      // $1,000 seat), so show those rather than another month's settings.
+      setConfigs([]);
+      setIsInherited(true);
     }
     setLoading(false);
   };
 
   const getConfig = (userId: string): TraderConfigData => {
+    const ml = getMilestoneForUser(userId);
+    const d = defaultPct[userId];
+    const sto = d ? d.stoUsed : ml?.stoPercent ?? 0;
+    const lto = d ? d.ltoUsed : ml?.ltoPercent ?? 0;
     return editing[userId] || configs.find(c => c.user_id === userId) || {
-      user_id: userId, payout_percentage: 0, sto_percentage: 0, lto_percentage: 0,
-      config_mode: 'manual', software_cost: 1000, month: selectedMonth, year: selectedYear,
+      user_id: userId,
+      payout_percentage: sto + lto,
+      sto_percentage: sto,
+      lto_percentage: lto,
+      config_mode: 'milestone', software_cost: 1000, month: selectedMonth, year: selectedYear,
     };
   };
 
@@ -164,7 +154,8 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
 
     // When switching to milestone, auto-fill from milestone
     if (field === 'config_mode' && value === 'milestone') {
-      const ml = getMilestoneForUser(userId);
+      const d = defaultPct[userId];
+      const ml = d ? { stoPercent: d.stoUsed, ltoPercent: d.ltoUsed } : getMilestoneForUser(userId);
       if (ml) {
         current.sto_percentage = ml.stoPercent;
         current.lto_percentage = ml.ltoPercent;
@@ -205,36 +196,9 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     }
 
-    try {
-      await propagateToFutureMonths(userId, payload);
-    } catch (e) {
-      toast({ title: "Saved this month, but later months weren't updated", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
-      fetchConfigs();
-      return;
-    }
-    toast({ title: "Saved", description: "Config saved" });
+    toast({ title: "Saved", description: `Only ${new Date(selectedYear, selectedMonth - 1, 1).toLocaleString("en-GB", { month: "long", year: "numeric" })} was changed` });
     setEditing(prev => { const n = { ...prev }; delete n[userId]; return n; });
     fetchConfigs();
-  };
-
-  const propagateToFutureMonths = async (userId: string, payload: any) => {
-    const { data: futureConfigs } = await supabase
-      .from("trader_config")
-      .select("id, month, year")
-      .eq("user_id", userId)
-      .or(`year.gt.${selectedYear},and(year.eq.${selectedYear},month.gt.${selectedMonth})`);
-
-    if (futureConfigs && futureConfigs.length > 0) {
-      for (const fc of futureConfigs) {
-        must(await supabase.from("trader_config").update({
-          payout_percentage: payload.payout_percentage,
-          sto_percentage: payload.sto_percentage,
-          lto_percentage: payload.lto_percentage,
-          config_mode: payload.config_mode,
-          software_cost: payload.software_cost,
-        }).eq("id", fc.id));
-      }
-    }
   };
 
   return (
@@ -268,13 +232,14 @@ const TraderConfig = ({ users }: TraderConfigProps) => {
             </Select>
             {isInherited && (
               <Badge variant="secondary" className="text-xs">
-                Inherited from previous month
+                Nothing saved for this month · defaults shown
               </Badge>
             )}
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
           Choose <strong>Manual</strong> to set STO & LTO % yourself, or <strong>Milestone</strong> to auto-calculate based on tenure & profit.
+          A change here applies <strong>only to the month selected</strong>; other months keep their own settings.
         </p>
       </CardHeader>
       <CardContent>
