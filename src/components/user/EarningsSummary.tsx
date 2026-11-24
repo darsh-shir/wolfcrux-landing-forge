@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Eye, EyeOff, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatIndian } from "@/lib/utils";
@@ -30,6 +32,29 @@ interface State {
 const EarningsSummary = () => {
   const { user } = useAuth();
   const [s, setS] = useState<State | null>(null);
+  // Hide/show preference, kept on the person's account so it follows them to every login and device.
+  const saved = (user?.user_metadata as { hide_earnings?: boolean } | undefined)?.hide_earnings;
+  const [hidden, setHidden] = useState<boolean>(() => {
+    if (typeof saved === "boolean") return saved;
+    try {
+      return localStorage.getItem("wolfcrux.hideEarnings") === "1";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (typeof saved === "boolean") setHidden(saved);
+  }, [saved]);
+  const toggleHidden = async () => {
+    const next = !hidden;
+    setHidden(next);
+    try {
+      localStorage.setItem("wolfcrux.hideEarnings", next ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+    await supabase.auth.updateUser({ data: { hide_earnings: next } });
+  };
 
   const load = useCallback(() => {
     if (!user) return () => {};
@@ -71,38 +96,58 @@ const EarningsSummary = () => {
   useEffect(() => load(), [load]);
   useLiveRows(user?.id, ["payout_records", "lto_ledger"], () => void load());
 
-  if (!s) return <div className="skeleton-shimmer mb-6 h-28 rounded-lg" />;
+  if (!s) return <div className="skeleton-shimmer mb-6 h-40 rounded-lg" />;
 
   const ltoInr = s.rate ? s.ltoUsd * s.rate : null;
   const total = s.received + Math.max(0, ltoInr ?? 0);
+  const masked = <span className="tracking-widest">₹ ******</span>;
+  const money = (v: number) => (hidden ? masked : <AnimatedNumber value={v} format={inr} resetKey={v} />);
 
   return (
-    <Card className="mb-6 overflow-hidden border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent animate-fade-in-up">
-      <CardContent className="p-0">
-        {/* The headline: paid so far + LTO waiting */}
-        <div className="px-4 pb-5 pt-6 text-center sm:pb-6 sm:pt-8">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Earned with Wolfcrux</p>
-          <p className="mt-2 text-4xl font-bold tabular-nums tracking-tight text-primary sm:text-6xl"><AnimatedNumber value={total} format={inr} resetKey={total} /></p>
-          <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
-            Earned till now + LTO waiting for you{s.joining ? ` · with us since ${format(parseISO(s.joining), "MMM yyyy")}` : ""}
-          </p>
+    <Card className="mb-6 border-primary/30 bg-primary/5 animate-fade-in-up">
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <Wallet className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Earned with Wolfcrux</p>
+              <p className="text-xs text-muted-foreground">
+                Earned till now + LTO waiting for you{s.joining ? ` · with us since ${format(parseISO(s.joining), "MMM yyyy")}` : ""}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 text-muted-foreground hover:bg-primary/10 hover:text-foreground focus-visible:bg-primary/10"
+            onClick={() => void toggleHidden()}
+            aria-pressed={hidden}
+            title={hidden ? "Show amounts" : "Hide amounts"}
+          >
+            {hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            <span className="hidden sm:inline">{hidden ? "Show" : "Hide"}</span>
+          </Button>
         </div>
-        <div className="grid grid-cols-2 divide-x divide-border/60 border-t border-border/60 bg-background/40">
-          <div className="p-3 text-center sm:p-4">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Earned till now</p>
-            <p className="mt-1 text-lg font-bold tabular-nums sm:text-2xl"><AnimatedNumber value={s.received} format={inr} resetKey={s.received} /></p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
+
+        <p className="mt-4 text-4xl font-bold tabular-nums tracking-tight sm:text-5xl">{money(total)}</p>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 border-t border-primary/20 pt-4 sm:grid-cols-2">
+          <div>
+            <p className="text-xs text-muted-foreground">Earned till now</p>
+            <p className="text-xl font-bold tabular-nums">{money(s.received)}</p>
+            <p className="text-xs text-muted-foreground">
               {s.monthsPaid > 0
                 ? `Paid to you over ${s.monthsPaid} month${s.monthsPaid === 1 ? "" : "s"}`
                 : "Your payment history is being added by the admin."}
             </p>
           </div>
-          <div className="p-3 text-center sm:p-4">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">LTO waiting for you</p>
-            <p className="mt-1 text-lg font-bold tabular-nums sm:text-2xl">{ltoInr === null ? usd(s.ltoUsd) : <AnimatedNumber value={ltoInr} format={inr} resetKey={ltoInr} />}</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {usd(s.ltoUsd)}
-              {s.rate ? ` at ₹${s.rate}/$` : ""} · after 12 months, once your level's minimum is met
+          <div>
+            <p className="text-xs text-muted-foreground">LTO waiting for you</p>
+            <p className="text-xl font-bold tabular-nums">{ltoInr === null ? (hidden ? masked : usd(s.ltoUsd)) : money(ltoInr)}</p>
+            <p className="text-xs text-muted-foreground">
+              {hidden ? "" : `${usd(s.ltoUsd)}${s.rate ? ` at ₹${s.rate}/$` : ""} · `}after 12 months, once your level's minimum is met
               {s.nextUnlock ? ` · first unlock ${format(parseISO(s.nextUnlock), "d MMM yyyy")}` : ""}
             </p>
           </div>

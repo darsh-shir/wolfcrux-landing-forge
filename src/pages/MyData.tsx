@@ -310,8 +310,6 @@ const MyData = () => {
             </p>
           </div>
 
-          <EarningsSummary />
-
           <Tabs defaultValue="analytics" className="space-y-6">
             <div>
               <TabsList className="h-auto flex-wrap justify-start sm:w-auto">
@@ -352,6 +350,7 @@ const MyData = () => {
 
             {/* ANALYTICS TAB */}
             <TabsContent value="analytics" className="tab-anim">
+              <EarningsSummary />
               {/* Filters */}
               <div className="flex flex-wrap gap-2 mb-6">
                 <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
