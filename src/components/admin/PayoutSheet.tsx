@@ -7,6 +7,7 @@ import EmployeePicker from "@/components/admin/EmployeePicker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
@@ -550,11 +551,10 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                     </span>
                     <span className="flex items-center justify-end gap-2 font-medium text-orange-600">
                       <span className="text-xs text-muted-foreground">Seat $</span>
-                      <Input
-                        type="number"
+                      <AmountInput
                         className="w-24 text-right"
                         value={seatCostInput}
-                        onChange={(e) => setSeatCostInput(Math.max(0, Number(e.target.value) || 0))}
+                        onValueChange={(v) => setSeatCostInput(Math.max(0, Number(v) || 0))}
                         aria-label="Seat software cost"
                       />
                       {neg(month.softwareCost)}
@@ -829,11 +829,11 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
                         </div>
                         <div className="grid grid-cols-2 gap-y-2 text-sm border-t pt-3 items-center">
                           <Label htmlFor="pay-salary" className="text-muted-foreground font-normal">(−) Monthly salary</Label>
-                          <Input id="pay-salary" type="number" className="w-28 justify-self-end text-right" value={monthlySalaryInput || ""} onChange={(e) => setMonthlySalaryInput(Number(e.target.value) || 0)} placeholder="0" />
+                          <AmountInput id="pay-salary" className="w-28 justify-self-end text-right" value={monthlySalaryInput || ""} onValueChange={(v) => setMonthlySalaryInput(Number(v) || 0)} placeholder="0" />
                           <Label htmlFor="pay-cash" className="text-muted-foreground font-normal">(−) Cash paid</Label>
-                          <Input id="pay-cash" type="number" className="w-28 justify-self-end text-right" value={cashPaidInput || ""} onChange={(e) => setCashPaidInput(Number(e.target.value) || 0)} placeholder="0" />
+                          <AmountInput id="pay-cash" className="w-28 justify-self-end text-right" value={cashPaidInput || ""} onValueChange={(v) => setCashPaidInput(Number(v) || 0)} placeholder="0" />
                           <Label htmlFor="pay-bank" className="text-muted-foreground font-normal">(−) Bank transfer</Label>
-                          <Input id="pay-bank" type="number" className="w-28 justify-self-end text-right" value={bankPaidInput || ""} onChange={(e) => setBankPaidInput(Number(e.target.value) || 0)} placeholder="0" />
+                          <AmountInput id="pay-bank" className="w-28 justify-self-end text-right" value={bankPaidInput || ""} onValueChange={(v) => setBankPaidInput(Number(v) || 0)} placeholder="0" />
                         </div>
                         <div className="flex justify-between items-center border-t pt-3">
                           <span className="font-bold text-base">Outstanding</span>

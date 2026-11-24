@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -455,14 +456,12 @@ const MonthlyPnL = ({ users, accounts, tradingData, onRefresh, onOpenPayout }: M
                         </TableCell>
                         <TableCell className="text-right">
                           {isEditing ? (
-                            <Input
-                              type="number"
-                              step="0.01"
+                            <AmountInput allowNegative
                               value={editData.net_pnl}
-                              onChange={(e) =>
+                              onValueChange={(v) =>
                                 setEditingRows((prev) => ({
                                   ...prev,
-                                  [entry.id]: { ...prev[entry.id], net_pnl: e.target.value },
+                                  [entry.id]: { ...prev[entry.id], net_pnl: v },
                                 }))
                               }
                               className="w-28 ml-auto text-right"

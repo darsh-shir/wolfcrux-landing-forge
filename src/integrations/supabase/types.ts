@@ -604,6 +604,7 @@ export type Database = {
           id: string
           is_released: boolean
           lto_amount: number
+          lto_amount_original: number | null
           lto_percentage: number
           month: number
           net_profit: number
@@ -618,6 +619,7 @@ export type Database = {
           id?: string
           is_released?: boolean
           lto_amount?: number
+          lto_amount_original?: number | null
           lto_percentage?: number
           month: number
           net_profit?: number
@@ -632,6 +634,7 @@ export type Database = {
           id?: string
           is_released?: boolean
           lto_amount?: number
+          lto_amount_original?: number | null
           lto_percentage?: number
           month?: number
           net_profit?: number

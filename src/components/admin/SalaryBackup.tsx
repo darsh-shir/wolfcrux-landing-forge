@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
@@ -172,13 +173,13 @@ const SalaryBackup = ({ users }: SalaryBackupProps) => {
                     <TableRow key={user.user_id}>
                       <TableCell className="font-medium">{user.full_name}</TableCell>
                       <TableCell>
-                        <Input type="number" className="w-28" value={row.base_salary || ""}
-                          onChange={e => handleFieldChange(user.user_id, "base_salary", Number(e.target.value))}
+                        <AmountInput className="w-28" value={row.base_salary || ""}
+                          onValueChange={(v) => handleFieldChange(user.user_id, "base_salary", Number(v))}
                           onKeyDown={saveOnEnter(user.user_id)} />
                       </TableCell>
                       <TableCell>
-                        <Input type="number" className="w-28" value={row.backup_amount || ""}
-                          onChange={e => handleFieldChange(user.user_id, "backup_amount", Number(e.target.value))}
+                        <AmountInput className="w-28" value={row.backup_amount || ""}
+                          onValueChange={(v) => handleFieldChange(user.user_id, "backup_amount", Number(v))}
                           onKeyDown={saveOnEnter(user.user_id)} />
                       </TableCell>
                       <TableCell>

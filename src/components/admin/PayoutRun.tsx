@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
@@ -411,12 +412,10 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
                       ? String(r.saved.paid_at).slice(0, 10)
                       : (r.payoutRecord?.notes || "").match(/Paid on (\d{4}-\d{2}-\d{2})/)?.[1] ?? null;
                     const moneyInput = (field: "salary" | "online" | "cash", value: number) => (
-                      <Input
-                        type="number"
-                        min="0"
+                      <AmountInput
                         className="h-8 w-24 text-right"
                         value={money[r.userId]?.[field] ?? String(value)}
-                        onChange={(e) => setAmount(r, field, e.target.value)}
+                        onValueChange={(v) => setAmount(r, field, v)}
                         disabled={paid}
                         aria-label={`${field} for ${r.name}`}
                       />
@@ -448,11 +447,10 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
                             "—"
                           ) : (
                             <>
-                              <Input
-                                type="number"
+                              <AmountInput
                                 className={`ml-auto h-8 w-28 text-right font-semibold ${stoOverride(r) !== null ? "border-amber-500/60" : ""}`}
                                 value={stoEdit[r.userId] ?? String(stoInr(r))}
-                                onChange={(e) => setStoEdit((x) => ({ ...x, [r.userId]: e.target.value }))}
+                                onValueChange={(v) => setStoEdit((x) => ({ ...x, [r.userId]: v }))}
                                 onBlur={() => stoEdit[r.userId] !== undefined && void saveStoOverride(r)}
                                 onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
                                 disabled={paid || busy !== null}

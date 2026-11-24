@@ -4,6 +4,7 @@ import { useSharedEmployee } from "@/hooks/useSharedEmployee";
 import EmployeePicker from "@/components/admin/EmployeePicker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
 import { Label } from "@/components/ui/label";
@@ -171,23 +172,19 @@ const MonthlyMilestones = ({ users }: { users: Profile[] }) => {
               <div key={r.month} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center rounded-md border border-border/60 p-2 md:border-0 md:p-0">
                 <div className="md:col-span-2 text-sm font-medium">{MONTH_NAMES[r.month - 1]}</div>
                 <div className="md:col-span-3">
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <AmountInput allowNegative
                     inputMode="decimal"
                     placeholder="Milestone"
                     value={r.milestone_amount}
-                    onChange={(e) => update(r.month, "milestone_amount", e.target.value)}
+                    onValueChange={(v) => update(r.month, "milestone_amount", v)}
                   />
                 </div>
                 <div className="md:col-span-3">
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <AmountInput
                     inputMode="decimal"
                     placeholder="Given"
                     value={r.amount_given}
-                    onChange={(e) => update(r.month, "amount_given", e.target.value)}
+                    onValueChange={(v) => update(r.month, "amount_given", v)}
                   />
                 </div>
                 <div className="md:col-span-4">

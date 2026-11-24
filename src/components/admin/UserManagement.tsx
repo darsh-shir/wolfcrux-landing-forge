@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
 import { EX_EMPLOYEE_ROLE, CLOSED_PREFIX, isExEmployee, isClosedAccount, accountLabel } from "@/lib/employees";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -765,13 +766,11 @@ const SalaryCell = ({ userId, current, isTrainee, onSaved }: { userId: string; c
   };
   return (
     <div className="flex items-center gap-1">
-      <Input
-        type="number"
-        min="0"
+      <AmountInput
         className="h-8 w-28 text-right"
         value={value}
         placeholder={isTrainee ? String(TRAINEE_STIPEND_INR) : "0"}
-        onChange={(e) => setValue(e.target.value)}
+        onValueChange={(v) => setValue(v)}
         onKeyDown={(e) => e.key === "Enter" && void save()}
         aria-label="Default monthly salary"
       />

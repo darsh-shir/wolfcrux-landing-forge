@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -28,6 +29,8 @@ interface LtoEntry {
   unlock_date: string;
   is_released: boolean;
   released_at: string | null;
+  /** Calculated amount, kept when the admin changed lto_amount. */
+  lto_amount_original?: number | null;
 }
 
 interface LtoViewProps {
@@ -45,6 +48,37 @@ const LtoView = ({ users }: LtoViewProps) => {
   const [loading, setLoading] = useState(false);
   const [openTraders, setOpenTraders] = useState<Record<string, boolean>>({});
   const [milestones, setMilestones] = useState<Record<string, number>>({});
+  const [ltoEdit, setLtoEdit] = useState<Record<string, string>>({});
+  const [savingLto, setSavingLto] = useState<string | null>(null);
+
+  /** Save the admin's LTO amount; empty (or the calculated amount) goes back to calculated. */
+  const saveLtoAmount = async (e: LtoEntry) => {
+    const raw = (ltoEdit[e.id] ?? "").trim();
+    const clear = () => setLtoEdit((x) => { const n = { ...x }; delete n[e.id]; return n; });
+    const current = Number(e.lto_amount) || 0;
+    const original = e.lto_amount_original === null || e.lto_amount_original === undefined ? null : Number(e.lto_amount_original);
+    const calculated = original ?? current;
+    const wanted = raw === "" ? calculated : Math.round(Number(raw) * 100) / 100;
+    if (!Number.isFinite(wanted)) return clear();
+    if (Math.abs(wanted - current) < 0.005) return clear();
+    const backToCalc = Math.abs(wanted - calculated) < 0.005;
+    setSavingLto(e.id);
+    const { error } = await supabase
+      .from("lto_ledger")
+      .update(backToCalc ? { lto_amount: calculated, lto_amount_original: null } : { lto_amount: wanted, lto_amount_original: calculated })
+      .eq("id", e.id);
+    setSavingLto(null);
+    if (error) {
+      toast({ title: "Couldn't save the LTO amount", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: backToCalc ? "LTO back to the calculated amount" : `LTO set to ${formatCurrency(wanted)}`,
+      description: backToCalc ? undefined : `Original ${formatCurrency(calculated)}`,
+    });
+    clear();
+    void fetchEntries();
+  };
 
   useEffect(() => { fetchEntries(); fetchMilestones(); }, []);
 
@@ -256,7 +290,31 @@ const LtoView = ({ users }: LtoViewProps) => {
                               </TableCell>
                               <TableCell>{formatCurrency(e.net_profit)}</TableCell>
                               <TableCell>{Number(e.lto_percentage).toFixed(1)}%</TableCell>
-                              <TableCell className={`font-semibold ${amt < 0 ? "text-destructive" : ""}`}>{formatCurrency(amt)}</TableCell>
+                              <TableCell className={`font-semibold ${amt < 0 ? "text-destructive" : ""}`}>
+                                {e.is_released ? (
+                                  formatCurrency(amt)
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-muted-foreground">$</span>
+                                    <AmountInput
+                                      allowNegative
+                                      className={`h-8 w-28 text-right font-semibold ${e.lto_amount_original != null ? "border-amber-500/60" : ""}`}
+                                      value={ltoEdit[e.id] ?? String(amt)}
+                                      onValueChange={(v) => setLtoEdit((x) => ({ ...x, [e.id]: v }))}
+                                      onBlur={() => ltoEdit[e.id] !== undefined && void saveLtoAmount(e)}
+                                      onKeyDown={(ev) => ev.key === "Enter" && (ev.target as HTMLInputElement).blur()}
+                                      disabled={savingLto === e.id}
+                                      title="Change this month's LTO. Clear it to go back to the calculated amount."
+                                      aria-label={`LTO amount ${MONTH_NAMES[e.month - 1]} ${e.year}`}
+                                    />
+                                  </div>
+                                )}
+                                {e.lto_amount_original != null && (
+                                  <span className="mt-0.5 block text-[11px] font-normal text-amber-700 dark:text-amber-400">
+                                    Edited · original {formatCurrency(Number(e.lto_amount_original))}
+                                  </span>
+                                )}
+                              </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-1 text-sm">
                                   <Calendar className="h-3 w-3 text-muted-foreground" />

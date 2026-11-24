@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -663,7 +664,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-sm">Net P&L ($)</Label>
-                <Input type="number" step="0.01" value={netPnl1} onChange={(e) => setNetPnl1(e.target.value)} placeholder="0.00" />
+                <AmountInput allowNegative value={netPnl1} onValueChange={(v) => setNetPnl1(v)} placeholder="0.00" />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">Shares Traded</Label>
@@ -687,7 +688,7 @@ const TradingDataEntry = ({ users, accounts, onRefresh, onTraderChange }: Tradin
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-sm">Net P&L ($)</Label>
-                <Input type="number" step="0.01" value={netPnl2} onChange={(e) => setNetPnl2(e.target.value)} placeholder="0.00" />
+                <AmountInput allowNegative value={netPnl2} onValueChange={(v) => setNetPnl2(v)} placeholder="0.00" />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">Shares Traded</Label>

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
 import { Label } from "@/components/ui/label";
@@ -261,12 +262,10 @@ const BaselineSeeder = ({ users }: Props) => {
                           />
                         </TableCell>
                         <TableCell>
-                          <Input
-                            type="number"
-                            step="0.01"
+                          <AmountInput allowNegative
                             value={d.baseline_net_profit}
-                            onChange={(e) =>
-                              updateDraft(u.user_id, { baseline_net_profit: e.target.value })
+                            onValueChange={(v) =>
+                              updateDraft(u.user_id, { baseline_net_profit: v })
                             }
                           />
                         </TableCell>

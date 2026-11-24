@@ -4,6 +4,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SaveButton } from "@/components/ui/save-button";
@@ -339,7 +340,7 @@ const LevelsAndMilestones = ({ users }: { users: Person[] }) => {
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Net P&L till then ($)</p>
-                <Input type="number" value={baseline.profit} onChange={(e) => setBaseline({ ...baseline, profit: e.target.value })}
+                <AmountInput allowNegative value={baseline.profit} onValueChange={(v) => setBaseline({ ...baseline, profit: v })}
                   onKeyDown={(e) => e.key === "Enter" && baselineChanged && void saveBaseline()} />
               </div>
               <div>{baselineChanged && <SaveButton saving={savingBaseline} onClick={() => void saveBaseline()}>Save starting figures</SaveButton>}</div>
@@ -370,12 +371,11 @@ const LevelsAndMilestones = ({ users }: { users: Person[] }) => {
                           <TableCell className={`text-right ${saved ? "text-muted-foreground line-through" : ""}`}>{usd(r.website)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
+                              <AmountInput allowNegative
                                 className="h-8 w-32"
                                 placeholder="same"
                                 value={value}
-                                onChange={(e) => setEdits((x) => ({ ...x, [r.key]: e.target.value }))}
+                                onValueChange={(v) => setEdits((x) => ({ ...x, [r.key]: v }))}
                                 onKeyDown={(e) => e.key === "Enter" && changed && void saveMonth(r.key)}
                               />
                               {changed && <SaveButton saving={savingMonth === r.key} onClick={() => void saveMonth(r.key)} />}

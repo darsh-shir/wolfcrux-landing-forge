@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
@@ -199,13 +200,13 @@ const DeskCost = ({ users }: DeskCostProps) => {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Input type="number" className="w-28" value={row.total_desk_cost || ""}
-                          onChange={e => handleFieldChange(user.user_id, "total_desk_cost", Number(e.target.value))}
+                        <AmountInput className="w-28" value={row.total_desk_cost || ""}
+                          onValueChange={(v) => handleFieldChange(user.user_id, "total_desk_cost", Number(v))}
                           onKeyDown={saveOnEnter(user.user_id)} />
                       </TableCell>
                       <TableCell>
-                        <Input type="number" className="w-28" value={row.total_paid || ""}
-                          onChange={e => handleFieldChange(user.user_id, "total_paid", Number(e.target.value))}
+                        <AmountInput className="w-28" value={row.total_paid || ""}
+                          onValueChange={(v) => handleFieldChange(user.user_id, "total_paid", Number(v))}
                           onKeyDown={saveOnEnter(user.user_id)} />
                       </TableCell>
                       <TableCell className={`font-semibold ${pending > 0 ? "text-destructive" : "text-primary"}`}>

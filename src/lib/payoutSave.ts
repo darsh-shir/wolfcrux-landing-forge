@@ -54,9 +54,25 @@ export async function saveTraderMonth(params: {
   );
 
   const { data: lto } = must(
-    await supabase.from("lto_ledger").select("id, is_released").eq("user_id", userId).eq("month", month).eq("year", year).maybeSingle()
+    await supabase
+      .from("lto_ledger")
+      .select("id, is_released, lto_amount_original")
+      .eq("user_id", userId)
+      .eq("month", month)
+      .eq("year", year)
+      .maybeSingle()
   );
   if (lto?.is_released) return;
+  // The admin changed this month's LTO amount: keep their figure, only refresh the calculated one.
+  if (lto?.id && lto.lto_amount_original !== null && lto.lto_amount_original !== undefined) {
+    must(
+      await supabase
+        .from("lto_ledger")
+        .update({ net_profit: r2(m.netProfit), lto_percentage: m.ltoPercent, lto_amount_original: r2(m.finalLto) })
+        .eq("id", lto.id)
+    );
+    return;
+  }
   if (Math.abs(m.finalLto) < 0.005) {
     if (lto?.id) must(await supabase.from("lto_ledger").delete().eq("id", lto.id));
     return;
