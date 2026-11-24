@@ -75,11 +75,11 @@ const DeskAndBackup = () => {
   useEffect(() => load(), [load]);
   useLiveRows(user?.id, ["desk_costs", "salary_backups", "payout_records"], () => void load());
 
-  if (desk === null) return <div className="skeleton-shimmer mb-6 h-32 rounded-lg" />;
+  if (desk === null) return <div className="skeleton-shimmer h-32 rounded-lg" />;
   if (desk.length === 0 && !backup) return null;
 
   return (
-    <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Card>
         <CardContent className="p-4 sm:p-6">
           <div className="flex items-center gap-2">

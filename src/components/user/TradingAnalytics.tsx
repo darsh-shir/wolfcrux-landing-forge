@@ -15,6 +15,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { formatCurrencyINR, formatIndian } from "@/lib/utils";
 import AnimatedNumber from "@/components/AnimatedNumber";
+import DeskAndBackup from "./DeskAndBackup";
 import { DollarSign, CalendarCheck } from "lucide-react";
 
 interface DailySummary {
@@ -353,6 +354,9 @@ const TradingAnalytics = ({ dailySummary, totalPnl, netAfterBrokerage, tradingDa
       </div>
 
       {/* Charts */}
+      {/* Desk cost and salary backup, right above the charts */}
+      <DeskAndBackup />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Cumulative P&L Chart */}
         <Card>
