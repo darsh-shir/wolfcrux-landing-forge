@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { normalizeTipranksQuotes } from "@/lib/tipranksQuote";
 import { useVisibleInterval } from "@/hooks/useVisibleInterval";
 import { toast } from "@/hooks/use-toast";
+import { fmtAmt } from "@/lib/utils";
 
 /**
  * Per-browser price alerts ("tell me when AMD goes above 180").
@@ -124,8 +125,8 @@ export const usePriceAlerts = () => {
       update((prev) => prev.map((a) => byId.get(a.id) ?? a));
       hits.forEach((h) =>
         notify(
-          `${h.symbol} ${h.direction === "above" ? "above" : "below"} $${h.price.toFixed(2)}`,
-          `Last price $${h.triggeredPrice!.toFixed(2)}`
+          `${h.symbol} ${h.direction === "above" ? "above" : "below"} $${fmtAmt(h.price, 2)}`,
+          `Last price $${fmtAmt(h.triggeredPrice!, 2)}`
         )
       );
     } catch {

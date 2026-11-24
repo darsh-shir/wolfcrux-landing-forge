@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { nyDateKey, addDaysKey, nextWeekdayKey } from "@/lib/marketDate";
-import { formatIndian } from "@/lib/utils";
+import { formatIndian, fmtAmt } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
@@ -183,7 +183,7 @@ const EarningsOverview = () => {
                     <div className="text-right text-xs">
                       {s.price > 0 && (
                         <div className="flex items-center gap-1 justify-end">
-                          <span className="text-muted-foreground">${s.price?.toFixed(2)}</span>
+                          <span className="text-muted-foreground">${fmtAmt(s.price, 2)}</span>
                           <span
                             className={`flex items-center gap-0.5 ${
                               s.change?.percent >= 0 ? "text-green-600" : "text-red-500"
@@ -224,7 +224,7 @@ const EarningsOverview = () => {
                               >
                                 <span className="font-mono font-semibold">{p.symbol}</span>
                                 <span className="text-muted-foreground">
-                                  ${p.price?.toFixed(2)}
+                                  ${fmtAmt(p.price, 2)}
                                 </span>
                                 <span className={pos ? "text-green-600" : "text-red-500"}>
                                   {pos ? "+" : ""}

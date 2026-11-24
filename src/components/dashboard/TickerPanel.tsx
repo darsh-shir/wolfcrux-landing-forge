@@ -9,6 +9,7 @@ import { fetchTipranksSimilar, type TipranksPeer } from "@/lib/tipranksPeers";
 import { useTerminal } from "@/components/dashboard/TerminalContext";
 import ExtendedHoursBadge from "@/components/dashboard/ExtendedHoursBadge";
 import { toast } from "@/hooks/use-toast";
+import { fmtAmt } from "@/lib/utils";
 
 const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
 
@@ -98,7 +99,7 @@ const TickerPanel = ({ symbol, onClose }: Props) => {
     setAlertPrice("");
     toast({
       title: `Alert set for ${symbol}`,
-      description: `When it trades ${price >= last ? "at or above" : "at or below"} $${price.toFixed(2)}.`,
+      description: `When it trades ${price >= last ? "at or above" : "at or below"} $${fmtAmt(price, 2)}.`,
     });
   };
 
@@ -119,7 +120,7 @@ const TickerPanel = ({ symbol, onClose }: Props) => {
           {quote && (
             <>
               <div className="flex items-baseline justify-between gap-3">
-                <span className="font-mono text-3xl font-bold tabular-nums">${quote.price.toFixed(2)}</span>
+                <span className="font-mono text-3xl font-bold tabular-nums">${fmtAmt(quote.price, 2)}</span>
                 <span className={`font-mono tabular-nums text-sm font-semibold ${pctClass(quote.changesPercentage)}`}>
                   {signed(quote.change)} ({signed(quote.changesPercentage)}%)
                 </span>
@@ -210,9 +211,9 @@ const TickerPanel = ({ symbol, onClose }: Props) => {
                     ) : (
                       <Bell className="h-3.5 w-3.5 text-muted-foreground" />
                     )}
-                    {a.direction === "above" ? "≥" : "≤"} ${a.price.toFixed(2)}
+                    {a.direction === "above" ? "≥" : "≤"} ${fmtAmt(a.price, 2)}
                     {a.triggeredAt && (
-                      <span className="text-amber-600">· hit at ${a.triggeredPrice?.toFixed(2)}</span>
+                      <span className="text-amber-600">· hit at ${fmtAmt(a.triggeredPrice, 2)}</span>
                     )}
                   </span>
                   <button

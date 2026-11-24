@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { nyDateKey, addDaysKey, nextWeekdayKey } from "@/lib/marketDate";
-import { formatIndian } from "@/lib/utils";
+import { formatIndian, fmtAmt } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 import { fetchPerplexityEarnings, fetchTipranksCalendar } from "@/lib/earnings";
@@ -88,7 +88,7 @@ const formatSalesEstimate = (s: number) => {
   if (s >= 1e9) return `$${(s / 1e9).toFixed(2)}B`;
   if (s >= 1e6) return `$${(s / 1e6).toFixed(2)}M`;
   if (s >= 1e3) return `$${(s / 1e3).toFixed(2)}K`;
-  return `$${s.toFixed(0)}`;
+  return `$${fmtAmt(s, 0)}`;
 };
 
 const getSessionLabel = (timeOfDay: string) => {
@@ -344,7 +344,7 @@ const Earnings = () => {
                   return (
                     <span
                       className={`px-1.5 py-0.5 rounded border text-[9px] font-mono uppercase tracking-wider ${tone}`}
-                      title={`Reported EPS $${sp.rep.toFixed(2)} vs. estimate $${(earning?.value ?? 0).toFixed(2)}`}
+                      title={`Reported EPS $${fmtAmt(sp.rep, 2)} vs. estimate $${fmtAmt((earning?.value ?? 0), 2)}`}
                     >
                       {sp.verdict}
                       {sp.pct !== null && sp.verdict !== "inline" && ` ${sp.pct > 0 ? "+" : ""}${sp.pct.toFixed(0)}%`}
@@ -363,7 +363,7 @@ const Earnings = () => {
               </div>
               {s.price > 0 && (
                 <div className="flex items-center justify-end gap-2 mt-0.5">
-                  <span className="tabular-nums">${s.price?.toFixed(2)}</span>
+                  <span className="tabular-nums">${fmtAmt(s.price, 2)}</span>
                   <span className={`tabular-nums font-semibold ${isPositive ? "text-emerald-600" : "text-red-500"}`}>
                     {isPositive ? "+" : ""}
                     {(s.change?.percent * 100).toFixed(2)}%
@@ -385,14 +385,14 @@ const Earnings = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 text-xs">
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">// EPS Est</p>
-                <p className="font-mono font-semibold tabular-nums">${earning?.value?.toFixed(2)}</p>
+                <p className="font-mono font-semibold tabular-nums">${fmtAmt(earning?.value, 2)}</p>
                 <p className="font-mono text-[10px] text-muted-foreground tabular-nums">
-                  ${earning?.lowEstimateEps?.toFixed(2)} – ${earning?.highEstimateEps?.toFixed(2)}
+                  ${fmtAmt(earning?.lowEstimateEps, 2)} – ${fmtAmt(earning?.highEstimateEps, 2)}
                 </p>
               </div>
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">// LY EPS</p>
-                <p className="font-mono font-semibold tabular-nums">${earning?.lastYearValue?.toFixed(2)}</p>
+                <p className="font-mono font-semibold tabular-nums">${fmtAmt(earning?.lastYearValue, 2)}</p>
                 {earning?.value && earning?.lastYearValue ? (
                   <p className={`font-mono text-[10px] tabular-nums ${earning.value > earning.lastYearValue ? "text-emerald-600" : "text-red-500"}`}>
                     {earning.value > earning.lastYearValue ? "↑" : "↓"}{" "}
@@ -430,7 +430,7 @@ const Earnings = () => {
                       >
                         <span className="font-semibold">{p.symbol}</span>
                         <span className="text-muted-foreground tabular-nums">
-                          ${p.price?.toFixed(2)}
+                          ${fmtAmt(p.price, 2)}
                         </span>
                         <span className={`tabular-nums ${pos ? "text-emerald-600" : "text-red-500"}`}>
                           {pos ? "+" : ""}

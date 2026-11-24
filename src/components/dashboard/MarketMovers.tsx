@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTerminal } from "@/components/dashboard/TerminalContext";
 import { TrendingUp, TrendingDown, Activity, Flame } from "lucide-react";
 import DataAge from "@/components/dashboard/DataAge";
+import { fmtAmt } from "@/lib/utils";
 
 interface MoverData {
   symbol: string;
@@ -61,7 +62,7 @@ const MoverRow = ({
 
       <div className="text-right">
         <p className="text-xs font-mono font-semibold text-foreground tabular-nums">
-          ${item.price.toFixed(2)}
+          ${fmtAmt(item.price, 2)}
         </p>
         <p className={`text-[11px] font-mono font-bold tabular-nums ${textColor}`}>
           {isPositive ? "+" : ""}

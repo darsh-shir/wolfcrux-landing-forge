@@ -36,6 +36,12 @@ export function formatIndian(value: number, decimals = 0): string {
   return result;
 }
 
+/** A ₹/$ amount's number part in Indian style (1,00,000.00); "—" when missing. */
+export function fmtAmt(value: number | null | undefined, decimals = 2): string {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "—";
+  return formatIndian(Number(value), decimals);
+}
+
 /**
  * Format currency with Indian numbering. 
  * prefix defaults to "$". Pass "₹" for INR.

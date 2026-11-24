@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, ExternalLink, TrendingUp, TrendingDown } from "lucide-react";
 import { normalizeTipranksQuotes, NormalizedQuote } from "@/lib/tipranksQuote";
+import { fmtAmt } from "@/lib/utils";
 
 const PROXY_URL =
   "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
@@ -65,7 +66,7 @@ const fmtMoney = (n?: number) => {
   if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
   if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
   if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-  return `$${n.toLocaleString()}`;
+  return `$${fmtAmt(n, 0)}`;
 };
 
 const humanizeSector = (s: string) =>
@@ -192,7 +193,7 @@ const SectorDetailDialog = ({ ticker, sectorName, changePct, open, onOpenChange 
             {/* Key stats grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
-                { label: "NAV", value: etf?.nav?.value ? `$${etf.nav.value.toFixed(2)}` : "—" },
+                { label: "NAV", value: etf?.nav?.value ? `$${fmtAmt(etf.nav.value, 2)}` : "—" },
                 { label: "Expense", value: fmtPct(etf?.netExpenseRatio, 2) },
                 { label: "AUM / Mkt Cap", value: fmtMoney(extra?.marketCap) },
                 { label: "Holdings", value: etf?.holdings?.total ?? holdings.length ?? "—" },

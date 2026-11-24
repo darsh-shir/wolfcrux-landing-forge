@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { must } from "@/lib/fetchAllRows";
+import { fmtAmt } from "@/lib/utils";
 
 /**
  * Default monthly salary (₹) per employee.
@@ -69,6 +70,6 @@ export const backupUsedFromNote = (note: string | null | undefined): number => {
 export const withBackupNote = (note: string | null | undefined, amount: number): string => {
   const rest = (note || "").replace(/\s*·?\s*Backup used ₹[\d,]+/g, "").trim();
   if (amount <= 0) return rest;
-  const tag = `Backup used ₹${Math.round(amount).toLocaleString("en-IN")}`;
+  const tag = `Backup used ₹${fmtAmt(Math.round(amount), 0)}`;
   return rest ? `${rest} · ${tag}` : tag;
 };

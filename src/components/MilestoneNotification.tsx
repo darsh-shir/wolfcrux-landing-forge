@@ -6,7 +6,7 @@ import { getMilestoneLevel, getNextMilestone, MILESTONES } from "@/lib/payoutCal
 import { loadAllTraderHistories } from "@/hooks/useTraderHistory";
 import { getAllTradeRows } from "@/lib/tradeCache";
 import { Progress } from "@/components/ui/progress";
-import { formatIndian } from "@/lib/utils";
+import { formatIndian, fmtAmt } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
@@ -264,7 +264,7 @@ const MilestoneNotification = () => {
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                Triggered by: {a.trigger === "both" ? "days & profit" : a.trigger === "time" ? `${a.tradingDays} trading days` : `$${Math.round(a.cumulativeProfit).toLocaleString()} profit`}
+                Triggered by: {a.trigger === "both" ? "days & profit" : a.trigger === "time" ? `${a.tradingDays} trading days` : `$${fmtAmt(Math.round(a.cumulativeProfit), 0)} profit`}
               </p>
               <div className="flex gap-2 mt-1 text-xs">
                 <span className="font-medium text-foreground">STO: {a.stoPercent}%</span>

@@ -8,6 +8,7 @@ import { INDUSTRY_LEADERS } from "@/hooks/useTickerWatchlist";
 import { useVisibleInterval } from "@/hooks/useVisibleInterval";
 import { useTerminal } from "@/components/dashboard/TerminalContext";
 import DataAge from "@/components/dashboard/DataAge";
+import { fmtAmt } from "@/lib/utils";
 
 const PROXY = "https://wolfcrux-market-proxy.pc-shiroiya25.workers.dev/?url=";
 const REFRESH_MS = 2 * 60_000;
@@ -119,7 +120,7 @@ const PremarketMovers = ({ extraSymbols = [] }: Props) => {
                 </span>
               )}
               <span className="flex-1" />
-              <span className="tabular-nums text-muted-foreground">${q.extended!.price.toFixed(2)}</span>
+              <span className="tabular-nums text-muted-foreground">${fmtAmt(q.extended!.price, 2)}</span>
               <span className={`w-14 text-right tabular-nums ${up ? "text-emerald-600" : "text-red-500"}`}>
                 {up ? "+" : ""}
                 {q.extended!.changesPercentage.toFixed(2)}%

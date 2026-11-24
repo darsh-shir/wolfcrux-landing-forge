@@ -8,6 +8,7 @@ import { useTerminal } from "@/components/dashboard/TerminalContext";
 import { useVisibleInterval } from "@/hooks/useVisibleInterval";
 import DataAge from "@/components/dashboard/DataAge";
 import { FILTER_GROUPS, PRESETS, SORTS, runScreen, type FilterKey, type ScreenerResult, type ScreenerRow } from "@/lib/finvizScreener";
+import { fmtAmt } from "@/lib/utils";
 
 const REFRESH_MS = 3 * 60_000;
 const SAVED_KEY = "wolfcrux.screener.saved";
@@ -39,7 +40,7 @@ const tone = (v: number | null) => (v === null ? "text-muted-foreground" : v > 0
 
 type ColKey = keyof ScreenerRow;
 const COLS: { key: ColKey; label: string; render: (r: ScreenerRow) => React.ReactNode; className?: string; hideSm?: boolean }[] = [
-  { key: "price", label: "Price", render: (r) => (r.price === null ? "—" : `$${r.price.toFixed(2)}`) },
+  { key: "price", label: "Price", render: (r) => (r.price === null ? "—" : `$${fmtAmt(r.price, 2)}`) },
   { key: "change", label: "Chg", render: (r) => <span className={tone(r.change)}>{pct(r.change)}</span> },
   { key: "gap", label: "Gap", render: (r) => <span className={tone(r.gap)}>{pct(r.gap)}</span>, hideSm: true },
   { key: "changeFromOpen", label: "From open", render: (r) => <span className={tone(r.changeFromOpen)}>{pct(r.changeFromOpen)}</span>, hideSm: true },

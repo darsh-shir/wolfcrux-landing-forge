@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, UserPlus, Key, Trash2, Edit, Loader2 } from "lucide-react";
+import { fmtAmt } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -754,7 +755,7 @@ const SalaryCell = ({ userId, current, isTrainee, onSaved }: { userId: string; c
     setSaving(true);
     try {
       await saveDefaultSalary(userId, new Date().getFullYear(), amount);
-      toast({ title: "Salary saved", description: `₹${amount.toLocaleString("en-IN")} per month from now on` });
+      toast({ title: "Salary saved", description: `₹${fmtAmt(amount, 0)} per month from now on` });
       onSaved();
     } catch (e) {
       toast({ title: "Couldn't save salary", description: e instanceof Error ? e.message : String(e), variant: "destructive" });

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { formatIndian } from "@/lib/utils";
+import { formatIndian, fmtAmt } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -104,7 +104,7 @@ const formatMarketCap = (cap: number): string => {
   if (cap >= 1e9) return `$${(cap / 1e9).toFixed(2)}B`;
   if (cap >= 1e6) return `$${(cap / 1e6).toFixed(2)}M`;
   if (cap >= 1e3) return `$${(cap / 1e3).toFixed(2)}K`;
-  return `$${cap.toFixed(0)}`;
+  return `$${fmtAmt(cap, 0)}`;
 };
 
 const CompareStocks = () => {
@@ -660,7 +660,7 @@ const CompareStocks = () => {
                   {!s.error && (
                     <>
                       <span className="tabular-nums hidden sm:inline text-muted-foreground">
-                        ${s.latestPrice.toFixed(2)}
+                        ${fmtAmt(s.latestPrice, 2)}
                       </span>
                       <span
                         className={`tabular-nums font-semibold ${

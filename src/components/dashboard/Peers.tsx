@@ -1,4 +1,4 @@
-import { formatIndian } from "@/lib/utils";
+import { formatIndian, fmtAmt } from "@/lib/utils";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -157,7 +157,7 @@ const formatMarketCap = (cap: number): string => {
   if (cap >= 1e9) return `$${(cap / 1e9).toFixed(2)}B`;
   if (cap >= 1e6) return `$${(cap / 1e6).toFixed(2)}M`;
   if (cap >= 1e3) return `$${(cap / 1e3).toFixed(2)}K`;
-  return `$${cap.toFixed(0)}`;
+  return `$${fmtAmt(cap, 0)}`;
 };
 
 const formatEmployees = (val: string): string => {
@@ -358,7 +358,7 @@ const Peers = () => {
               </div>
               {quote && (
                 <div className="flex items-baseline gap-2 shrink-0">
-                  <span className="text-2xl font-bold font-mono tabular-nums">${quote.price.toFixed(2)}</span>
+                  <span className="text-2xl font-bold font-mono tabular-nums">${fmtAmt(quote.price, 2)}</span>
                   <div className={`flex items-center gap-1 text-sm font-mono font-semibold tabular-nums ${quote.changesPercentage >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                     {quote.changesPercentage >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                     <span>{quote.changesPercentage >= 0 ? "+" : ""}{quote.changesPercentage.toFixed(2)}%</span>
@@ -374,7 +374,7 @@ const Peers = () => {
                 {/* After hours */}
                 {quote.afterHoursPrice != null && !quote.isMarketOpen && (
                   <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-3">
-                    // After Hours: <span className="font-medium text-foreground tabular-nums">${quote.afterHoursPrice.toFixed(2)}</span>
+                    // After Hours: <span className="font-medium text-foreground tabular-nums">${fmtAmt(quote.afterHoursPrice, 2)}</span>
                     <span className={`ml-1 ${(quote.afterHoursPercentChange ?? 0) >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                       {(quote.afterHoursChange ?? 0) >= 0 ? "+" : ""}{(quote.afterHoursChange ?? 0).toFixed(2)} ({(quote.afterHoursPercentChange ?? 0) >= 0 ? "+" : ""}{(quote.afterHoursPercentChange ?? 0).toFixed(2)}%)
                     </span>
@@ -383,14 +383,14 @@ const Peers = () => {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                   {[
-                    { label: "Open", value: `$${quote.open.toFixed(2)}` },
-                    { label: "Prev Close", value: `$${quote.previousClose.toFixed(2)}` },
-                    { label: "Day Range", value: `$${quote.dayLow.toFixed(2)} – $${quote.dayHigh.toFixed(2)}` },
-                    { label: "52W Range", value: `$${quote.yearLow.toFixed(2)} – $${quote.yearHigh.toFixed(2)}` },
+                    { label: "Open", value: `$${fmtAmt(quote.open, 2)}` },
+                    { label: "Prev Close", value: `$${fmtAmt(quote.previousClose, 2)}` },
+                    { label: "Day Range", value: `$${fmtAmt(quote.dayLow, 2)} – $${fmtAmt(quote.dayHigh, 2)}` },
+                    { label: "52W Range", value: `$${fmtAmt(quote.yearLow, 2)} – $${fmtAmt(quote.yearHigh, 2)}` },
                     { label: "Volume", value: formatIndian(quote.volume) },
                     { label: "Avg Volume", value: formatIndian(quote.avgVolume) },
                     { label: "P/E", value: quote.pe?.toFixed(2) || "N/A" },
-                    { label: "EPS", value: quote.eps ? `$${quote.eps.toFixed(2)}` : "N/A" },
+                    { label: "EPS", value: quote.eps ? `$${fmtAmt(quote.eps, 2)}` : "N/A" },
                   ].map((m) => (
                     <div key={m.label} className="rounded-md border border-border/40 bg-muted/20 px-2.5 py-1.5">
                       <span className="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground">// {m.label}</span>
@@ -489,7 +489,7 @@ const Peers = () => {
                   <CardContent className="pt-0 space-y-2 pb-3">
                     <div className="flex items-baseline justify-between">
                       <span className="text-xl font-bold font-mono tabular-nums">
-                        ${peer.price.toFixed(2)}
+                        ${fmtAmt(peer.price, 2)}
                       </span>
                       <div
                         className={`flex items-center gap-1 text-sm font-mono font-semibold tabular-nums ${

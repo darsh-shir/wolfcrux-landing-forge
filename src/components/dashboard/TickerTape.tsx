@@ -3,6 +3,7 @@ import { Plus, X, Loader2 } from "lucide-react";
 import { INDUSTRY_LEADERS } from "@/hooks/useTickerWatchlist";
 import { toast } from "@/hooks/use-toast";
 import type { ExtendedHoursQuote } from "@/lib/tipranksQuote";
+import { fmtAmt } from "@/lib/utils";
 
 /**
  * Bloomberg/Reuters-style horizontal scrolling ticker tape.
@@ -114,7 +115,7 @@ const TickerTape = ({ items, loading, onAdd, onRemove, userSymbols = [] }: Ticke
             {it.extended && (
               <span
                 className="tabular-nums text-muted-foreground"
-                title={`${it.extended.session === "pre" ? "Pre-market" : "After-hours"} $${it.extended.price.toFixed(2)}`}
+                title={`${it.extended.session === "pre" ? "Pre-market" : "After-hours"} $${fmtAmt(it.extended.price, 2)}`}
               >
                 {it.extended.session === "pre" ? "PM" : "AH"}{" "}
                 <span className={it.extended.changesPercentage >= 0 ? "text-emerald-600" : "text-red-600"}>

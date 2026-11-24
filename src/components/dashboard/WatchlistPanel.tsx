@@ -6,6 +6,7 @@ import { Bell, BellRing, Plus, Star, X } from "lucide-react";
 import { useTerminal } from "@/components/dashboard/TerminalContext";
 import ExtendedHoursBadge from "@/components/dashboard/ExtendedHoursBadge";
 import type { TickerQuote } from "@/hooks/useTickerWatchlist";
+import { fmtAmt } from "@/lib/utils";
 
 interface Props {
   /** Live quotes already loaded for the ticker tape (includes watchlist symbols). */
@@ -85,7 +86,7 @@ const WatchlistPanel = ({ quotes, loading }: Props) => {
                   {q ? (
                     <>
                       <ExtendedHoursBadge extended={q.extended} className="hidden sm:inline-flex" />
-                      <span className="w-16 text-right tabular-nums">${q.price.toFixed(2)}</span>
+                      <span className="w-16 text-right tabular-nums">${fmtAmt(q.price, 2)}</span>
                       <span className={`w-16 text-right tabular-nums ${up ? "text-emerald-600" : "text-red-500"}`}>
                         {up ? "+" : ""}
                         {q.changesPercentage.toFixed(2)}%
@@ -119,7 +120,7 @@ const WatchlistPanel = ({ quotes, loading }: Props) => {
                     {a.symbol}
                   </button>
                   <span className="text-muted-foreground">
-                    {a.direction === "above" ? "≥" : "≤"} ${a.price.toFixed(2)} · hit ${a.triggeredPrice?.toFixed(2)}{" "}
+                    {a.direction === "above" ? "≥" : "≤"} ${fmtAmt(a.price, 2)} · hit ${fmtAmt(a.triggeredPrice, 2)}{" "}
                     {a.triggeredAt &&
                       new Date(a.triggeredAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
                   </span>

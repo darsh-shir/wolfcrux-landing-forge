@@ -1,5 +1,5 @@
 import type { ExtendedHoursQuote } from "@/lib/tipranksQuote";
-import { cn } from "@/lib/utils";
+import { cn, fmtAmt } from "@/lib/utils";
 
 interface Props {
   extended: ExtendedHoursQuote | null | undefined;
@@ -29,7 +29,7 @@ const ExtendedHoursBadge = ({ extended, showPrice = false, className }: Props) =
       )}
     >
       <span className="font-semibold text-muted-foreground">{label}</span>
-      {showPrice && <span className="text-foreground">${extended.price.toFixed(2)}</span>}
+      {showPrice && <span className="text-foreground">${fmtAmt(extended.price, 2)}</span>}
       <span className={up ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"}>
         {up ? "+" : ""}
         {extended.changesPercentage.toFixed(2)}%
