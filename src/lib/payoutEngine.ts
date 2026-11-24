@@ -167,6 +167,12 @@ export interface MonthResult {
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+/** LTO is kept in whole dollars: .5 and above rounds up, below .5 rounds down (same for losses). */
+export const roundLto = (n: number) => {
+  const r = Math.sign(n) * Math.round(Math.abs(n));
+  return r === 0 ? 0 : r; // avoid -0
+};
+
 export function computeMonth(input: MonthInput): MonthResult {
   const days = input.days;
   const grossPnl = days.reduce((s, d) => s + d.pnl, 0);
@@ -230,7 +236,7 @@ export function computeMonth(input: MonthInput): MonthResult {
     leaveDeductionLto,
     secondPcShare,
     finalSto: stoAfterLeave - secondPcShare,
-    finalLto: lto - leaveDeductionLto,
+    finalLto: roundLto(lto - leaveDeductionLto),
   };
 }
 

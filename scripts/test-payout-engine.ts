@@ -4,6 +4,7 @@
  */
 import assert from "node:assert/strict";
 import {
+  roundLto,
   computeHistory,
   computeMonth,
   levelFor,
@@ -107,7 +108,7 @@ test("leave deduction reduces STO and positive LTO; 25% taken after leave", () =
   near(r.leaveDeductionSto, 120.12, "STO leave deduction");
   near(r.secondPcShare, (3003 - 120.12) * 0.25, "25% after leave");
   near(r.leaveDeductionLto, 51.48, "LTO leave deduction");
-  near(r.finalLto, 1235.52, "final LTO");
+  near(r.finalLto, 1236, "final LTO, rounded to whole dollars");
 });
 
 test("transfers move net profit", () => {
@@ -198,6 +199,14 @@ test("milestone overrides change progress, not payouts", () => {
   near(h.byMonth.get("2026-01")!.netProfit, plain.byMonth.get("2026-01")!.netProfit, "payout net unchanged");
   near(h.byMonth.get("2026-01")!.finalSto, plain.byMonth.get("2026-01")!.finalSto, "STO unchanged");
   near(h.totalProfit, 20000, "milestone uses the admin figure");
+});
+
+test("LTO rounds to whole dollars, half up", () => {
+  assert.equal(roundLto(1.5), 2);
+  assert.equal(roundLto(1.49), 1);
+  assert.equal(roundLto(-1.5), -2);
+  assert.equal(roundLto(-1.49), -1);
+  assert.equal(roundLto(0.4), 0);
 });
 
 console.log(`\n${passed} passed`);

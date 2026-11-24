@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { Landmark, ChevronDown, ChevronRight, Lock, Unlock, Calendar, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { roundLto } from "@/lib/payoutEngine";
 import { getLtoReleaseThreshold, isLtoEntryReleasable } from "@/lib/payoutCalculations";
 
 interface Profile {
@@ -58,7 +59,7 @@ const LtoView = ({ users }: LtoViewProps) => {
     const current = Number(e.lto_amount) || 0;
     const original = e.lto_amount_original === null || e.lto_amount_original === undefined ? null : Number(e.lto_amount_original);
     const calculated = original ?? current;
-    const wanted = raw === "" ? calculated : Math.round(Number(raw) * 100) / 100;
+    const wanted = raw === "" ? calculated : roundLto(Number(raw));
     if (!Number.isFinite(wanted)) return clear();
     if (Math.abs(wanted - current) < 0.005) return clear();
     const backToCalc = Math.abs(wanted - calculated) < 0.005;
@@ -298,6 +299,7 @@ const LtoView = ({ users }: LtoViewProps) => {
                                     <span className="text-muted-foreground">$</span>
                                     <AmountInput
                                       allowNegative
+                                      allowDecimal={false}
                                       className={`h-8 w-28 text-right font-semibold ${e.lto_amount_original != null ? "border-amber-500/60" : ""}`}
                                       value={ltoEdit[e.id] ?? String(amt)}
                                       onValueChange={(v) => setLtoEdit((x) => ({ ...x, [e.id]: v }))}
