@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { loadTransfers, transfersNetByMonth } from "@/lib/pnlTransfers";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAllRows";
+import { levelChangesFor, loadLevelHistory, loadMilestoneMonths, milestoneOverridesFor } from "@/lib/levelHistory";
 import { getAllTradeRows, getPersonTradeRows, rowsByPerson } from "@/lib/tradeCache";
 import {
   computeHistory,
@@ -45,7 +46,7 @@ const toBaseline = (b: any): Baseline | null =>
  * losses) through the current month, using the shared payout engine.
  * Works for the trader themself (their own rows) and for admins.
  */
-export const useTraderHistory = (userId: string | null | undefined) => {
+export const useTraderHistory = (userId: string | null | undefined, refreshKey = 0) => {
   const [history, setHistory] = useState<HistoryResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,12 +57,14 @@ export const useTraderHistory = (userId: string | null | undefined) => {
     (async () => {
       setLoading(true);
       try {
-        const [personRows, profileRes, baselineRes, configRes, transfers] = await Promise.all([
+        const [personRows, profileRes, baselineRes, configRes, transfers, levelRows, milestoneRows] = await Promise.all([
           getPersonTradeRows(userId),
           supabase.from("profiles").select("joining_date").eq("user_id", userId).maybeSingle(),
           supabase.from("trader_baselines").select("as_of_date, baseline_days, baseline_net_profit").eq("user_id", userId).maybeSingle(),
           supabase.from("trader_config").select("*").eq("user_id", userId),
           loadTransfers(userId),
+          loadLevelHistory(userId),
+          loadMilestoneMonths(userId),
         ]);
         if (profileRes.error) throw profileRes.error;
         if (configRes.error) throw configRes.error;
@@ -73,6 +76,8 @@ export const useTraderHistory = (userId: string | null | undefined) => {
           // Traders may not be allowed to read baselines; treat as none.
           baseline: baselineRes.error ? null : toBaseline(baselineRes.data),
           configFor: configLookup(configRes.data ?? [], transfersNetByMonth(userId, transfers.rows)),
+          levelChanges: levelChangesFor(userId, levelRows),
+          milestoneOverrides: milestoneOverridesFor(userId, milestoneRows),
         });
         if (!cancelled) {
           setHistory(h);
@@ -87,19 +92,21 @@ export const useTraderHistory = (userId: string | null | undefined) => {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, refreshKey]);
 
   return { history, loading, error };
 };
 
 /** Every trader's history at once (admin screens). */
 export const loadAllTraderHistories = async (userIds: string[]): Promise<Map<string, HistoryResult>> => {
-  const [rows, profilesRes, baselinesRes, configsRes, transfers] = await Promise.all([
+  const [rows, profilesRes, baselinesRes, configsRes, transfers, levelRows, milestoneRows] = await Promise.all([
     getAllTradeRows(),
     supabase.from("profiles").select("user_id, joining_date"),
     supabase.from("trader_baselines").select("user_id, as_of_date, baseline_days, baseline_net_profit"),
     fetchAllRows<any>((f, t) => supabase.from("trader_config").select("*").order("id").range(f, t)),
     loadTransfers(),
+    loadLevelHistory(),
+    loadMilestoneMonths(),
   ]);
   if (profilesRes.error) throw profilesRes.error;
   if (baselinesRes.error) throw baselinesRes.error;
@@ -121,6 +128,8 @@ export const loadAllTraderHistories = async (userIds: string[]): Promise<Map<str
           configsRes.filter((c: any) => c.user_id === id),
           transfersNetByMonth(id, transfers.rows)
         ),
+        levelChanges: levelChangesFor(id, levelRows),
+        milestoneOverrides: milestoneOverridesFor(id, milestoneRows),
       })
     );
   }

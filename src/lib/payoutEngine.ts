@@ -268,11 +268,31 @@ export interface HistoryInput {
   baseline?: Baseline | null;
   configFor?: (monthKey: string) => MonthConfig | undefined;
   levels?: LevelDef[];
+  /**
+   * Manual levels set by the admin. Each change applies to its whole month
+   * (YYYY-MM) and every month after it until the next change. Months before
+   * the first change fall back to the automatic days-OR-profit level.
+   */
+  levelChanges?: LevelChange[];
+  /** Admin's milestone net P&L for a month (YYYY-MM), replacing the website's figure for milestones only. */
+  milestoneOverrides?: Map<string, number>;
+}
+
+export interface LevelChange {
+  month: string; // YYYY-MM
+  level: number;
+  /** Per-person % for this level; the level's default when not set. */
+  stoPercent?: number | null;
+  ltoPercent?: number | null;
 }
 
 export interface HistoryMonth extends MonthResult {
   month: string; // YYYY-MM
   level: LevelDef;
+  /** True when the level came from the admin's level history. */
+  manualLevel: boolean;
+  /** Net P&L counted towards milestones this month (admin figure if set). */
+  milestoneNet: number;
   /** Trading days / profit at the START of the month (used for the level). */
   daysBefore: number;
   profitBefore: number;
@@ -284,7 +304,15 @@ export interface HistoryResult {
   /** Totals after the last computed month. */
   totalDays: number;
   totalProfit: number;
+  /** The level in force now (admin's level history, else automatic). */
   currentLevel: LevelDef;
+  /** Level the days-OR-profit rule would give now (for "ready to upgrade"). */
+  eligibleLevel: LevelDef;
+  /** STO / LTO % in force now. */
+  currentStoPercent: number;
+  currentLtoPercent: number;
+  /** First month (YYYY-MM) of the current level/% run, if known from level history. */
+  levelSince: string | null;
 }
 
 export const monthKeyOf = (date: string) => date.slice(0, 7);
@@ -323,9 +351,21 @@ export function computeHistory(input: HistoryInput): HistoryResult {
   let deficit = 0;
   const months: HistoryMonth[] = [];
 
+  const changes = [...(input.levelChanges ?? [])].sort((a, b) => a.month.localeCompare(b.month));
+  const changeFor = (key: string) => {
+    let found: LevelChange | null = null;
+    for (const c of changes) if (c.month <= key) found = c;
+    return found;
+  };
+  const levelDef = (n: number) => levels.find((l) => l.level === n) ?? levels[Math.min(Math.max(n, 0), levels.length - 1)];
+
   for (let key = first; key <= input.throughMonth; key = addMonths(key, 1)) {
     const cfg = input.configFor?.(key) ?? {};
-    const level = levelFor(days, profit, levels);
+    const change = changeFor(key);
+    const level = change ? levelDef(change.level) : levelFor(days, profit, levels);
+    const levelSto = change?.stoPercent != null ? Number(change.stoPercent) : level.stoPercent;
+    const levelLto = change?.ltoPercent != null ? Number(change.ltoPercent) : level.ltoPercent;
+    // A one-month manual % in Trader Config still wins for that month.
     const manual = cfg.mode === "manual" && (cfg.stoPercent ?? 0) > 0;
     const r = computeMonth({
       days: byMonthDays.get(key) ?? [],
@@ -333,12 +373,13 @@ export function computeHistory(input: HistoryInput): HistoryResult {
       transfersNet: cfg.transfersNet ?? 0,
       leavePct: cfg.leavePct ?? 0,
       priorDeficit: deficit,
-      stoPercent: manual ? Number(cfg.stoPercent) : level.stoPercent,
-      ltoPercent: manual ? Number(cfg.ltoPercent ?? 0) : level.ltoPercent,
+      stoPercent: manual ? Number(cfg.stoPercent) : levelSto,
+      ltoPercent: manual ? Number(cfg.ltoPercent ?? 0) : levelLto,
     });
-    months.push({ ...r, month: key, level, daysBefore: days, profitBefore: profit });
+    const milestoneNet = input.milestoneOverrides?.get(key) ?? r.netProfit;
+    months.push({ ...r, month: key, level, manualLevel: !!change, milestoneNet, daysBefore: days, profitBefore: profit });
     days += r.tradingDays;
-    profit += r.netProfit;
+    profit += milestoneNet;
     deficit = r.deficitAfter;
   }
 
@@ -347,8 +388,23 @@ export function computeHistory(input: HistoryInput): HistoryResult {
     byMonth: new Map(months.map((m) => [m.month, m])),
     totalDays: days,
     totalProfit: profit,
-    currentLevel: levelFor(days, profit, levels),
+    ...currentLevelInfo(),
   };
+
+  function currentLevelInfo() {
+    const nowChange = changeFor(input.throughMonth);
+    const eligible = levelFor(days, profit, levels);
+    const current = nowChange ? levelDef(nowChange.level) : eligible;
+    const sto = nowChange?.stoPercent != null ? Number(nowChange.stoPercent) : current.stoPercent;
+    const lto = nowChange?.ltoPercent != null ? Number(nowChange.ltoPercent) : current.ltoPercent;
+    return {
+      currentLevel: current,
+      eligibleLevel: eligible,
+      currentStoPercent: sto,
+      currentLtoPercent: lto,
+      levelSince: nowChange?.month ?? null,
+    };
+  }
 }
 
 /** Round money for display/storage. */

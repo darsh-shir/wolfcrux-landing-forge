@@ -562,6 +562,42 @@ export type Database = {
         }
         Relationships: []
       }
+      level_history: {
+        Row: {
+          created_at: string
+          effective_month: string
+          id: string
+          level: number
+          lto_percent: number | null
+          note: string | null
+          sto_percent: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          effective_month: string
+          id?: string
+          level: number
+          lto_percent?: number | null
+          note?: string | null
+          sto_percent?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          effective_month?: string
+          id?: string
+          level?: number
+          lto_percent?: number | null
+          note?: string | null
+          sto_percent?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lto_ledger: {
         Row: {
           created_at: string
@@ -604,6 +640,36 @@ export type Database = {
           updated_at?: string
           user_id?: string
           year?: number
+        }
+        Relationships: []
+      }
+      milestone_months: {
+        Row: {
+          created_at: string
+          id: string
+          month: string
+          net_profit: number
+          note: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: string
+          net_profit: number
+          note?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: string
+          net_profit?: number
+          note?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

@@ -61,7 +61,8 @@ const PayoutSummary = () => {
 
   const milestone = useMemo(() => {
     if (!history) return MILESTONES[0];
-    return getMilestoneLevel(history.totalDays, history.totalProfit);
+    // The level in force: set by the admin (level history) or from days/profit.
+    return history.currentLevel;
   }, [history]);
 
   const nextMilestone = useMemo(() => getNextMilestone(milestone.level), [milestone]);
@@ -90,7 +91,7 @@ const PayoutSummary = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Current Level</p>
                 <p className="text-xl font-bold text-foreground">{milestone.label}</p>
-                <p className="text-xs text-muted-foreground">STO {milestone.stoPercent}%</p>
+                <p className="text-xs text-muted-foreground">STO {history?.currentStoPercent ?? milestone.stoPercent}%</p>
               </div>
             </div>
           </CardContent>

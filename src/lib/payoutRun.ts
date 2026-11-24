@@ -5,6 +5,7 @@ import { computeHistory, DEFAULT_SEAT_COST, type HistoryMonth } from "@/lib/payo
 import { getLeaveBalanceSummary } from "@/lib/payoutCalculations";
 import { mergeAttendance } from "@/lib/attendance";
 import { loadTransfers, transfersNetByMonth } from "@/lib/pnlTransfers";
+import { levelChangesFor, loadLevelHistory, loadMilestoneMonths, milestoneOverridesFor } from "@/lib/levelHistory";
 import { loadDefaultSalaries, TRAINEE_STIPEND_INR } from "@/lib/salary";
 
 export interface PayoutRunRow {
@@ -66,9 +67,11 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
       supabase.from("monthly_exchange_rates").select("usd_to_inr").eq("month", month).eq("year", year).maybeSingle(),
     ]);
   [profilesRes, baselinesRes, carryRes, stoRes, recordsRes, rateRes].forEach(must);
-  const [adminRolesRes, salaries] = await Promise.all([
+  const [adminRolesRes, salaries, levelRows, milestoneRows] = await Promise.all([
     supabase.from("user_roles").select("user_id").eq("role", "admin"),
     loadDefaultSalaries(year),
+    loadLevelHistory(),
+    loadMilestoneMonths(),
   ]);
   if (transfers.error) throw new Error(transfers.error);
 
@@ -147,6 +150,8 @@ export async function loadPayoutRun(year: number, month: number): Promise<Payout
       baseline: b
         ? { asOfDate: b.as_of_date, days: Number(b.baseline_days) || 0, netProfit: Number(b.baseline_net_profit) || 0 }
         : null,
+      levelChanges: levelChangesFor(userId, levelRows),
+      milestoneOverrides: milestoneOverridesFor(userId, milestoneRows),
       configFor: (k) => {
         const c = myConfigs.get(k);
         return {

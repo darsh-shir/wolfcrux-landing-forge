@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isExEmployee, isOwner } from "@/lib/employees";
+import { saveLevelChange } from "@/lib/levelHistory";
 import { getAllTradeRows } from "@/lib/tradeCache";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -243,87 +244,12 @@ const TraderProgress = () => {
     const target = MILESTONES[targetLevel];
     setUpgrading(trader.userId);
     try {
-      // 1. Upsert milestone record
-      if (trader.milestoneId) {
-        must(await supabase
-          .from("trader_milestones")
-          .update({
-            current_level: targetLevel,
-            cumulative_net_profit: trader.totalPnl,
-            last_evaluated_at: new Date().toISOString(),
-          })
-          .eq("id", trader.milestoneId));
-      } else {
-        must(await supabase.from("trader_milestones").insert({
-          user_id: trader.userId,
-          account_start_date: trader.firstTradeDate || new Date().toISOString().slice(0, 10),
-          current_level: targetLevel,
-          cumulative_net_profit: trader.totalPnl,
-        }));
-      }
-
-      // 2. Apply new STO/LTO % from NEXT month onward
+      // The upgrade counts from this month, at the level's default %.
+      // (Backdating or a per-person % is done in "Levels & %".)
       const now = new Date();
-      let nextMonth = now.getMonth() + 2; // current month is +1, next is +2
-      let nextYear = now.getFullYear();
-      if (nextMonth > 12) { nextMonth -= 12; nextYear++; }
-
-      const newPayload = {
-        sto_percentage: target.stoPercent,
-        lto_percentage: target.ltoPercent,
-        payout_percentage: target.stoPercent + target.ltoPercent,
-        config_mode: "milestone",
-      };
-
-      const { data: nextConfig } = await supabase
-        .from("trader_config")
-        .select("id")
-        .eq("user_id", trader.userId)
-        .eq("month", nextMonth)
-        .eq("year", nextYear)
-        .maybeSingle();
-
-      if (nextConfig?.id) {
-        must(await supabase.from("trader_config").update(newPayload).eq("id", nextConfig.id));
-      } else {
-        const { data: latestCfg } = await supabase
-          .from("trader_config")
-          .select("software_cost, seat_type")
-          .eq("user_id", trader.userId)
-          .order("year", { ascending: false })
-          .order("month", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        must(await supabase.from("trader_config").insert({
-          user_id: trader.userId,
-          month: nextMonth,
-          year: nextYear,
-          software_cost: latestCfg?.software_cost ?? 0,
-          seat_type: latestCfg?.seat_type ?? "Alone",
-          ...newPayload,
-        }));
-      }
-
-      // 3. Cascade to any future milestone-mode configs already created
-      const { data: futureConfigs } = await supabase
-        .from("trader_config")
-        .select("id")
-        .eq("user_id", trader.userId)
-        .eq("config_mode", "milestone")
-        .or(`year.gt.${nextYear},and(year.eq.${nextYear},month.gt.${nextMonth})`);
-
-      if (futureConfigs && futureConfigs.length > 0) {
-        (await Promise.all(
-          futureConfigs.map((fc) =>
-            supabase.from("trader_config").update(newPayload).eq("id", fc.id)
-          )
-        )).forEach(must);
-      }
-
-      toast.success(
-        `${trader.name} upgraded to ${target.label}. New % apply from ${nextMonth}/${nextYear}.`
-      );
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      await saveLevelChange({ userId: trader.userId, month, level: targetLevel, stoPercent: null, ltoPercent: null, note: "Upgrade button" });
+      toast.success(`${trader.name} upgraded to ${target.label} from ${now.toLocaleString("en-GB", { month: "long", year: "numeric" })}.`);
       await fetchData();
     } catch (err) {
       console.error(err);

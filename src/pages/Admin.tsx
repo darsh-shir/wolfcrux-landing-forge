@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History, Folder, Fingerprint, Inbox, Briefcase, CalendarCheck } from "lucide-react";
+import { Users, BarChart3, Calendar, LayoutDashboard, DollarSign, Wallet, Building2, FileText, Settings, Landmark, ClipboardCheck, CalendarRange, TrendingUp, Lock, History, Folder, Fingerprint, Inbox, Briefcase, CalendarCheck, Layers } from "lucide-react";
 import EmployeeDocuments from "@/components/admin/EmployeeDocuments";
 import ContactMessages from "@/components/admin/ContactMessages";
 import JobApplications from "@/components/admin/JobApplications";
@@ -33,6 +33,7 @@ import TraderConfig from "@/components/admin/TraderConfig";
 import PoolView from "@/components/admin/PoolView";
 import SingleDayPnL from "@/components/admin/SingleDayPnL";
 import MonthlyPnL from "@/components/admin/MonthlyPnL";
+import LevelsAndMilestones from "@/components/admin/LevelsAndMilestones";
 import TraderProgress from "@/components/admin/TraderProgress";
 import LtoView from "@/components/admin/LtoView";
 import BaselineSeeder from "@/components/admin/BaselineSeeder";
@@ -312,6 +313,10 @@ const Admin = () => {
               />
             </TabsContent>
             {/* TRADER PROGRESS TAB */}
+            <TabsContent value="levels">
+              <LevelsAndMilestones users={activeUsers} />
+            </TabsContent>
+
             <TabsContent value="progress">
               <TraderProgress />
             </TabsContent>
@@ -417,6 +422,7 @@ const ADMIN_SECTIONS: { name: string; tabs: { value: string; label: string; icon
   {
     name: "Levels & setup",
     tabs: [
+      { value: "levels", label: "Levels & %", icon: Layers },
       { value: "progress", label: "Trader Progress", icon: TrendingUp },
       { value: "milestones", label: "Milestones", icon: TrendingUp },
       { value: "trader-config", label: "Trader Config", icon: Settings },

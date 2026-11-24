@@ -22,6 +22,9 @@ interface Snap {
   storedLevel: number;          // confirmed level from trader_milestones
   eligibleLevel: number;        // computed from days/profit
   eligibleLabel: string;
+  stoPercent: number;
+  ltoPercent: number;
+  since: string | null;  // YYYY-MM the current level/% started (admin level history)
 }
 
 const MyProgress = () => {
@@ -54,6 +57,9 @@ const MyProgress = () => {
         storedLevel: storedLevel ?? history.currentLevel.level,
         eligibleLevel: history.currentLevel.level,
         eligibleLabel: history.currentLevel.label,
+        stoPercent: history.currentStoPercent,
+        ltoPercent: history.currentLtoPercent,
+        since: history.levelSince,
       }
     : null;
 
@@ -65,14 +71,21 @@ const MyProgress = () => {
     );
   }
 
-  // Match admin: "Current Level" badge shows the COMPUTED (eligible) level
+  // The level in force (set by the admin, or worked out from days/profit).
   const currentMilestone = MILESTONES[snap.eligibleLevel] || MILESTONES[0];
+  const sinceMonths = snap.since
+    ? (() => {
+        const [y, m] = snap.since.split("-").map(Number);
+        const now = new Date();
+        return (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m) + 1;
+      })()
+    : null;
   const next = getNextMilestone(snap.eligibleLevel);
   const daysProgress = next ? Math.min(100, (snap.tradingDays / next.daysRequired) * 100) : 100;
   const profitProgress = next
     ? Math.min(100, (Math.max(0, snap.totalPnl) / next.profitRequired) * 100)
     : 100;
-  const pendingPromotion = snap.eligibleLevel > snap.storedLevel;
+  const pendingPromotion = !snap.since && snap.eligibleLevel > snap.storedLevel;
   const storedMilestone = MILESTONES[snap.storedLevel] || MILESTONES[0];
 
   return (
@@ -88,15 +101,20 @@ const MyProgress = () => {
         <CardContent>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">You qualify as</p>
+              <p className="text-sm text-muted-foreground">{snap.since ? "Your level" : "You qualify as"}</p>
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant={snap.eligibleLevel > 0 ? "default" : "secondary"} className="text-sm px-3 py-1">
                   {currentMilestone.label}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
-                  STO {currentMilestone.stoPercent}% • LTO {currentMilestone.ltoPercent}%
+                  STO {snap.stoPercent}% • LTO {snap.ltoPercent}%
                 </span>
               </div>
+              {snap.since && sinceMonths !== null && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  On this % since {new Date(`${snap.since}-01T12:00:00`).toLocaleString("en-GB", { month: "long", year: "numeric" })} ({sinceMonths} month{sinceMonths === 1 ? "" : "s"})
+                </p>
+              )}
               {pendingPromotion && (
                 <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
                   Promotion pending admin review (currently active: {storedMilestone.label})

@@ -35,6 +35,8 @@ const days = (n: number, start: number, pnlPerDay: number, sharesPerDay: number,
     shares_traded: sharesPerDay,
     ...extra,
   }));
+const monthDays = (month: string, n: number, pnlPerDay: number, sharesPerDay: number): TradeRow[] =>
+  days(n, 1, pnlPerDay, sharesPerDay).map((r) => ({ ...r, trade_date: `${month}${r.trade_date.slice(7)}` }));
 const sharesFor = (person: string, rows: TradeRow[]) =>
   rows.map((r) => shareOfRow(person, r)).filter(Boolean) as PersonDayShare[];
 
@@ -166,6 +168,36 @@ test("a profitable solo-day share can't exceed the STO left after leave", () => 
   const r = computeMonth({ days: sharesFor("A", [...together, ...solo]), seatCost: 1000, stoPercent: 35, ltoPercent: 15 });
   near(r.sto, 0, "no STO");
   near(r.secondPcShare, 0, "no 25% without STO");
+});
+
+test("manual level from a backdated month, with default and per-person %", () => {
+  const rows = [...monthDays("2026-01", 20, 500, 1500), ...monthDays("2026-02", 20, 500, 1500), ...monthDays("2026-03", 20, 500, 1500)];
+  // Told in March that the upgrade to Level 2 happened in February.
+  const h = computeHistory({
+    personId: "A",
+    rows,
+    throughMonth: "2026-03",
+    levelChanges: [{ month: "2026-02", level: 2 }],
+  });
+  assert.equal(h.byMonth.get("2026-01")!.manualLevel, false, "January still automatic");
+  assert.equal(h.byMonth.get("2026-02")!.stoPercent, 35, "February at Level 2 default STO");
+  assert.equal(h.byMonth.get("2026-03")!.ltoPercent, 15, "March at Level 2 default LTO");
+  assert.equal(h.currentLevel.level, 2);
+  assert.equal(h.levelSince, "2026-02");
+  // Same, with a per-person STO.
+  const h2 = computeHistory({ personId: "A", rows, throughMonth: "2026-03", levelChanges: [{ month: "2026-02", level: 2, stoPercent: 30 }] });
+  assert.equal(h2.byMonth.get("2026-02")!.stoPercent, 30);
+  assert.equal(h2.byMonth.get("2026-02")!.ltoPercent, 15, "LTO keeps the default");
+  assert.equal(h2.currentStoPercent, 30);
+});
+
+test("milestone overrides change progress, not payouts", () => {
+  const rows = monthDays("2026-01", 20, 500, 1500);
+  const plain = computeHistory({ personId: "A", rows, throughMonth: "2026-01" });
+  const h = computeHistory({ personId: "A", rows, throughMonth: "2026-01", milestoneOverrides: new Map([["2026-01", 20000]]) });
+  near(h.byMonth.get("2026-01")!.netProfit, plain.byMonth.get("2026-01")!.netProfit, "payout net unchanged");
+  near(h.byMonth.get("2026-01")!.finalSto, plain.byMonth.get("2026-01")!.finalSto, "STO unchanged");
+  near(h.totalProfit, 20000, "milestone uses the admin figure");
 });
 
 console.log(`\n${passed} passed`);

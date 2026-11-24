@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { levelChangesFor, loadLevelHistory, loadMilestoneMonths, milestoneOverridesFor } from "@/lib/levelHistory";
+import type { LevelChange } from "@/lib/payoutEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useSharedEmployee } from "@/hooks/useSharedEmployee";
 import EmployeePicker from "@/components/admin/EmployeePicker";
@@ -79,6 +81,8 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
   const [allRows, setAllRows] = useState<TradeRow[]>([]);
   const [configs, setConfigs] = useState<any[]>([]);
   const [joiningDate, setJoiningDate] = useState<string | null>(null);
+  const [levelChanges, setLevelChanges] = useState<LevelChange[]>([]);
+  const [milestoneOverrides, setMilestoneOverrides] = useState<Map<string, number>>(new Map());
   const [baseline, setBaseline] = useState<{ asOfDate: string; days: number; netProfit: number } | null>(null);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [carryForwardDays, setCarryForwardDays] = useState(0);
@@ -121,8 +125,10 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
     try {
       // One round trip: the trade history comes from the shared cache (the Admin
       // page has usually loaded it already), everything else is fetched together.
-      const [personRows, transferRes, profileRes, baselineRes, configRes, attendanceRes, carryRes, stoRes, ltoRes, ltoHistRes, recordRes, rateRes] =
+      const [levelRows, milestoneRows, personRows, transferRes, profileRes, baselineRes, configRes, attendanceRes, carryRes, stoRes, ltoRes, ltoHistRes, recordRes, rateRes] =
         await Promise.all([
+          loadLevelHistory(id),
+          loadMilestoneMonths(id),
           getPersonTradeRows(id),
           loadTransfers(id),
           supabase.from("profiles").select("joining_date").eq("user_id", id).maybeSingle(),
@@ -148,6 +154,8 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
 
       // A row can appear in both lists if the trader is somehow both; de-duplicate by id.
       setAllRows(personRows);
+      setLevelChanges(levelChangesFor(id, levelRows));
+      setMilestoneOverrides(milestoneOverridesFor(id, milestoneRows));
       setJoiningDate(profileRes.data?.joining_date ?? null);
       setBaseline(
         baselineRes.data
@@ -215,6 +223,8 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
       throughMonth: selectedKey,
       startMonth: joiningDate ? joiningDate.slice(0, 7) : null,
       baseline,
+      levelChanges,
+      milestoneOverrides,
       configFor: (key): MonthConfig => {
         const c = cfgByKey.get(key);
         return {
@@ -227,7 +237,7 @@ const PayoutSheet = ({ users, initialTraderId, initialMonth, initialYear }: Payo
         };
       },
     });
-  }, [selectedTrader, allRows, selectedKey, joiningDate, baseline, configs, seatCostInput, leavePct, transfers]);
+  }, [selectedTrader, allRows, selectedKey, joiningDate, baseline, configs, seatCostInput, leavePct, transfers, levelChanges, milestoneOverrides]);
 
   const monthTransfers = transfers.filter(
     (t) =>

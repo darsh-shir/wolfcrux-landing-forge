@@ -28,6 +28,8 @@ const TABLE_LABELS: Record<string, string> = {
   lto_ledger: "LTO",
   salary_backups: "Salary / backup",
   desk_costs: "Desk cost",
+  level_history: "Level / %",
+  milestone_months: "Milestone P&L",
   trader_config: "Trader config",
   trader_baselines: "Baseline",
   profiles: "Employee",

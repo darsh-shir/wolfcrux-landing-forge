@@ -27,7 +27,7 @@ const ThisMonthCard = ({ history }: { history: HistoryResult | null }) => {
           <p className="text-xs text-muted-foreground">{m?.tradingDays ?? 0} trading days · after share and software costs</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Estimated STO ({m?.stoPercent ?? history.currentLevel.stoPercent}%)</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Estimated STO ({m?.stoPercent ?? history.currentStoPercent}%)</p>
           <p className="text-2xl font-bold tabular-nums">{formatCurrencyINR(Math.max(0, m?.finalSto ?? 0), "$")}</p>
           <p className="text-xs text-muted-foreground">
             {m && m.priorDeficit > 0
