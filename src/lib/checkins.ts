@@ -157,7 +157,7 @@ export type Decision = "ontime" | "late" | "half_day" | "absent";
 
 /** Admin decision for a day: status, optional check-in time (HH:MM India time) and note. */
 export async function saveCorrection(userId: string, date: string, time: string | null, note: string | null, status: Decision | null = null) {
-  const checkin_at = time ? `${date}T${time}:00+05:30` : null;
+  const checkin_at = time ? `${date}T${time.slice(0, 5)}:00+05:30` : null; // "16:05" or "16:05:00"
   const { error } = await supabase
     .from("checkin_overrides" as never)
     .upsert({ user_id: userId, punch_date: date, checkin_at, note: note?.trim() || null, status } as never, { onConflict: "user_id,punch_date" });
@@ -185,7 +185,17 @@ export async function loadLeaves(from: string, to: string, userId?: string): Pro
 
 /** Save shift rules effective from a date (replaces the rules for that date). */
 export async function saveShift(s: { effective_from: string; shift_start: string; grace_minutes: number; half_day_after_minutes: number; checkout_after_minutes: number; notes: string | null }) {
-  const { error } = await supabase.from("attendance_shift_settings").upsert(s as never, { onConflict: "effective_from" });
+  // Accept "16:00" or "16:00:00" from the time box.
+  const shift_start = `${s.shift_start.slice(0, 5)}:00`;
+  const { error } = await supabase
+    .from("attendance_shift_settings")
+    .upsert({ ...s, shift_start, updated_at: new Date().toISOString() } as never, { onConflict: "effective_from" });
+  if (error) throw new Error(error.message);
+}
+
+/** Remove the shift rule that starts on this date. */
+export async function deleteShift(effectiveFrom: string) {
+  const { error } = await supabase.from("attendance_shift_settings").delete().eq("effective_from", effectiveFrom);
   if (error) throw new Error(error.message);
 }
 
@@ -236,10 +246,21 @@ export async function withdrawRequest(id: string) {
  * Approve: saves the requested time as that day's check-in (status follows the
  * shift rules, or the admin's chosen status). Reject: just records the answer.
  */
-export async function decideRequest(r: CheckinRequest, approve: boolean, adminNote: string | null, status: Decision | null = null) {
+/**
+ * Approve (with the trader's time, or `adminTime` — e.g. the time seen on CCTV)
+ * or decline a request.
+ */
+export async function decideRequest(
+  r: CheckinRequest,
+  approve: boolean,
+  adminNote: string | null,
+  status: Decision | null = null,
+  adminTime: string | null = null,
+) {
   if (approve) {
-    const time = r.requested_time ? r.requested_time.slice(0, 5) : null;
-    await saveCorrection(r.user_id, r.punch_date, time, `Request: ${r.reason}`.slice(0, 500), status ?? (time ? null : "ontime"));
+    const time = adminTime ? adminTime.slice(0, 5) : r.requested_time ? r.requested_time.slice(0, 5) : null;
+    const note = adminTime ? `Request: ${r.reason} · admin set ${time} (CCTV)` : `Request: ${r.reason}`;
+    await saveCorrection(r.user_id, r.punch_date, time, note.slice(0, 500), status ?? (time ? null : "ontime"));
   }
   const { data: auth } = await supabase.auth.getUser();
   const { error } = await supabase

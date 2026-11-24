@@ -8,11 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { StatusBadge } from "@/components/CheckinBadge";
-import { ChevronLeft, ChevronRight, Clock, Download, Fingerprint, Inbox, Loader2, Pencil, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Download, Fingerprint, Inbox, Loader2, Pencil, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { isExEmployee } from "@/lib/employees";
 import {
-  type CheckinDay, type CheckinRequest, type DayStatus, type Decision, type Shift, decideRequest, loadRequests,
+  type CheckinDay, type CheckinRequest, type DayStatus, type Decision, type Shift, decideRequest, deleteShift, loadRequests,
   istTime, loadCheckins, loadHolidays, loadLeaves, loadShifts, monthDates, needsReview, resetCorrection, saveCorrection, saveShift,
   setUsesBiometric, shiftFor, shiftLabel, statusFor, todayIST,
 } from "@/lib/checkins";
@@ -83,6 +83,8 @@ const CheckIns = ({ users }: { users: Person[] }) => {
   const [requests, setRequests] = useState<CheckinRequest[]>([]);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [reqNotes, setReqNotes] = useState<Record<string, string>>({});
+  // "Modify": the admin's own arrival time for a request (e.g. from CCTV).
+  const [reqTimes, setReqTimes] = useState<Record<string, string>>({});
 
   const range = useMemo(() => {
     if (view === "day") return { from: date, to: date };
@@ -143,13 +145,16 @@ const CheckIns = ({ users }: { users: Person[] }) => {
     return c;
   }, [dayRows]);
 
-  const decide = async (p: Person, d: string, status: Decision, time: string | null, note: string | null) => {
+  /** Save a decision; true when it worked. */
+  const decide = async (p: Person, d: string, status: Decision, time: string | null, note: string | null): Promise<boolean> => {
     setBusy(`${p.user_id}|${d}`);
     try {
       await saveCorrection(p.user_id, d, time, note, status);
       await load();
+      return true;
     } catch (e) {
       toast({ title: "Couldn't save", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+      return false;
     } finally {
       setBusy(null);
     }
@@ -168,7 +173,8 @@ const CheckIns = ({ users }: { users: Person[] }) => {
   };
   const saveEdit = async () => {
     if (!edit) return;
-    await decide(edit.person, edit.date, editStatus, editStatus === "absent" ? null : editTime || null, editNote);
+    const ok = await decide(edit.person, edit.date, editStatus, editStatus === "absent" ? null : editTime || null, editNote);
+    if (!ok) return;
     toast({ title: "Saved", description: `${edit.person.full_name} · ${DECISIONS.find((x) => x.value === editStatus)?.label}` });
     setEdit(null);
   };
@@ -179,6 +185,8 @@ const CheckIns = ({ users }: { users: Person[] }) => {
       await resetCorrection(edit.person.user_id, edit.date);
       await load();
       setEdit(null);
+    } catch (e) {
+      toast({ title: "Couldn't reset", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
     } finally {
       setBusy(null);
     }
@@ -206,9 +214,42 @@ const CheckIns = ({ users }: { users: Person[] }) => {
     });
     setRulesOpen(true);
   };
-  const saveRules = async () => {
+  const editRule = (s: Shift) =>
+    setRules({
+      from: s.effective_from,
+      start: s.shift_start.slice(0, 5),
+      grace: String(s.grace_minutes ?? 0),
+      halfDay: String(s.half_day_after_minutes ?? 120),
+      checkout: String((s.checkout_after_minutes ?? 240) / 60),
+      notes: s.notes ?? "",
+    });
+  const removeRule = async (s: Shift) => {
+    if (shifts.length <= 1) return toast({ title: "Keep at least one rule", variant: "destructive" });
+    if (!window.confirm(`Delete the rule from ${s.effective_from} (starts ${s.shift_start.slice(0, 5)})? Days from then follow the rule before it.`)) return;
     setBusy("rules");
     try {
+      await deleteShift(s.effective_from);
+      toast({ title: "Rule deleted" });
+      await load();
+    } catch (e) {
+      toast({ title: "Couldn't delete", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
+  const saveRules = async () => {
+    // A later rule would still win for the days after its own date.
+    const later = shifts.filter((s) => s.effective_from > rules.from);
+    let removeLater = false;
+    if (later.length) {
+      removeLater = window.confirm(
+        `There ${later.length === 1 ? "is a later rule" : `are ${later.length} later rules`} (from ${later.map((s) => `${s.effective_from} · ${s.shift_start.slice(0, 5)}`).join(", ")}).\n\n` +
+          `OK = remove ${later.length === 1 ? "it" : "them"} so this rule applies from ${rules.from} onwards.\nCancel = keep ${later.length === 1 ? "it" : "them"}; this rule only covers the days before.`,
+      );
+    }
+    setBusy("rules");
+    try {
+      if (removeLater) for (const s of later) await deleteShift(s.effective_from);
       await saveShift({
         effective_from: rules.from,
         shift_start: `${rules.start}:00`,
@@ -217,8 +258,10 @@ const CheckIns = ({ users }: { users: Person[] }) => {
         checkout_after_minutes: Math.round(Math.max(0.5, Number(rules.checkout) || 4) * 60),
         notes: rules.notes.trim() || null,
       });
-      toast({ title: "Shift rules saved", description: `From ${rules.from}` });
-      setRulesOpen(false);
+      toast({
+        title: "Shift rules saved",
+        description: later.length && !removeLater ? `From ${rules.from} until ${later[0].effective_from} (a later rule takes over then)` : `From ${rules.from} onwards`,
+      });
       await load();
     } catch (e) {
       toast({ title: "Couldn't save", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
@@ -229,11 +272,15 @@ const CheckIns = ({ users }: { users: Person[] }) => {
 
   const nameOf = (id: string) => users.find((u) => u.user_id === id)?.full_name ?? "Unknown";
   const pendingFor = (userId: string, d: string) => requests.find((r) => r.user_id === userId && r.punch_date === d);
-  const answer = async (r: CheckinRequest, approve: boolean) => {
+  const answer = async (r: CheckinRequest, approve: boolean, adminTime: string | null = null) => {
     setBusy(r.id);
     try {
-      await decideRequest(r, approve, reqNotes[r.id] ?? null);
-      toast({ title: approve ? "Approved" : "Declined", description: `${nameOf(r.user_id)} · ${r.punch_date}` });
+      await decideRequest(r, approve, reqNotes[r.id] ?? null, null, adminTime);
+      toast({
+        title: adminTime ? `Saved ${adminTime.slice(0, 5)} (your time)` : approve ? "Approved" : "Declined",
+        description: `${nameOf(r.user_id)} · ${r.punch_date}`,
+      });
+      setReqTimes((m) => { const n = { ...m }; delete n[r.id]; return n; });
       await load();
     } catch (e) {
       toast({ title: "Couldn't save", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
@@ -563,7 +610,7 @@ const CheckIns = ({ users }: { users: Person[] }) => {
                     Undo — use machine punch
                   </Button>
                 ) : <span />}
-                <Button disabled={busy !== null || (editStatus === "late" && !/^\d{2}:\d{2}$/.test(editTime))} onClick={() => void saveEdit()}>
+                <Button disabled={busy !== null || (editStatus === "late" && !/^\d{2}:\d{2}/.test(editTime))} onClick={() => void saveEdit()}>
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
                 </Button>
               </DialogFooter>
@@ -577,7 +624,9 @@ const CheckIns = ({ users }: { users: Person[] }) => {
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Check-in change requests</DialogTitle>
-            <DialogDescription>Approving saves the requested arrival time for that day (late or on time follows the shift rules).</DialogDescription>
+            <DialogDescription>
+              Approve saves the trader's time. Modify lets you save the time you saw (e.g. on CCTV) instead. Late or on time follows the shift rules.
+            </DialogDescription>
           </DialogHeader>
           {requests.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">No open requests.</p>
@@ -604,8 +653,43 @@ const CheckIns = ({ users }: { users: Person[] }) => {
                     value={reqNotes[r.id] ?? ""}
                     onChange={(e) => setReqNotes((m) => ({ ...m, [r.id]: e.target.value }))}
                   />
+                  {reqTimes[r.id] !== undefined && (
+                    <div className="flex flex-wrap items-end gap-2 rounded-md bg-muted/50 p-2">
+                      <div className="space-y-1">
+                        <Label htmlFor={`rt-${r.id}`} className="text-xs">Arrival time you saw (India)</Label>
+                        <Input
+                          id={`rt-${r.id}`}
+                          type="time"
+                          className="h-8 w-32"
+                          value={reqTimes[r.id]}
+                          onChange={(e) => setReqTimes((m) => ({ ...m, [r.id]: e.target.value }))}
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={busy === r.id || !/^\d{2}:\d{2}/.test(reqTimes[r.id])}
+                        onClick={() => void answer(r, true, reqTimes[r.id])}
+                      >
+                        {busy === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save this time"}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setReqTimes((m) => { const n = { ...m }; delete n[r.id]; return n; })}>Cancel</Button>
+                    </div>
+                  )}
                   <div className="flex justify-end gap-2">
                     <Button size="sm" variant="ghost" className="text-destructive" disabled={busy === r.id} onClick={() => void answer(r, false)}>Decline</Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy === r.id || reqTimes[r.id] !== undefined}
+                      onClick={() =>
+                        setReqTimes((m) => ({
+                          ...m,
+                          [r.id]: r.requested_time?.slice(0, 5) ?? istTime(byKey.get(`${r.user_id}|${r.punch_date}`)?.device_checkin ?? null).replace(/[^\d:]/g, "").slice(0, 5),
+                        }))
+                      }
+                    >
+                      Modify
+                    </Button>
                     <Button size="sm" disabled={busy === r.id} onClick={() => void answer(r, true)}>
                       {busy === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Approve"}
                     </Button>
@@ -643,8 +727,31 @@ const CheckIns = ({ users }: { users: Person[] }) => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Shift rules</DialogTitle>
-            <DialogDescription>Applies from the chosen date; earlier days keep their old rules.</DialogDescription>
+            <DialogDescription>Each rule applies from its date until the next rule's date. Earlier days keep their old rules.</DialogDescription>
           </DialogHeader>
+          {shifts.length > 0 && (
+            <ul className="divide-y rounded-md border text-sm">
+              {[...shifts].reverse().map((s) => {
+                const inForce = shiftFor(today, shifts)?.effective_from === s.effective_from;
+                return (
+                  <li key={s.effective_from} className="flex items-center gap-2 px-3 py-2">
+                    <span className="min-w-0 flex-1">
+                      <span className="font-medium">From {new Date(`${s.effective_from}T12:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}</span>
+                      <span className="text-muted-foreground"> · starts {s.shift_start.slice(0, 5)} · grace {s.grace_minutes}m</span>
+                      {s.notes && <span className="block truncate text-xs text-muted-foreground">{s.notes}</span>}
+                    </span>
+                    {inForce && <Badge variant="outline" className="border-emerald-500/50 text-emerald-700 dark:text-emerald-400">Today</Badge>}
+                    <Button size="icon" variant="ghost" className="h-7 w-7" aria-label={`Edit rule from ${s.effective_from}`} onClick={() => editRule(s)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label={`Delete rule from ${s.effective_from}`} disabled={busy !== null} onClick={() => void removeRule(s)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="r-start">Shift starts (India)</Label>
@@ -672,7 +779,7 @@ const CheckIns = ({ users }: { users: Person[] }) => {
             </div>
           </div>
           <DialogFooter>
-            <Button disabled={busy !== null || !/^\d{2}:\d{2}$/.test(rules.start) || !rules.from} onClick={() => void saveRules()}>
+            <Button disabled={busy !== null || !/^\d{2}:\d{2}/.test(rules.start) || !rules.from} onClick={() => void saveRules()}>
               {busy === "rules" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save rules"}
             </Button>
           </DialogFooter>
