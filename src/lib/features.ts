@@ -9,3 +9,10 @@
  * Set to true once the database has been updated.
  */
 export const DB_UPDATE_APPLIED = true;
+
+/**
+ * Terminal tabs still being tried out: shown on the staging site (and on a
+ * local preview), hidden on the live site www.wolfcrux.com.
+ */
+export const SHOW_TRIAL_TERMINAL_TABS =
+  typeof window !== "undefined" && !/(^|\.)wolfcrux\.com$/i.test(window.location.hostname);

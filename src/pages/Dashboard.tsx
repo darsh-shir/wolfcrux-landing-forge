@@ -33,6 +33,7 @@ import EconomicCalendar from "@/components/dashboard/EconomicCalendar";
 import EarningsOverview from "@/components/dashboard/EarningsOverview";
 import CompareStocks from "@/components/dashboard/CompareStocks";
 import PairTrading from "@/components/dashboard/PairTrading";
+import { SHOW_TRIAL_TERMINAL_TABS } from "@/lib/features";
 import TickerTape from "@/components/dashboard/TickerTape";
 import MarketClock from "@/components/dashboard/MarketClock";
 import MarketPulse from "@/components/dashboard/MarketPulse";
@@ -478,10 +479,12 @@ const Dashboard = () => {
                   Overview
                 </TabsTrigger>
 
+                {SHOW_TRIAL_TERMINAL_TABS && (
                 <TabsTrigger value="screener" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <Filter className="w-4 h-4 mr-1 sm:mr-2" />
                   Screener
                 </TabsTrigger>
+                )}
 
                 <TabsTrigger value="news" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <Newspaper className="w-4 h-4 mr-1 sm:mr-2" />
@@ -508,10 +511,12 @@ const Dashboard = () => {
                   Economic
                 </TabsTrigger>
 
+                {SHOW_TRIAL_TERMINAL_TABS && (
                 <TabsTrigger value="pairs" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <GitCompareArrows className="w-4 h-4 mr-1 sm:mr-2" />
                   Pairs
                 </TabsTrigger>
+                )}
 
                 <TabsTrigger value="compare" className="whitespace-nowrap text-xs sm:text-sm font-mono uppercase tracking-wider transition-all duration-200 hover:text-foreground data-[state=active]:shadow-sm">
                   <LineChart className="w-4 h-4 mr-1 sm:mr-2" />
@@ -569,9 +574,11 @@ const Dashboard = () => {
             </TabsContent>
 
             {/* ================= MARKET NEWS TAB ================= */}
+            {SHOW_TRIAL_TERMINAL_TABS && (
             <TabsContent value="screener" className="mt-4 sm:mt-6 tab-anim">
               <FinvizScreener />
             </TabsContent>
+            )}
 
             <TabsContent value="news" className="mt-6 tab-anim space-y-6">
               <FinvizNews onSymbolSubmit={setNewsSymbol} />
@@ -600,9 +607,11 @@ const Dashboard = () => {
             </TabsContent>
 
             {/* ================= PAIRS TAB ================= */}
+            {SHOW_TRIAL_TERMINAL_TABS && (
             <TabsContent value="pairs" className="mt-6 tab-anim">
               <PairTrading />
             </TabsContent>
+            )}
 
             {/* ================= COMPARE STOCKS TAB ================= */}
             <TabsContent value="compare" className="mt-6 tab-anim">
