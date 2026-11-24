@@ -11,6 +11,11 @@ export const CLOSED_PREFIX = "[Closed] ";
 export const isExEmployee = (p: { employee_role?: string | null } | null | undefined) =>
   (p?.employee_role || "").toLowerCase() === EX_EMPLOYEE_ROLE;
 
+/** The company owner: keeps admin access but is not a trader or trainee. */
+export const OWNER_ROLE = "owner";
+export const isOwner = (p: { employee_role?: string | null } | null | undefined) =>
+  (p?.employee_role || "").toLowerCase() === OWNER_ROLE;
+
 export const isClosedAccount = (a: { account_name?: string | null } | null | undefined) =>
   (a?.account_name || "").startsWith(CLOSED_PREFIX);
 

@@ -68,7 +68,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const [newPassword, setNewPassword] = useState("");
   const [newFullName, setNewFullName] = useState("");
   const [newRole, setNewRole] = useState<"admin" | "user">("user");
-  const [newEmployeeRole, setNewEmployeeRole] = useState<"trainee" | "trader">("trainee");
+  const [newEmployeeRole, setNewEmployeeRole] = useState<"trainee" | "trader" | "owner">("trainee");
   const [newTraderNumber, setNewTraderNumber] = useState("");
   const [newJoiningDate, setNewJoiningDate] = useState("");
   const [newBirthdate, setNewBirthdate] = useState("");
@@ -79,7 +79,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
   const [editTraderNumber, setEditTraderNumber] = useState("");
   const [editJoiningDate, setEditJoiningDate] = useState("");
   const [editBirthdate, setEditBirthdate] = useState("");
-  const [editEmployeeRole, setEditEmployeeRole] = useState<"trainee" | "trader">("trainee");
+  const [editEmployeeRole, setEditEmployeeRole] = useState<"trainee" | "trader" | "owner">("trainee");
 
   const [resetPasswordUser, setResetPasswordUser] = useState<Profile | null>(null);
   const [newPasswordValue, setNewPasswordValue] = useState("");
@@ -347,7 +347,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
     setEditTraderNumber(extractEmployeeIdDigits(user.trader_number));
     setEditJoiningDate(user.joining_date || "");
     setEditBirthdate(user.birthdate || "");
-    setEditEmployeeRole((user.employee_role as "trainee" | "trader") || "trainee");
+    setEditEmployeeRole((user.employee_role as "trainee" | "trader" | "owner") || "trainee");
   };
 
   return (
@@ -415,7 +415,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                 </div>
                 <div className="space-y-2">
                   <Label>Employee Role</Label>
-                  <Select value={newEmployeeRole} onValueChange={(v) => setNewEmployeeRole(v as "trainee" | "trader")}>
+                  <Select value={newEmployeeRole} onValueChange={(v) => setNewEmployeeRole(v as "trainee" | "trader" | "owner")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="trainee">Trainee</SelectItem>
@@ -464,8 +464,8 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.birthdate ? new Date(user.birthdate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</TableCell>
                     <TableCell>
-                      <Badge variant={user.employee_role === "trader" ? "default" : "secondary"}>
-                        {user.employee_role === "trader" ? "Trader" : "Trainee"}
+                      <Badge variant={user.employee_role === "trader" ? "default" : user.employee_role === "owner" ? "outline" : "secondary"}>
+                        {user.employee_role === "trader" ? "Trader" : user.employee_role === "owner" ? "Owner" : "Trainee"}
                       </Badge>
                     </TableCell>
                     <TableCell>{user.joining_date || "—"}</TableCell>
@@ -473,7 +473,7 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
                       <SalaryCell
                         userId={user.user_id}
                         current={salaries.get(user.user_id)?.salary ?? null}
-                        isTrainee={user.employee_role !== "trader"}
+                        isTrainee={user.employee_role === "trainee"}
                         onSaved={() => void loadSalaries()}
                       />
                     </TableCell>
@@ -610,11 +610,12 @@ const UserManagement = ({ users, accounts, onRefresh }: UserManagementProps) => 
             </div>
               <div className="space-y-2">
                 <Label>Employee Role</Label>
-                <Select value={editEmployeeRole} onValueChange={(v) => setEditEmployeeRole(v as "trainee" | "trader")}>
+                <Select value={editEmployeeRole} onValueChange={(v) => setEditEmployeeRole(v as "trainee" | "trader" | "owner")}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="trainee">Trainee</SelectItem>
                     <SelectItem value="trader">Trader</SelectItem>
+                    <SelectItem value="owner">Owner</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
