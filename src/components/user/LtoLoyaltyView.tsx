@@ -19,16 +19,21 @@ const LtoLoyaltyView = () => {
   const [ltoHistory, setLtoHistory] = useState<any[]>([]);
   const [currentLevel, setCurrentLevel] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
-  // The button unlocks after a short read: 3, 2, 1.
-  const [wait, setWait] = useState(3);
-  useEffect(() => {
-    if (!showWelcome) return;
-    setWait(3);
-    const id = setInterval(() => setWait((w) => (w > 0 ? w - 1 : 0)), 1000);
-    return () => clearInterval(id);
-  }, [showWelcome]);
+
+  // The thank-you message shows once a day (India date), the first time the LTO tab is opened that day.
+  const seenKey = user ? `wolfcrux.ltoWelcomeSeen.${user.id}` : null;
+  const todayKey = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const acknowledge = () => {
+    setAcknowledged(true);
+    setShowWelcome(false);
+    try {
+      if (seenKey) localStorage.setItem(seenKey, todayKey());
+    } catch {
+      /* ignore */
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -46,12 +51,17 @@ const LtoLoyaltyView = () => {
   }, [user]);
 
   useEffect(() => {
-    // Require acknowledgment every time
-    if (user) {
-      setShowWelcome(true);
-      setAcknowledged(false);
+    if (!seenKey) return;
+    let seenToday = false;
+    try {
+      seenToday = localStorage.getItem(seenKey) === todayKey();
+    } catch {
+      /* ignore */
     }
-  }, [user]);
+    setAcknowledged(seenToday);
+    setShowWelcome(!seenToday);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seenKey]);
 
   const fetchData = async () => {
     if (!user) return;
@@ -94,7 +104,7 @@ const LtoLoyaltyView = () => {
   return (
     <>
       {/* Animated Loyalty Welcome Popup */}
-      <Dialog open={showWelcome} onOpenChange={(open) => { if (!open && wait === 0) { setAcknowledged(true); setShowWelcome(false); } }}>
+      <Dialog open={showWelcome} onOpenChange={(open) => { if (!open) acknowledge(); }}>
         <DialogContent
           className="max-w-lg p-0 overflow-hidden border-0 bg-gradient-to-br from-primary/5 via-background to-primary/10 [&>button.absolute]:hidden"
           onEscapeKeyDown={(e) => e.preventDefault()}
@@ -164,14 +174,13 @@ const LtoLoyaltyView = () => {
             </div>
 
             <Button
-              disabled={wait > 0}
-              onClick={() => { setAcknowledged(true); setShowWelcome(false); }}
+              onClick={acknowledge}
               className="w-full mt-2 animate-fade-in bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/30"
               style={{ animationDelay: "0.6s", animationFillMode: "both" }}
               size="lg"
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              {wait > 0 ? `View My LTO Pool in ${wait}…` : "View My LTO Pool"}
+              View My LTO Pool
             </Button>
           </div>
         </DialogContent>
