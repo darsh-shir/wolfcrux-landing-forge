@@ -90,7 +90,39 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
   useEffect(() => {
     setMoney({});
     setPaidOn({});
+    setStoEdit({});
   }, [year, month]);
+
+  /** Save the admin's ₹ STO (empty or same as calculated = back to calculated). */
+  const saveStoOverride = async (r: PayoutRunRow) => {
+    const raw = (stoEdit[r.userId] ?? "").trim();
+    const value = raw === "" || Math.round(Number(raw)) === calcStoInr(r) ? null : Math.round(Number(raw));
+    if (raw !== "" && !Number.isFinite(Number(raw))) return;
+    if (value === stoOverride(r)) {
+      setStoEdit((e) => { const n = { ...e }; delete n[r.userId]; return n; });
+      return;
+    }
+    setBusy(r.userId);
+    try {
+      const a = amounts(r);
+      const record: TablesInsert<"payout_records"> = r.payoutRecord
+        ? { user_id: r.userId, month, year, sto_inr_override: value }
+        : {
+            user_id: r.userId, month, year, sto_inr_override: value,
+            // First record for this month: keep what the page shows now.
+            salary: a.salary, bank_transfer: a.online, advance_cash: a.cash, advance_bank: 0, cash_component: calcStoInr(r),
+          };
+      const res = await supabase.from("payout_records").upsert(record, { onConflict: "user_id,month,year" });
+      if (res.error) throw res.error;
+      toast({ title: value === null ? `${r.name}: back to calculated STO` : `${r.name}: STO set to ${inr(value)}`, description: value === null ? undefined : `Original ${inr(calcStoInr(r))}` });
+      setStoEdit((e) => { const n = { ...e }; delete n[r.userId]; return n; });
+      await load();
+    } catch (e) {
+      toast({ title: "Couldn't save the STO amount", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const needsSave = rows.filter((r) => !r.isTrainee && (!r.saved || (r.changedSinceSave && !r.saved?.is_paid)));
 
@@ -98,7 +130,16 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
     r.saved ? !!r.saved.is_paid : !!(r.payoutRecord && (r.payoutRecord.paid_cash || r.payoutRecord.paid_online));
   const finalStoUsd = (r: PayoutRunRow) =>
     r.isTrainee || !r.result ? 0 : r.saved ? Number(r.saved.final_sto_amount) : r.result.finalSto;
-  const stoInr = (r: PayoutRunRow) => Math.round(finalStoUsd(r) * rate);
+  /** STO in ₹ as calculated (final STO × rate). */
+  const calcStoInr = (r: PayoutRunRow) => Math.round(finalStoUsd(r) * rate);
+  /** Admin's own ₹ amount for this month, if they changed it. */
+  const stoOverride = (r: PayoutRunRow): number | null => {
+    const v = r.payoutRecord?.sto_inr_override;
+    return v === null || v === undefined ? null : Number(v);
+  };
+  /** STO in ₹ used everywhere on this page: the admin's amount if set, else calculated. */
+  const stoInr = (r: PayoutRunRow) => stoOverride(r) ?? calcStoInr(r);
+  const [stoEdit, setStoEdit] = useState<Record<string, string>>({});
 
   /** Amounts for a row: what was typed, else what's saved, else the default salary. */
   const amounts = (r: PayoutRunRow) => {
@@ -402,7 +443,30 @@ const PayoutRun = ({ onOpenSheet }: Props) => {
                           )}
                         </td>
                         <td className="py-2 pr-3 text-right tabular-nums">{r.isTrainee ? "—" : fmt(finalStoUsd(r))}</td>
-                        <td className="py-2 pr-3 text-right font-semibold tabular-nums">{r.isTrainee ? "—" : inr(stoInr(r))}</td>
+                        <td className="py-2 pr-3 text-right font-semibold tabular-nums">
+                          {r.isTrainee ? (
+                            "—"
+                          ) : (
+                            <>
+                              <Input
+                                type="number"
+                                className={`ml-auto h-8 w-28 text-right font-semibold ${stoOverride(r) !== null ? "border-amber-500/60" : ""}`}
+                                value={stoEdit[r.userId] ?? String(stoInr(r))}
+                                onChange={(e) => setStoEdit((x) => ({ ...x, [r.userId]: e.target.value }))}
+                                onBlur={() => stoEdit[r.userId] !== undefined && void saveStoOverride(r)}
+                                onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+                                disabled={paid || busy !== null}
+                                title="Change the ₹ STO for this month. Clear it to go back to the calculated amount."
+                                aria-label={`STO in rupees for ${r.name}`}
+                              />
+                              {stoOverride(r) !== null && (
+                                <span className="mt-0.5 block text-[11px] font-normal text-amber-700 dark:text-amber-400">
+                                  Edited · original {inr(calcStoInr(r))}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </td>
                         <td className="py-2 pr-2">{moneyInput("salary", a.salary)}</td>
                         <td className="py-2 pr-2">
                           {moneyInput("online", a.online)}

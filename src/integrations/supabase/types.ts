@@ -761,6 +761,7 @@ export type Database = {
           paid_cash: boolean
           paid_online: boolean
           salary: number
+          sto_inr_override: number | null
           updated_at: string
           user_id: string
           year: number
@@ -777,6 +778,7 @@ export type Database = {
           paid_cash?: boolean
           paid_online?: boolean
           salary?: number
+          sto_inr_override?: number | null
           updated_at?: string
           user_id: string
           year: number
@@ -793,6 +795,7 @@ export type Database = {
           paid_cash?: boolean
           paid_online?: boolean
           salary?: number
+          sto_inr_override?: number | null
           updated_at?: string
           user_id?: string
           year?: number
