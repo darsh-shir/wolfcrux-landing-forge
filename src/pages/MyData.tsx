@@ -30,6 +30,7 @@ import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOf
 import { MILESTONES } from "@/lib/payoutCalculations";
 import { isPresent } from "@/lib/payoutEngine";
 import EarningsSummary from "@/components/user/EarningsSummary";
+import DeskAndBackup from "@/components/user/DeskAndBackup";
 
 interface TradingAccount {
   id: string;
@@ -311,6 +312,7 @@ const MyData = () => {
           </div>
 
           <EarningsSummary />
+          <DeskAndBackup />
 
           <Tabs defaultValue="analytics" className="space-y-6">
             <div>

@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatIndian } from "@/lib/utils";
+import { useLiveRows } from "@/hooks/useLiveRows";
 
 const inr = (n: number) => `${n < 0 ? "-" : ""}₹${formatIndian(Math.abs(Math.round(n)), 0)}`;
 const usd = (n: number) => `${n < 0 ? "-" : ""}$${formatIndian(Math.abs(n), 2)}`;
@@ -26,8 +27,8 @@ const EarningsSummary = () => {
   const { user } = useAuth();
   const [s, setS] = useState<State | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
+  const load = useCallback(() => {
+    if (!user) return () => {};
     let active = true;
     void Promise.all([
       supabase
@@ -69,6 +70,9 @@ const EarningsSummary = () => {
       active = false;
     };
   }, [user]);
+
+  useEffect(() => load(), [load]);
+  useLiveRows(user?.id, ["payout_records", "lto_ledger"], () => void load());
 
   if (!s) return <div className="skeleton-shimmer mb-6 h-28 rounded-lg" />;
 
